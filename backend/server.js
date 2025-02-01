@@ -59,7 +59,7 @@ const startServer = async () => {
     expressMiddleware(server, {
       context: async ({ req, res }) => {
         // Add any additional context (e.g., auth token) here
-        return { req, res };
+        return { req, res , user: req.user};
       },
     })
   );

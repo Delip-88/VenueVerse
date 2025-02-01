@@ -35,7 +35,7 @@ export const WELCOME_MESSAGE_TEMPLATE = `
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome to Our Event Management Platform!</title>
+  <title>Welcome to VenueVerse!</title>
 </head>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="background: linear-gradient(to right, #2196F3, #0b79d0); padding: 20px; text-align: center;">

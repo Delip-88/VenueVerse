@@ -8,6 +8,14 @@ import jwt from "jsonwebtoken";
 
 const resolvers = {
   Query: {
+    me: async (_, __, { user }) => {  // ✅ Directly use `user`
+      if (!user) {
+        throw new Error("Not Authenticated");
+      }
+    
+      const foundUser = await User.findById(user.id); // Use `.id` from JWT payload
+      return foundUser;
+    },
     // Fetch all events
     venues: async () => {
       return await Venue.find().populate("owner");
@@ -47,11 +55,10 @@ const resolvers = {
 
   Mutation: {
     // Create a new event
-    addVenue: async (
-      _,
-      { name, description, location, price, features },
-      context
-    ) => {
+    addVenue: async (_, args, context) => {
+      const { name, description, location, price, facilities, capacity } =
+        args.input;
+      console.log(context.user);
       if (!context.user) {
         throw new Error("Not authenticated");
       }
@@ -61,6 +68,7 @@ const resolvers = {
         location,
         facilities,
         price,
+        capacity,
         owner: context.user.id,
       });
       await newVenue.save();
@@ -232,8 +240,12 @@ const resolvers = {
       }
     },
 
-    async addReview(_, args) {
-      const { user, comment, rating, venue } = args;
+    async addReview(_, args, {user}) {
+      const { comment, rating, venue } = args.input;
+
+      if (!user) {
+        throw new Error("Not Authenticated");
+      }
 
       try {
         // Validate rating range
@@ -242,7 +254,7 @@ const resolvers = {
         }
 
         // Create and save the review
-        const review = new Review({ user, venue, comment, rating });
+        const review = new Review({ user: user.id, venue, comment, rating });
         await review.save();
 
         return {
@@ -307,7 +319,7 @@ const resolvers = {
     },
 
     // Register a new user
-    async register(parent, args) {
+    async register(parent, args, { res }) {
       const { name, email, password } = args;
 
       try {
@@ -316,40 +328,56 @@ const resolvers = {
           throw new Error("User with this email already exists");
         }
 
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-
         const newUser = new User({
           name,
           email,
-          password: hashedPassword,
+          password,
           role: "Customer",
         });
 
-        await newUser.save();
+        const user = await newUser.save();
+
+        const token = jwt.sign(
+          { id: user._id, email: user.email },
+          process.env.JWT_SECRET,
+          { expiresIn: "1d" }
+        );
+
+        res.cookie("authToken", token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite:  process.env.NODE_ENV === "production" ? "None" : "Lax",
+          maxAge: 24 * 60 * 60 * 1000,
+        });
 
         return {
-          message: "Resitered Sucess",
-          success: true,
+          user,
+          token,
         };
       } catch (err) {
-        throw new Error(err.message);
+        console.error("Registration Error:", err);
+        throw new Error("Registration failed. Please try again.");
       }
     },
 
     // Login user and return a JWT
     login: async (_, { email, password }) => {
-      const user = await User.findOne({ email });
+      const user = await User.findOne({ email }).select("+password"); // Ensure password is selected
+
       if (!user) {
         throw new Error("User not found");
       }
 
-      const isPasswordValid = await user.comparePassword(password);
+      console.log("Entered Password:", password);
+      console.log("Stored Password Hash:", user.password);
+
+      const isPasswordValid = await bcrypt.compare(password, user.password); // Direct comparison
+      console.log("Password Valid:", isPasswordValid);
+
       if (!isPasswordValid) {
         throw new Error("Invalid password");
       }
 
-      // Generate JWT token
       const token = jwt.sign(
         { id: user._id, email: user.email },
         process.env.JWT_SECRET,

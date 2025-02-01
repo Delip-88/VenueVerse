@@ -32,8 +32,9 @@ const userSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // Password hashing middleware
+// Password hashing middleware
 userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) {
+  if (!this.isModified('password')) { // This prevents double hashing
     return next();
   }
   try {
@@ -45,10 +46,15 @@ userSchema.pre('save', async function (next) {
   }
 });
 
+
 // Password comparison method
 userSchema.methods.comparePassword = async function (candidatePassword) {
-  return bcrypt.compare(candidatePassword, this.password);
+  if (!this.password) {
+    throw new Error("Password not found in user document");
+  }
+  return await bcrypt.compare(candidatePassword, this.password);
 };
+
 
 const User = mongoose.model('User', userSchema);
 

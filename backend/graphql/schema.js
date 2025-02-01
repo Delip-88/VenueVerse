@@ -55,6 +55,7 @@ const typeDefs = gql`
   }
 
   type Query {
+    me:User!
     venues: [Venue!]
     venue(id: ID!): Venue
     bookings: [Booking!]
@@ -66,7 +67,7 @@ const typeDefs = gql`
   }
 
   type Mutation {
-    register(name: String!, email: String!, password: String!, role: String!): AuthResponse!
+    register(name: String!, email: String!, password: String!): AuthResponse!
     login(email: String!, password: String!): String! # Returns a JWT
     addVenue(input: venueInput!): Venue!
     bookVenue(input: bookInput!): Booking!
@@ -129,11 +130,12 @@ const typeDefs = gql`
     description: String
     location: String!
     price: Float!
-    features: [String!]
+    facilities: [String!]
+    capacity: Int!
+
   }
 
   input reviewInput {
-    user: ID!
     comment: String!
     rating: Int!
     venue: ID!
