@@ -7,9 +7,11 @@ const typeDefs = gql`
     id: ID!
     name: String!
     email: String!
-    password: String
-    bookedVenue: [Venue!]
-    role: String! # "VenueOwner", "Customer"
+    role: String! # "Customer" | "VenueOwner"
+    bookedVenue: [Venue] # Venues the user has booked
+    venues: [Venue] # Only for VenueOwners - venues they own
+    reviews: [Review] # Reviews the user has written
+    bookings: [Booking] # Bookings the user has made
   }
 
   type Venue {
@@ -23,6 +25,8 @@ const typeDefs = gql`
     owner: User!
     availability: [Availability!]!
     reviews: [Review!]
+    bookings: [Booking]! # Bookings made for this venue
+    users: [User!]
   }
 
   type Availability {
@@ -55,7 +59,7 @@ const typeDefs = gql`
   }
 
   type Query {
-    me:User!
+    me: User!
     venues: [Venue!]
     venue(id: ID!): Venue
     bookings: [Booking!]
@@ -70,10 +74,10 @@ const typeDefs = gql`
     register(name: String!, email: String!, password: String!): AuthResponse!
     login(email: String!, password: String!): String! # Returns a JWT
     addVenue(input: venueInput!): Venue!
+    removeVenue(venueId: ID!): Response!
     bookVenue(input: bookInput!): Booking!
     approveBooking(bookingId: ID!): Booking!
     cancelBooking(bookingId: ID!): Booking!
-
 
     addReview(input: reviewInput!): ReviewResponse!
     updateReview(reviewId: ID!, comment: String, rating: Int): ReviewResponse!
@@ -120,9 +124,9 @@ const typeDefs = gql`
 
   input bookInput {
     venue: ID!
-    user: ID!
     date: String!
     slot: String!
+    price: Float!
   }
 
   input venueInput {
@@ -132,7 +136,12 @@ const typeDefs = gql`
     price: Float!
     facilities: [String!]
     capacity: Int!
+    availability: [slotsInput!]! # ✅ Corrected to an array
+  }
 
+  input slotsInput {
+    date: String! # e.g., "2025-01-25"
+    slots: [String!]! # e.g., ["9:00-12:00", "13:00-16:00"]
   }
 
   input reviewInput {

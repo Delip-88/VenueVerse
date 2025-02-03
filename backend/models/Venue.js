@@ -33,7 +33,7 @@ const venueSchema = new mongoose.Schema(
     image:{
       type: String,
     },
-
+ 
     availability: [
       {
         date: {

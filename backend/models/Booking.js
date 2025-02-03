@@ -18,7 +18,7 @@ const bookingSchema = new mongoose.Schema({
     required: true
   },
   slot: {
-    type: [String],
+    type: String,
     required: true
   },
   status: {

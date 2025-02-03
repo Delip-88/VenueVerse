@@ -8,11 +8,12 @@ import jwt from "jsonwebtoken";
 
 const resolvers = {
   Query: {
-    me: async (_, __, { user }) => {  // ✅ Directly use `user`
+    me: async (_, __, { user }) => {
+      // ✅ Directly use `user`
       if (!user) {
         throw new Error("Not Authenticated");
       }
-    
+
       const foundUser = await User.findById(user.id); // Use `.id` from JWT payload
       return foundUser;
     },
@@ -56,9 +57,16 @@ const resolvers = {
   Mutation: {
     // Create a new event
     addVenue: async (_, args, context) => {
-      const { name, description, location, price, facilities, capacity } =
-        args.input;
-      console.log(context.user);
+      const {
+        name,
+        description,
+        location,
+        price,
+        facilities,
+        capacity,
+        availability,
+      } = args.input;
+
       if (!context.user) {
         throw new Error("Not authenticated");
       }
@@ -69,10 +77,25 @@ const resolvers = {
         facilities,
         price,
         capacity,
+        availability,
         owner: context.user.id,
       });
       await newVenue.save();
       return newVenue.populate("owner");
+    },
+
+    removeVenue: async (_, args, context) => {
+      const { venueId } = args;
+      try {
+        const venue = await Venue.findByIdAndDelete(venueId);
+        if (!venue) {
+          throw new Error("Venue Doesn't exist");
+        }
+
+        return { message: "Venue removed Successfully", success: true };
+      } catch (err) {
+        throw new Error(`Error removing venue: ${err.message}`);
+      }
     },
 
     addAvailability: async (_, args) => {
@@ -146,8 +169,11 @@ const resolvers = {
     },
 
     // Book tickets for an event
-    bookVenue: async (_, args) => {
-      const { venue, user, date, slot } = args.input;
+    bookVenue: async (_, args, { user }) => {
+      if (!user) {
+        throw new Error("Not Authenticated");
+      }
+      const { venue, date, slot, price } = args.input;
 
       try {
         const venueData = await Venue.findById(venue);
@@ -156,34 +182,39 @@ const resolvers = {
         }
 
         // Check if the date and slot are available
-        const availability = venueData.availability.find(
-          (a) => a.date === date
-        );
-        if (!availability || !availability.slots.includes(slot)) {
+        const availability = venueData.availability.find((a) => a.date === date);
+
+        if (!availability) {
+          throw new Error("Date not available");
+        }
+        
+        if (!availability.slots.includes(slot)) {
           throw new Error("Slot not available");
         }
-
-        // Remove the booked slot from availability
+        
+        // Remove the booked slot
         availability.slots = availability.slots.filter((s) => s !== slot);
+        
+        // If no slots remain for the date, remove the entire date entry
         if (availability.slots.length === 0) {
-          // Remove the date if no slots remain
-          venueData.availability = venueData.availability.filter(
-            (a) => a.date !== date
-          );
+          venueData.availability = venueData.availability.filter((a) => a.date !== date);
         }
+        
         await venueData.save();
-
+        
         // Create a new booking
         const booking = new Booking({
-          user,
+          user: user.id,
           venue,
           date,
           slot,
+          price,
           status: "PENDING",
         });
         await booking.save();
-
+        
         return booking;
+        
       } catch (err) {
         throw new Error(`Error booking venue: ${err.message}`);
       }
@@ -240,7 +271,7 @@ const resolvers = {
       }
     },
 
-    async addReview(_, args, {user}) {
+    async addReview(_, args, { user }) {
       const { comment, rating, venue } = args.input;
 
       if (!user) {
@@ -346,7 +377,7 @@ const resolvers = {
         res.cookie("authToken", token, {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
-          sameSite:  process.env.NODE_ENV === "production" ? "None" : "Lax",
+          sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
           maxAge: 24 * 60 * 60 * 1000,
         });
 
@@ -361,18 +392,14 @@ const resolvers = {
     },
 
     // Login user and return a JWT
-    login: async (_, { email, password }) => {
+    login: async (_, { email, password }, { res }) => {
       const user = await User.findOne({ email }).select("+password"); // Ensure password is selected
 
       if (!user) {
         throw new Error("User not found");
       }
 
-      console.log("Entered Password:", password);
-      console.log("Stored Password Hash:", user.password);
-
       const isPasswordValid = await bcrypt.compare(password, user.password); // Direct comparison
-      console.log("Password Valid:", isPasswordValid);
 
       if (!isPasswordValid) {
         throw new Error("Invalid password");
@@ -383,6 +410,13 @@ const resolvers = {
         process.env.JWT_SECRET,
         { expiresIn: "1d" }
       );
+
+      res.cookie("authToken", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+        maxAge: 24 * 60 * 60 * 1000,
+      });
 
       return token;
     },
@@ -417,7 +451,45 @@ const resolvers = {
           },
           venue,
         };
-      } catch (err) {}
+      } catch (err) {
+        throw new Error("Deletion Failed: " + err.message);
+      }
+    },
+  },
+  User: {
+    async venues(parent) {
+      return await Venue.find({ owner: parent._id });
+    },
+    async reviews(parent) {
+      return await Review.find({ user: parent._id });
+    },
+    async bookings(parent) {
+      return await Booking.find({ user: parent._id });
+    },
+  },
+
+  Booking: {
+    async user(parent) {
+      // Changed 'users' to 'user'
+      return await User.findById(parent.user); // ✅ Fetch user who made this booking
+    },
+    async venue(parent) {
+      // Changed 'venues' to 'venue'
+      return await Venue.findById(parent.venue); // ✅ Booking relates to one venue
+    },
+  },
+
+  Venue: {
+    async users(parent) {
+      const bookings = await Booking.find({ venue: parent._id });
+      const userIds = bookings.map((booking) => booking.user);
+      return await User.find({ _id: { $in: userIds } });
+    },
+    async reviews(parent) {
+      return await Review.find({ venue: parent._id });
+    },
+    async bookings(parent) {
+      return await Booking.find({ venue: parent._id });
     },
   },
 };

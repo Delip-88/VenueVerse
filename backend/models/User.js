@@ -22,6 +22,7 @@ const userSchema = new mongoose.Schema({
     type:[ mongoose.Schema.Types.ObjectId],
     ref: 'Event'
   }],
+  
   role:{
     type: String,
     enum: ["VenueOwner","Customer"],
