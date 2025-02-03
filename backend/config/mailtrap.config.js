@@ -1,16 +1,16 @@
 import { MailtrapClient } from "mailtrap";
 
-if (!process.env.MAILTRAP_TOKEN) {
-  throw new Error("MAILTRAP_TOKEN is not defined in .env file");
-}
+// if (!process.env.MAILTRAP_TOKEN) {
+//   throw new Error("MAILTRAP_TOKEN is not defined in .env file");
+// }
 
 export const client = new MailtrapClient({
-  token: process.env.MAILTRAP_TOKEN,
+  token: "b8483a4f7968d9ca6ea3b298fa323862",
 });
 
 export const sender = {
   email: "admin@rajeshshrestha2059.com.np",
-  name: "From your blog site",
+  name: "From VenueVerse",
 };
 
 

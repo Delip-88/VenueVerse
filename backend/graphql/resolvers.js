@@ -5,6 +5,9 @@ import User from "../models/user.js";
 import Review from "../models/Review.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { sendEmail } from "../config/mailtype.js";
+import { generateResetToken, setUserCookie } from "../utils/functions.js";
+import { generateToken } from "../utils/functions.js";
 
 const resolvers = {
   Query: {
@@ -168,7 +171,6 @@ const resolvers = {
       }
     },
 
-    // Book tickets for an event
     bookVenue: async (_, args, { user }) => {
       if (!user) {
         throw new Error("Not Authenticated");
@@ -182,26 +184,30 @@ const resolvers = {
         }
 
         // Check if the date and slot are available
-        const availability = venueData.availability.find((a) => a.date === date);
+        const availability = venueData.availability.find(
+          (a) => a.date === date
+        );
 
         if (!availability) {
           throw new Error("Date not available");
         }
-        
+
         if (!availability.slots.includes(slot)) {
           throw new Error("Slot not available");
         }
-        
+
         // Remove the booked slot
         availability.slots = availability.slots.filter((s) => s !== slot);
-        
+
         // If no slots remain for the date, remove the entire date entry
         if (availability.slots.length === 0) {
-          venueData.availability = venueData.availability.filter((a) => a.date !== date);
+          venueData.availability = venueData.availability.filter(
+            (a) => a.date !== date
+          );
         }
-        
+
         await venueData.save();
-        
+
         // Create a new booking
         const booking = new Booking({
           user: user.id,
@@ -212,15 +218,14 @@ const resolvers = {
           status: "PENDING",
         });
         await booking.save();
-        
+
         return booking;
-        
       } catch (err) {
         throw new Error(`Error booking venue: ${err.message}`);
       }
     },
 
-    async approveBooking(parent, args) {
+    approveBooking: async(parent, args)=> {
       const { bookingId } = args;
       try {
         const booking = await Booking.findOneAndUpdate(
@@ -271,7 +276,7 @@ const resolvers = {
       }
     },
 
-    async addReview(_, args, { user }) {
+    addReview: async (_, args, { user }) => {
       const { comment, rating, venue } = args.input;
 
       if (!user) {
@@ -299,7 +304,7 @@ const resolvers = {
         throw new Error(`Error adding review: ${err.message}`);
       }
     },
-    async removeReview(_, args) {
+    removeReview: async (_, args) => {
       const { reviewId } = args;
 
       try {
@@ -319,7 +324,7 @@ const resolvers = {
       }
     },
 
-    async updateReview(_, args) {
+    updateReview: async (_, args) => {
       const { reviewId, comment, rating } = args;
 
       try {
@@ -350,7 +355,7 @@ const resolvers = {
     },
 
     // Register a new user
-    async register(parent, args, { res }) {
+    register: async (parent, args, { res }) => {
       const { name, email, password } = args;
 
       try {
@@ -359,31 +364,35 @@ const resolvers = {
           throw new Error("User with this email already exists");
         }
 
+        // Generate a random 6-digit verification code
+        const randTokenGenerate = Math.floor(
+          100000 + Math.random() * 900000
+        ).toString();
+
         const newUser = new User({
           name,
           email,
           password,
           role: "Customer",
+          verificationToken: randTokenGenerate.toString(),
+          verificationTokenExpiresAt: new Date(
+            Date.now() + 15 * 60 * 1000
+          ).toISOString(),
         });
 
-        const user = await newUser.save();
-
-        const token = jwt.sign(
-          { id: user._id, email: user.email },
-          process.env.JWT_SECRET,
-          { expiresIn: "1d" }
+        await newUser.save();
+        console.log(
+          `Sending verification email to: ${newUser.email} with code: ${randTokenGenerate}`
         );
-
-        res.cookie("authToken", token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
-          maxAge: 24 * 60 * 60 * 1000,
-        });
-
+        await sendEmail(
+          "email_verification",
+          newUser.email,
+          "Email Verification",
+          randTokenGenerate
+        );
         return {
-          user,
-          token,
+          message: "Email verification sent",
+          success: true,
         };
       } catch (err) {
         console.error("Registration Error:", err);
@@ -391,37 +400,7 @@ const resolvers = {
       }
     },
 
-    // Login user and return a JWT
-    login: async (_, { email, password }, { res }) => {
-      const user = await User.findOne({ email }).select("+password"); // Ensure password is selected
-
-      if (!user) {
-        throw new Error("User not found");
-      }
-
-      const isPasswordValid = await bcrypt.compare(password, user.password); // Direct comparison
-
-      if (!isPasswordValid) {
-        throw new Error("Invalid password");
-      }
-
-      const token = jwt.sign(
-        { id: user._id, email: user.email },
-        process.env.JWT_SECRET,
-        { expiresIn: "1d" }
-      );
-
-      res.cookie("authToken", token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
-        maxAge: 24 * 60 * 60 * 1000,
-      });
-
-      return token;
-    },
-
-    async deleteUser(_, args) {
+    deleteUser: async (_, args) => {
       const { userId } = args;
       try {
         const user = await User.findOneAndDelete({ _id: userId });
@@ -437,7 +416,199 @@ const resolvers = {
         };
       } catch (err) {}
     },
-    async deleteVenue(_, args) {
+
+    // Login user and return a JWT
+    login: async (_, { email, password }, context) => {
+      const user = await User.findOne({ email }).select("+password"); // Ensure password is selected
+
+      if (!user) {
+        throw new Error("User not found");
+      }
+
+      if (!user || user.verified === false) {
+        throw new Error("Invalid credentials");
+      }
+
+      const isPasswordValid = await bcrypt.compare(password, user.password); // Direct comparison
+
+      if (!isPasswordValid) {
+        throw new Error("Invalid password");
+      }
+
+      const token = jwt.sign(
+        { id: user._id, email: user.email },
+        process.env.JWT_SECRET,
+        { expiresIn: "1d" }
+      );
+
+      setUserCookie(token, context);
+
+      return token;
+    },
+
+    resendCode: async (_, { email }) => {
+      try {
+        const user = await User.findOne({ email });
+        if (!user) {
+          throw new Error("User doesn't exist");
+        }
+        // Generate a random 6-digit verification code
+        const randTokenGenerate = Math.floor(
+          100000 + Math.random() * 900000
+        ).toString();
+
+        user.verificationToken = randTokenGenerate;
+        await user.save();
+
+        sendEmail(
+          "email_verification",
+          email,
+          "Email Verification",
+          randTokenGenerate
+        );
+        return { message: "Verification code sended", success: true };
+      } catch (err) {
+        console.error("Failed to send code,", err.message);
+        throw new Error(err.message);
+      }
+    },
+
+    verifyUser: async (_, { email, code }, context) => {
+      try {
+        // Find the user by email
+        const user = await User.findOne({ email });
+
+        // Check if user exists and the verification token matches the provided code
+        if (!user || user.verificationToken !== code) {
+          console.error("Invalid Code");
+          throw new Error("Invalid Code");
+        }
+
+        // Check if the verification token has expired
+        const tokenExpirationDate = new Date(user.verificationTokenExpiresAt);
+        if (tokenExpirationDate < new Date()) {
+          console.error("Verification code has expired");
+          throw new Error("Verification code has expired");
+        }
+
+        // Clear the verification token and update user verification status
+        user.verificationToken = undefined;
+        user.verificationTokenExpiresAt = undefined;
+        user.verified = true;
+        user.expiresAt = undefined;
+
+        // Save the updated user
+        await user.save();
+
+        // Send welcome email
+        await sendEmail(
+          "welcome_message",
+          user.email,
+          "Welcome to the family",
+          "",
+          user.username
+        );
+
+        const token = generateToken(user);
+        setUserCookie(token, context);
+        // Log the success
+        // console.log("User verified and welcome email sent.");
+
+        // Return the user object, excluding the password field
+        return {
+          token,
+          user: { ...user.toObject(), password: undefined },
+        };
+      } catch (err) {
+        // Improved error logging
+        console.error("Failed to verify user:", err.message);
+        throw new Error(`Verification Failed: ${err.message}`);
+      }
+    },
+
+    passwordReset: async (_, { email }) => {
+      try {
+        // Find the user by email
+        const user = await User.findOne({ email });
+
+        if (!user) {
+          console.error("User doesn't exist");
+          throw new Error("User doesn't exist");
+        }
+
+        // Generate a secure reset token (you should define this function)
+        const passwordResetToken = generateResetToken();
+
+        // Set token expiry time (15 minutes from now)
+        const expiresAt = Date.now() + 15 * 60 * 1000; // 15 minutes
+
+        // Update the user with the reset token and expiry
+        user.resetToken = passwordResetToken;
+        user.resetTokenExpiresAt = new Date(expiresAt); // Store as Date
+
+        await user.save();
+
+        // console.log("User after updating:", user);
+
+        // Send password reset email with the token link
+        await sendEmail(
+          "password_reset",
+          user.email,
+          "Password Reset Requested",
+          "",
+          "",
+          `${process.env.CLIENT_URL}/reset-password/${passwordResetToken}` // Reset link
+        );
+
+        // console.log("Password reset email sent");
+        return {
+          message: "Password reset link sended to your email.",
+          success: true,
+        };
+      } catch (err) {
+        console.error("Failed to reset password:", err.message);
+        throw new Error(`Failed to reset password: ${err.message}`);
+      }
+    },
+    newPassword: async (_, { password, token }, context) => {
+      try {
+        // Find user by the reset token
+        const user = await User.findOne({ resetToken: token });
+
+        if (!user || Date.now() > user.resetTokenExpiresAt) {
+          throw new Error("Token is invalid or has expired.");
+        }
+
+        // Set the new password
+        user.password = password;
+        user.resetToken = undefined;
+        user.resetTokenExpiresAt = undefined;
+        user.expiresAt = undefined;
+        await user.save();
+
+        // Generate a new token for the user (if you want to log them in immediately)
+        const newAuthToken = generateToken(user);
+
+        setUserCookie(newAuthToken, context);
+        // Send success email
+        sendEmail(
+          "password_reset_success",
+          user.email,
+          "Password Reset Successfully",
+          "",
+          user.username
+        );
+
+        return {
+          message: "Password Reset Successfully",
+          success: true,
+        };
+      } catch (err) {
+        console.error("Error resetting password:", err.message);
+        throw new Error(err.message);
+      }
+    },
+    deleteVenue: async (_, args) => {
       const { venueId } = args;
       try {
         const venue = await Venue.findOneAndDelete({ _id: venueId });

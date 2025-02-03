@@ -12,6 +12,21 @@ const typeDefs = gql`
     venues: [Venue] # Only for VenueOwners - venues they own
     reviews: [Review] # Reviews the user has written
     bookings: [Booking] # Bookings the user has made
+    image: Image
+    verified: Boolean! # Non-nullable verified field
+    verificationToken: String
+    verificationTokenExpiresAt: String
+  }
+
+  type Image {
+    public_id: String
+    secure_url: String
+    asset_id: String
+    version: Int
+    format: String
+    width: Int
+    height: Int
+    created_at: String
   }
 
   type Venue {
@@ -71,8 +86,13 @@ const typeDefs = gql`
   }
 
   type Mutation {
-    register(name: String!, email: String!, password: String!): AuthResponse!
+    register(name: String!, email: String!, password: String!): Response!
     login(email: String!, password: String!): String! # Returns a JWT
+    verifyUser(email: String!, code: String!): AuthPayload!
+    resendCode(email: String!): Response!
+    passwordReset(email: String!): Response!
+    newPassword(token: String!, password: String!): Response!
+
     addVenue(input: venueInput!): Venue!
     removeVenue(venueId: ID!): Response!
     bookVenue(input: bookInput!): Booking!
@@ -89,6 +109,11 @@ const typeDefs = gql`
     # Admin Only
     deleteUser(userId: ID!): UserResponse!
     deleteVenue(venueId: ID!): VenueResponse!
+  }
+
+  type AuthPayload {
+    token: String!
+    user: User!
   }
 
   type UserResponse {
