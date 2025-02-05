@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { SearchIcon, FilterIcon, StarIcon } from "lucide-react";
+import VenueCard from "../common/VenueCard";
 
 // Mock data for venues
 const mockVenues = [
@@ -150,44 +151,18 @@ export default function VenuesPage() {
         {/* Venues Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {venues.map((venue) => (
-            <VenueCard key={venue.id} venue={venue} />
+            <VenueCard
+              name={venue.name}
+              image={venue.image}
+              location={venue.location}
+              price={venue.price}
+              rating={venue.rating}
+              capacity={venue.capacity}
+              features={venue.features}
+            />
           ))}
         </div>
       </main>
-    </div>
-  );
-}
-
-function VenueCard({ venue }) {
-  return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden">
-      <img
-        src={venue.image || "/placeholder.svg"}
-        alt={venue.name}
-        className="w-full h-48 object-cover"
-      />
-      <div className="p-6">
-        <h3 className="text-xl font-semibold mb-2">{venue.name}</h3>
-        <p className="text-gray-600 mb-2">{venue.location}</p>
-        <div className="flex justify-between items-center mb-2">
-          <p className="text-lg font-bold">${venue.price}/day</p>
-          <div className="flex items-center">
-            <StarIcon className="w-5 h-5 text-yellow-400 mr-1" />
-            <span>{venue.rating}</span>
-          </div>
-        </div>
-        <p className="text-gray-600 mb-2">Capacity: {venue.capacity} guests</p>
-        <div className="flex flex-wrap gap-2">
-          {venue.features.map((feature, index) => (
-            <span
-              key={index}
-              className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded"
-            >
-              {feature}
-            </span>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

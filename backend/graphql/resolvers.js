@@ -8,6 +8,8 @@ import jwt from "jsonwebtoken";
 import { sendEmail } from "../config/mailtype.js";
 import { generateResetToken, setUserCookie } from "../utils/functions.js";
 import { generateToken } from "../utils/functions.js";
+import { AuthenticationError, UserInputError } from "apollo-server-express";
+import { validateEsewaId, validateImage, validateLocation } from "../utils/Validation.js";
 
 const resolvers = {
   Query: {
@@ -59,7 +61,7 @@ const resolvers = {
 
   Mutation: {
     // Create a new event
-    addVenue: async (_, args, context) => {
+    addVenue: async (_, args, {user}) => {
       const {
         name,
         description,
@@ -70,7 +72,7 @@ const resolvers = {
         availability,
       } = args.input;
 
-      if (!context.user) {
+      if (!user || user.role !== "VenueOwner") {
         throw new Error("Not authenticated");
       }
       const newVenue = new Venue({
@@ -87,7 +89,10 @@ const resolvers = {
       return newVenue.populate("owner");
     },
 
-    removeVenue: async (_, args, context) => {
+    removeVenue: async (_, args, {user}) => {
+      if (!user || user.role !== "VenueOwner") {
+        throw new Error("Not authenticated");
+      }
       const { venueId } = args;
       try {
         const venue = await Venue.findByIdAndDelete(venueId);
@@ -101,7 +106,10 @@ const resolvers = {
       }
     },
 
-    addAvailability: async (_, args) => {
+    addAvailability: async (_, args,{user}) => {
+      if (!user || user.role !== "VenueOwner") {
+        throw new Error("Not authenticated");
+      }
       const { venueId, date, slots } = args;
 
       try {
@@ -133,7 +141,10 @@ const resolvers = {
       }
     },
 
-    removeAvailability: async (_, args) => {
+    removeAvailability: async (_, args, {user}) => {
+      if (!user || user.role !== "VenueOwner") {
+        throw new Error("Not authenticated");
+      }
       const { venueId, date, slots } = args;
 
       try {
@@ -225,7 +236,10 @@ const resolvers = {
       }
     },
 
-    approveBooking: async(parent, args)=> {
+    approveBooking: async(parent, args,{user})=> {
+      if (!user || user.role !== "VenueOwner") {
+        throw new Error("Not authenticated");
+      }
       const { bookingId } = args;
       try {
         const booking = await Booking.findOneAndUpdate(
@@ -446,6 +460,14 @@ const resolvers = {
       return token;
     },
 
+    logout: async(_,__,{res})=>{
+      res.clearCookie("authToken", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "None" : undefined, // Only set in production
+      });
+      return { message: "logged out sucessfully", success: true };
+    },
     resendCode: async (_, { email }) => {
       try {
         const user = await User.findOne({ email });
@@ -624,6 +646,50 @@ const resolvers = {
         };
       } catch (err) {
         throw new Error("Deletion Failed: " + err.message);
+      }
+    },
+
+    updateToVenueOwner: async (_, { input }, { user }) => {
+      try {
+        // Check if user is authenticated
+        if (!user) throw new AuthenticationError("User not authenticated");
+
+        const existingUser = await User.findById(user.id);
+        if (!existingUser) throw new UserInputError("User not found");
+
+        // Validate images
+        if (!validateImage(input.profileImg) || !validateImage(input.legalDocImg)) {
+          throw new UserInputError("Invalid image data");
+        }
+
+        // Validate location
+        if (!validateLocation(input.location)) {
+          throw new UserInputError("Invalid location data");
+        }
+
+        // Validate Esewa ID
+        if (!validateEsewaId(input.esewaId)) {
+          throw new UserInputError("Invalid Esewa ID");
+        }
+
+        // Update user fields
+        existingUser.name = input.name;
+        existingUser.email = input.email;
+        existingUser.role = "VenueOwner";
+        existingUser.profileImg = input.profileImg;
+        existingUser.legalDocImg = input.legalDocImg;
+        existingUser.location = input.location;
+        existingUser.esewaId = input.esewaId;
+        existingUser.companyName = input.companyName;
+
+        await existingUser.save();
+
+        return {
+          success: true,
+          message: "User upgraded to Venue Owner successfully",
+        };
+      } catch (error) {
+        return { success: false, message: error.message };
       }
     },
   },

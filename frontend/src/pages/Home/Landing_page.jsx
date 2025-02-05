@@ -1,6 +1,7 @@
 import React from "react"
 import { CalendarDaysIcon, MapPinIcon, StarIcon, CurrencyIcon as CurrencyDollarIcon } from "lucide-react"
 import { useNavigate } from "react-router-dom"
+import VenueCard from "../common/VenueCard"
 
 export default function LandingPage() {
   const navigate = useNavigate()
@@ -29,20 +30,26 @@ export default function LandingPage() {
               location="Downtown"
               price={1000}
               rating={4.8}
+              capacity={1000}
+              features={ ["WiFi", "Catering", "Parking"]}
             />
             <VenueCard
               name="Rustic Barn"
               image="https://picsum.photos/200/300"
               location="Countryside"
               price={800}
+              capacity={800}
               rating={4.6}
+              features={ ["WiFi", "Catering", "Parking"]}
             />
             <VenueCard
               name="Modern Conference Center"
               image="https://picsum.photos/200/300"
               location="Business District"
               price={1200}
+              capacity={1200}
               rating={4.9}
+              features={ ["WiFi", "Catering", "Parking"]}
             />
           </div>
         </div>
@@ -168,22 +175,4 @@ function TestimonialCard({ quote, author, role, image }) {
   )
 }
 
-function VenueCard({ name, image, location, price, rating }) {
-  return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden cursor-pointer ">
-      <img src={image || "/placeholder.svg"} alt={name} className="w-full h-48 object-cover" />
-      <div className="p-6">
-        <h3 className="text-xl font-semibold mb-2">{name}</h3>
-        <p className="text-gray-600 mb-2">{location}</p>
-        <div className="flex justify-between items-center">
-          <p className="text-lg font-bold">${price}/day</p>
-          <div className="flex items-center">
-            <StarIcon className="w-5 h-5 text-yellow-400 mr-1" />
-            <span>{rating}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
 

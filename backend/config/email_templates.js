@@ -101,3 +101,85 @@ export const PASSWORD_RESET_REQUEST_TEMPLATE = `
 </body>
 </html>
 `;
+
+
+export const BOOKING_REQUEST_APPLIED_TEMPLATE = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Venue Booking Applied</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(to right, #FFD700, #FFA500); padding: 20px; text-align: center;">
+    <h1 style="color: white; margin: 0;">🎉 Venue Booking Applied! 🏢</h1>
+  </div>
+  <div style="background-color: #f9f9f9; padding: 20px; border-radius: 0 0 5px 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+    <p>Hello <strong>{username}</strong>,</p>
+    <p>Thank you for applying to book the venue <strong>{venueName}</strong>! 🎊</p>
+    <p>Here are your booking details:</p>
+    <ul>
+      <li>📍 Venue: <strong>{venueName}</strong></li>
+      <li>📅 Date: <strong>{bookingDate}</strong></li>
+      <li>⏰ Time: <strong>{bookingTime}</strong></li>
+      <li>👥 Guests: <strong>{guestCount}</strong></li>
+    </ul>
+    <p>Your booking is now under review. We will notify you once it is approved. ✅</p>
+    <p>Best regards,<br>VenueVerse Team</p>
+  </div>
+</body>
+</html>
+`
+
+export const BOOKING_REQUEST_REJECTED_TEMPLATE = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Venue Booking Rejected</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(to right, #FF5733, #C70039); padding: 20px; text-align: center;">
+    <h1 style="color: white; margin: 0;">❌ Booking Rejected</h1>
+  </div>
+  <div style="background-color: #f9f9f9; padding: 20px; border-radius: 0 0 5px 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+    <p>Hello <strong>{username}</strong>,</p>
+    <p>We regret to inform you that your venue booking request for <strong>{venueName}</strong> on <strong>{bookingDate}</strong> has been rejected. 😞</p>
+    <p>Reason: <strong>{rejectionReason}</strong></p>
+    <p>If you need assistance or would like to book an alternative venue, please feel free to contact us. 📩</p>
+    <p>Best regards,<br>VenueVerse Team</p>
+  </div>
+</body>
+</html>
+`
+
+export const BOOKING_REQUEST_APPROVED_TEMPLATE = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Venue Booking Approved</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(to right, #4CAF50, #45a049); padding: 20px; text-align: center;">
+    <h1 style="color: white; margin: 0;">✅ Booking Approved! 🎉</h1>
+  </div>
+  <div style="background-color: #f9f9f9; padding: 20px; border-radius: 0 0 5px 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+    <p>Hello <strong>{username}</strong>,</p>
+    <p>Great news! Your booking for <strong>{venueName}</strong> on <strong>{bookingDate}</strong> has been approved! 🎊</p>
+    <p>Here are your booking details:</p>
+    <ul>
+      <li>📍 Venue: <strong>{venueName}</strong></li>
+      <li>📅 Date: <strong>{bookingDate}</strong></li>
+      <li>⏰ Time: <strong>{bookingTime}</strong></li>
+      <li>👥 Guests: <strong>{guestCount}</strong></li>
+    </ul>
+    <p>We look forward to hosting your event. Enjoy your time at VenueVerse! 🎶🏢</p>
+    <p>Best regards,<br>VenueVerse Team</p>
+  </div>
+</body>
+</html>
+`

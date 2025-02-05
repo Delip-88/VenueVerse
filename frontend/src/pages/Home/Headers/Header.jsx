@@ -6,7 +6,7 @@ const Header = () => {
     <header className="bg-blue-100 shadow-sm sticky">
       <nav className="container mx-auto px-6 py-3">
         <div className="flex justify-between items-center">
-          <div className="text-xl font-bold text-gray-800">VenueBook</div>
+          <div className="text-xl font-bold text-gray-800"><a href="/">VenueVerse</a></div>
           <div className="hidden md:flex space-x-4">
             <NavLink
               to="/"

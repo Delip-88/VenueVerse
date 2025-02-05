@@ -2,29 +2,13 @@
 
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
+import { ImageSchema, LocationSchema } from "./Common.js";
 
 const userSchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
-      required: true,
-    },
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-    },
-    password: {
-      type: String,
-      required: true,
-      // select: false
-    },
-    bookedVenue: [
-      {
-        type: [mongoose.Schema.Types.ObjectId],
-        ref: "Event",
-      },
-    ],
+    name: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
 
     role: {
       type: String,
@@ -32,38 +16,28 @@ const userSchema = new mongoose.Schema(
       default: "Customer",
       required: true,
     },
-    image: {
-      public_id: String,
-      secure_url: String,
-      asset_id: String,
-      version: Number,
-      format: String,
-      width: Number,
-      height: Number,
-      created_at: Date,
-    },
-    verified: {
-      type: Boolean,
-      default: false,
-      required: true,
-    },
-    verificationToken: {
-      type: String,
-    },
-    verificationTokenExpiresAt: {
-      type: Date,
-    },
-    resetToken: {
-      type: String,
-    },
-    resetTokenExpiresAt: {
-      type: Date,
-    },
+
+    profileImg: ImageSchema, // Reusing ImageSchema
+    legalDocImg: ImageSchema, // Reusing ImageSchema
+
+    location: LocationSchema, // Reusing LocationSchema
+
+    esewaId: { type: String }, // Changed from Number to String for safety
+    companyName: { type: String },
+
+    bookedVenue: [{ type: mongoose.Schema.Types.ObjectId, ref: "Venue" }],
+
+    verified: { type: Boolean, default: false, required: true },
+
+    verificationToken: String,
+    verificationTokenExpiresAt: Date,
+
+    resetToken: String,
+    resetTokenExpiresAt: Date,
   },
   { timestamps: true }
 );
 
-// Password hashing middleware
 // Password hashing middleware
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) {

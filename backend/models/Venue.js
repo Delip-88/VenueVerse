@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { ImageSchema, LocationSchema } from "./Common.js";
 
 const venueSchema = new mongoose.Schema(
   {
@@ -10,7 +11,7 @@ const venueSchema = new mongoose.Schema(
       type: String,
     },
     location: {
-      type: String,
+      type: LocationSchema,
       required: true,
     },
     price: {
@@ -31,7 +32,7 @@ const venueSchema = new mongoose.Schema(
       required: true,
     },
     image:{
-      type: String,
+      type: ImageSchema,
     },
  
     availability: [

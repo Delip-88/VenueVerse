@@ -38,7 +38,7 @@ export default function VendorLayout() {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center justify-center h-16 bg-blue-500">
-            <NavLink to="/Home" className="flex items-center">
+            <NavLink to="/Dashboard" className="flex items-center">
               <img
                 className="h-9 w-auto rounded-full overflow-hidden"
                 src="https://picsum.photos/id/237/200/300"
@@ -81,7 +81,7 @@ export default function VendorLayout() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top bar */}
-        <header className="bg-white shadow-sm">
+        <header className="bg-gray-100 shadow-sm">
           <div className="px-4 py-2 flex justify-between items-center">
             <button
               onClick={toggleSidebar}
@@ -119,7 +119,7 @@ export default function VendorLayout() {
 function Link({ href, icon, children }) {
   return (
     <NavLink
-      to={`/Home/${href}`}
+      to={`/Dashboard/${href}`}
       className={({ isActive }) =>
         `flex items-center px-2 py-2 mt-1 text-sm font-medium rounded-md ${
           isActive ? "text-blue-600 font-semibold bg-gray-100" : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"

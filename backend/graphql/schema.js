@@ -12,10 +12,32 @@ const typeDefs = gql`
     venues: [Venue] # Only for VenueOwners - venues they own
     reviews: [Review] # Reviews the user has written
     bookings: [Booking] # Bookings the user has made
-    image: Image
+    profileImg: Image
+    legalDocImg: Image
+
+    location: Location
+    esewaId: String
+
     verified: Boolean! # Non-nullable verified field
     verificationToken: String
     verificationTokenExpiresAt: String
+  }
+
+  type Location{
+    street: String
+    province: Provinces
+    zipCode: Int
+    city: String  
+  }
+
+  enum Provinces{
+    Koshi
+    Madhesh
+    Bagmati
+    Gandaki
+    Lumbini
+    Karnali
+    Sudurpaschim
   }
 
   type Image {
@@ -33,7 +55,7 @@ const typeDefs = gql`
     id: ID!
     name: String!
     description: String
-    location: String!
+    location: Location!
     price: Float!
     capacity: Int!
     facilities: [String!]!
@@ -88,6 +110,7 @@ const typeDefs = gql`
   type Mutation {
     register(name: String!, email: String!, password: String!): Response!
     login(email: String!, password: String!): String! # Returns a JWT
+    logout:Response!
     verifyUser(email: String!, code: String!): AuthPayload!
     resendCode(email: String!): Response!
     passwordReset(email: String!): Response!
@@ -99,6 +122,8 @@ const typeDefs = gql`
     approveBooking(bookingId: ID!): Booking!
     cancelBooking(bookingId: ID!): Booking!
 
+    updateToVenueOwner(input: venueOwnerInput!):Response!
+
     addReview(input: reviewInput!): ReviewResponse!
     updateReview(reviewId: ID!, comment: String, rating: Int): ReviewResponse!
     removeReview(reviewId: ID!): DeleteResponse!
@@ -109,6 +134,7 @@ const typeDefs = gql`
     # Admin Only
     deleteUser(userId: ID!): UserResponse!
     deleteVenue(venueId: ID!): VenueResponse!
+
   }
 
   type AuthPayload {
@@ -164,6 +190,16 @@ const typeDefs = gql`
     availability: [slotsInput!]! # ✅ Corrected to an array
   }
 
+  input venueOwnerInput{
+    name: String!
+    email: String!
+    profileImg: imageInput!
+    legalDocImg: imageInput!
+    location: locationInput!
+    esewaId: String!
+    companyName: String!
+  }
+
   input slotsInput {
     date: String! # e.g., "2025-01-25"
     slots: [String!]! # e.g., ["9:00-12:00", "13:00-16:00"]
@@ -173,6 +209,24 @@ const typeDefs = gql`
     comment: String!
     rating: Int!
     venue: ID!
+  }
+
+  input imageInput {
+    public_id: String
+    secure_url: String
+    asset_id: String
+    version: Int
+    format: String
+    width: Int
+    height: Int
+    created_at: String
+  }
+
+  input locationInput{
+    street: String
+    province: Provinces
+    zipCode: Int
+    city: String  
   }
 `;
 

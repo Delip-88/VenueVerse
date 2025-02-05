@@ -18,6 +18,11 @@ import VendorLayout from "./components/Layout/Vendor_Layout";
 import VendorDashboard from "./components/VenueOwner/VendorDashboard";
 import VenueOwnerSupport from "./components/VenueOwner/Help&Support";
 import SettingsPage from "./components/VenueOwner/settings";
+import User_Layout from "./components/Layout/User_Layout";
+import MyBookingsPage from "./components/User/MyBookings";
+import FavoritesPage from "./components/User/Favourites";
+import UserSettingsPage from "./components/User/UserSettings";
+import NotFound from "./pages/common/NotFound";
 
 function App() {
   return (
@@ -33,18 +38,25 @@ function App() {
         </Route>
         <Route path="/EmailVerification" element={<EmailVerificationPage />} />
         <Route path="/OTPVerification" element={<OTPVerificationPage />} />
-        <Route path="/BookNow" element={<BookNowPage />} />
-        <Route path="/VenueDetails/:id" element={<VenueDetailsPage />} />
-        <Route path="/BecomeVenueOwner" element={<BecomeVenueOwnerPage />} />
-        <Route path="/homepage" element={<HomePage />} />
 
-        <Route path="Home" element={<VendorLayout />}>
+        <Route path="Home" element={<User_Layout />}>
+          <Route index element={<HomePage />} />
+          <Route path="my-bookings" element={<MyBookingsPage />} />
+          <Route path="favorites" element={<FavoritesPage />} />
+          <Route path="settings" element={<UserSettingsPage />} />
+          <Route path="BookNow" element={<BookNowPage />} />
+          <Route path="VenueDetails/:id" element={<VenueDetailsPage />} />
+          <Route path="BecomeVenueOwner" element={<BecomeVenueOwnerPage />} />
+        </Route>
+
+        <Route path="Dashboard" element={<VendorLayout />}>
           <Route index element={<VendorDashboard />} />
           <Route path="add-venue" element={<AddNewVenue />} />
           <Route path="bookings" element={<ManageBookings />} />
           <Route path="help&support" element={<VenueOwnerSupport />} />
-          <Route path="settings" element={<SettingsPage/>}/>
+          <Route path="settings" element={<SettingsPage />} />
         </Route>
+        <Route path="*" element={<NotFound/>}/>
       </Routes>
     </Router>
   );

@@ -24,7 +24,7 @@ app.use(cookieParser());
 
 // CORS options
 const corsOptions = {
-  origin: ["http://localhost:3000", "https://sandbox.apollo.dev"],
+  origin: process.env.CLIENT_URL,
   credentials: true,
   methods: ["GET", "POST"],
   allowedHeaders: ["Content-Type", "Authorization"],
