@@ -1,10 +1,26 @@
-import React from "react"
+import React, { useEffect, useState } from "react"
 import { CalendarDaysIcon, MapPinIcon, StarIcon, CurrencyIcon as CurrencyDollarIcon } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import VenueCard from "../common/VenueCard"
+import toast from "react-hot-toast"
+import VENUES from "../../components/Graphql/query/venuesGql"
+import Loader from "../common/Loader"
+import { useQuery } from "@apollo/client"
 
 export default function LandingPage() {
   const navigate = useNavigate()
+
+  const [venues, setVenues] = useState([]); // Initialize as an empty array
+  const { data, error, loading } = useQuery(VENUES);
+
+  useEffect(() => {
+    if (data?.venues) {
+      setVenues(data.venues);
+    }
+  }, [data]);
+
+  if(loading)  return <Loader/>
+
   return (
     <div className="min-h-screen bg-gray-100">
 
@@ -24,33 +40,20 @@ export default function LandingPage() {
         <div className="container mx-auto px-6">
           <h2 className="text-3xl font-bold text-center mb-12">Featured Venues</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <VenueCard
-              name="Elegant Ballroom"
-              image="https://picsum.photos/200/300"
-              location="Downtown"
-              price={1000}
-              rating={4.8}
-              capacity={1000}
-              features={ ["WiFi", "Catering", "Parking"]}
+          {venues.map((venue,index) => (
+              <VenueCard 
+              key={index}
+              id={venue.id}
+              name={venue.name} 
+              image={venue.image?.secure_url} 
+              location={venue.location} 
+              pricePerHour={venue.pricePerHour} 
+              capacity={venue.capacity} 
+              facilities={venue.facilities} 
+              reviews={venue.reviews} 
             />
-            <VenueCard
-              name="Rustic Barn"
-              image="https://picsum.photos/200/300"
-              location="Countryside"
-              price={800}
-              capacity={800}
-              rating={4.6}
-              features={ ["WiFi", "Catering", "Parking"]}
-            />
-            <VenueCard
-              name="Modern Conference Center"
-              image="https://picsum.photos/200/300"
-              location="Business District"
-              price={1200}
-              capacity={1200}
-              rating={4.9}
-              features={ ["WiFi", "Catering", "Parking"]}
-            />
+            
+            ))}
           </div>
         </div>
       </section>

@@ -22,3 +22,14 @@ export const LocationSchema = new mongoose.Schema({
   zipCode: Number,
   city: String,
 });
+
+
+export const TimeSchema = new mongoose.Schema({
+  start: String, // e.g., "09:00"
+  end: String,   // e.g., "12:00"
+});
+
+export const AvailabilitySchema = new mongoose.Schema({
+  date: String, // "YYYY-MM-DD"
+  slots: [TimeSchema], // Reserved slots on this date
+});

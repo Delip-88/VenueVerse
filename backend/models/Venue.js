@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { ImageSchema, LocationSchema } from "./Common.js";
+import { AvailabilitySchema, ImageSchema, LocationSchema } from "./Common.js";
 
 const venueSchema = new mongoose.Schema(
   {
@@ -14,10 +14,7 @@ const venueSchema = new mongoose.Schema(
       type: LocationSchema,
       required: true,
     },
-    price: {
-      type: Number,
-      required: true,
-    },
+    pricePerHour: { type: Number, required: true }, // Pricing per hour
     owner: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -35,16 +32,12 @@ const venueSchema = new mongoose.Schema(
       type: ImageSchema,
     },
  
-    availability: [
+    availability: [AvailabilitySchema],
+    reviews: [
       {
-        date: {
-          type: String, // ISO date string (e.g., "2025-01-25")
-          required: true,
-        },
-        slots: {
-          type: [String], // Array of available time slots (e.g., ["9:00-12:00", "13:00-16:00"])
-          required: true,
-        },
+        user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        rating: Number,
+        comment: String,
       },
     ],
   },

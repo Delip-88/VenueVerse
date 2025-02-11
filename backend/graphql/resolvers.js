@@ -1,5 +1,5 @@
 // graphql/resolvers.js
-import Booking from "../models/booking.js";
+import Booking from "../models/Booking.js";
 import Venue from "../models/Venue.js";
 import User from "../models/user.js";
 import Review from "../models/Review.js";
@@ -9,7 +9,11 @@ import { sendEmail } from "../config/mailtype.js";
 import { generateResetToken, setUserCookie } from "../utils/functions.js";
 import { generateToken } from "../utils/functions.js";
 import { AuthenticationError, UserInputError } from "apollo-server-express";
-import { validateEsewaId, validateImage, validateLocation } from "../utils/Validation.js";
+import {
+  validateEsewaId,
+  validateImage,
+  validateLocation,
+} from "../utils/Validation.js";
 
 const resolvers = {
   Query: {
@@ -24,12 +28,12 @@ const resolvers = {
     },
     // Fetch all events
     venues: async () => {
-      return await Venue.find().populate("owner");
+      return await Venue.find().populate("owner").populate("reviews");
     },
 
     // Fetch a single event by ID
     venue: async (_, { id }) => {
-      return await Venue.findById(id).populate("owner");
+      return await Venue.findById(id).populate("owner").populate("reviews");
     },
 
     // Fetch all bookings
@@ -39,7 +43,7 @@ const resolvers = {
 
     // Fetch a single booking by ID
     booking: async (_, { id }) => {
-      return await Booking.findById(id).populate("venue");
+      return await Booking.findById(id).populate("venue").populate("user");
     },
 
     // Fetch all users
@@ -61,15 +65,15 @@ const resolvers = {
 
   Mutation: {
     // Create a new event
-    addVenue: async (_, args, {user}) => {
+    addVenue: async (_, args, { user }) => {
       const {
         name,
         description,
         location,
-        price,
+        pricePerHour,
         facilities,
         capacity,
-        availability,
+        image,
       } = args.input;
 
       if (!user || user.role !== "VenueOwner") {
@@ -80,16 +84,16 @@ const resolvers = {
         description,
         location,
         facilities,
-        price,
         capacity,
-        availability,
-        owner: context.user.id,
+        pricePerHour,
+        image,
+        owner: user.id,
       });
       await newVenue.save();
       return newVenue.populate("owner");
     },
 
-    removeVenue: async (_, args, {user}) => {
+    removeVenue: async (_, args, { user }) => {
       if (!user || user.role !== "VenueOwner") {
         throw new Error("Not authenticated");
       }
@@ -106,87 +110,11 @@ const resolvers = {
       }
     },
 
-    addAvailability: async (_, args,{user}) => {
-      if (!user || user.role !== "VenueOwner") {
-        throw new Error("Not authenticated");
-      }
-      const { venueId, date, slots } = args;
-
-      try {
-        const venue = await Venue.findById(venueId);
-        if (!venue) {
-          throw new Error("Venue doesn't exist");
-        }
-
-        // Check if the date already exists in availability
-        const availability = venue.availability || [];
-        const dateIndex = availability.findIndex((a) => a.date === date);
-
-        if (dateIndex >= 0) {
-          // If the date exists, update slots (avoid duplicates)
-          const existingSlots = new Set(availability[dateIndex].slots);
-          slots.forEach((slot) => existingSlots.add(slot));
-          availability[dateIndex].slots = Array.from(existingSlots);
-        } else {
-          // If the date doesn't exist, add a new entry
-          availability.push({ date, slots });
-        }
-
-        venue.availability = availability;
-        await venue.save();
-
-        return venue;
-      } catch (err) {
-        throw new Error(`Error adding availability: ${err.message}`);
-      }
-    },
-
-    removeAvailability: async (_, args, {user}) => {
-      if (!user || user.role !== "VenueOwner") {
-        throw new Error("Not authenticated");
-      }
-      const { venueId, date, slots } = args;
-
-      try {
-        const venue = await Venue.findById(venueId);
-        if (!venue) {
-          throw new Error("Venue doesn't exist");
-        }
-
-        const availability = venue.availability || [];
-        const dateIndex = availability.findIndex((a) => a.date === date);
-
-        if (dateIndex >= 0) {
-          // Remove the specified slots from the date
-          const remainingSlots = availability[dateIndex].slots.filter(
-            (slot) => !slots.includes(slot)
-          );
-
-          if (remainingSlots.length > 0) {
-            // If there are remaining slots, update the availability for the date
-            availability[dateIndex].slots = remainingSlots;
-          } else {
-            // If no slots remain, remove the entire date
-            availability.splice(dateIndex, 1);
-          }
-
-          venue.availability = availability;
-          await venue.save();
-
-          return venue;
-        } else {
-          throw new Error("The specified date does not exist in availability");
-        }
-      } catch (err) {
-        throw new Error(`Error removing availability: ${err.message}`);
-      }
-    },
-
     bookVenue: async (_, args, { user }) => {
       if (!user) {
         throw new Error("Not Authenticated");
       }
-      const { venue, date, slot, price } = args.input;
+      const { venue, date, start,end,paymentStatus, totalPrice } = args.input;
 
       try {
         const venueData = await Venue.findById(venue);
@@ -194,102 +122,93 @@ const resolvers = {
           throw new Error("Venue not found");
         }
 
-        // Check if the date and slot are available
-        const availability = venueData.availability.find(
-          (a) => a.date === date
-        );
-
-        if (!availability) {
-          throw new Error("Date not available");
-        }
-
-        if (!availability.slots.includes(slot)) {
-          throw new Error("Slot not available");
-        }
-
-        // Remove the booked slot
-        availability.slots = availability.slots.filter((s) => s !== slot);
-
-        // If no slots remain for the date, remove the entire date entry
-        if (availability.slots.length === 0) {
-          venueData.availability = venueData.availability.filter(
-            (a) => a.date !== date
-          );
-        }
-
-        await venueData.save();
+        // Assuming slot is provided as start and end times
+        // If slots are stored as `timeslots`, use this structure instead
+        const timeslot = { start, end };
 
         // Create a new booking
         const booking = new Booking({
           user: user.id,
           venue,
           date,
-          slot,
-          price,
-          status: "PENDING",
+          timeslots: [timeslot], // Assuming timeslots is an array, not just a single slot
+          totalPrice,
+          bookingStatus: "PENDING",
+          paymentStatus
         });
-        await booking.save();
 
+        await booking.save();
         return booking;
       } catch (err) {
         throw new Error(`Error booking venue: ${err.message}`);
       }
     },
 
-    approveBooking: async(parent, args,{user})=> {
+    approveBooking: async (parent, args, { user }) => {
       if (!user || user.role !== "VenueOwner") {
         throw new Error("Not authenticated");
       }
+    
       const { bookingId } = args;
+      
       try {
-        const booking = await Booking.findOneAndUpdate(
-          { _id: bookingId },
-          { status: "APPROVED" },
+        // Find and update the booking first
+        const booking = await Booking.findByIdAndUpdate(
+          bookingId,
+          {
+            bookingStatus: "APPROVED",
+            paymentStatus: "PAID", // Update the payment status here
+          },
           { new: true }
         );
+    
         if (!booking) {
-          throw new Error("Booking not Found");
+          throw new Error("Booking not found");
         }
+    
+        // If booking is found and updated, then update the user
+        await User.findByIdAndUpdate(
+          user.id,
+          {
+            bookedVenue: booking._id,  
+          },
+          { new: true }
+        );
+    
         return booking;
       } catch (err) {
         throw new Error(`Failed to approve booking: ${err.message}`);
       }
     },
+    
 
     cancelBooking: async (_, { bookingId }) => {
       try {
+        // Find the booking to cancel
         const booking = await Booking.findById(bookingId);
         if (!booking) {
           throw new Error("Booking not found");
         }
-
-        booking.status = "CANCELLED";
+    
+        // Update the booking status to CANCELLED
+        booking.bookingStatus = "CANCELLED"; // Correct field to use is `bookingStatus`, not `status`
         await booking.save();
-
-        // Add the canceled slot back to the venue's availability
-        const venue = await Venue.findById(booking.venue);
-        const availability = venue.availability.find(
-          (a) => a.date === booking.date
+    
+        // Update the user's bookedVenue field to remove the cancelled booking
+        await User.findByIdAndUpdate(
+          booking.user,  // Use the user associated with the booking
+          {
+            $pull: { bookedVenue: booking._id }, // Remove the booking from the user's bookedVenue array
+          },
+          { new: true }
         );
-
-        if (availability) {
-          // If the date exists, add the slot back
-          availability.slots.push(booking.slot);
-        } else {
-          // If the date doesn't exist, add a new date entry
-          venue.availability.push({
-            date: booking.date,
-            slots: [booking.slot],
-          });
-        }
-
-        await venue.save();
-        return booking;
+    
+        return booking;  // Return the updated booking
       } catch (err) {
         throw new Error(`Error canceling booking: ${err.message}`);
       }
     },
-
+    
     addReview: async (_, args, { user }) => {
       const { comment, rating, venue } = args.input;
 
@@ -405,7 +324,7 @@ const resolvers = {
           randTokenGenerate
         );
         return {
-          message: "Email verification sent",
+          message: `Sending verification email to: ${newUser.email} with code`,
           success: true,
         };
       } catch (err) {
@@ -450,7 +369,7 @@ const resolvers = {
       }
 
       const token = jwt.sign(
-        { id: user._id, email: user.email },
+        { id: user._id, email: user.email, role: user.role },
         process.env.JWT_SECRET,
         { expiresIn: "1d" }
       );
@@ -460,7 +379,7 @@ const resolvers = {
       return token;
     },
 
-    logout: async(_,__,{res})=>{
+    logout: async (_, __, { res }) => {
       res.clearCookie("authToken", {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
@@ -658,7 +577,10 @@ const resolvers = {
         if (!existingUser) throw new UserInputError("User not found");
 
         // Validate images
-        if (!validateImage(input.profileImg) || !validateImage(input.legalDocImg)) {
+        if (
+          !validateImage(input.profileImg) ||
+          !validateImage(input.legalDocImg)
+        ) {
           throw new UserInputError("Invalid image data");
         }
 

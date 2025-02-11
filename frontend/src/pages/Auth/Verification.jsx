@@ -1,15 +1,20 @@
 import React, { useState, useRef, useEffect } from "react"
 import { CheckCircle, AlertCircle } from "lucide-react"
-import { useNavigate } from "react-router-dom"
+import { useLocation, useNavigate } from "react-router-dom"
+import { useMutation } from "@apollo/client"
+import VERIFICATION_CODE from "../../components/Graphql/mutations/verificationCodeGql"
+import toast from "react-hot-toast"
 
 export default function OTPVerificationPage() {
 
   const navigate = useNavigate()
-  
+  const location = useLocation()
+  const email = location.state?.email || ""
   const [otp, setOtp] = useState(["", "", "", "", "", ""])
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
   const inputRefs = useRef([])
+  const [Verification] = useMutation(VERIFICATION_CODE)
 
   useEffect(() => {
     if (inputRefs.current[0]) {
@@ -34,20 +39,43 @@ export default function OTPVerificationPage() {
       inputRefs.current[index - 1].focus()
     }
   }
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    const otpValue = otp.join("")
-    if (otpValue.length === 6) {
-      // Here you would typically send the OTP to your backend for verification
-      console.log("Verifying OTP:", otpValue)
-      // Simulating a successful verification
-      setSuccess(true)
-      setError("")
-    } else {
-      setError("Please enter a valid 6-digit OTP")
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const otpValue = otp.join("");
+  
+    if (otpValue.length !== 6) {
+      setError("Please enter a valid 6-digit OTP");
+      return;
     }
-  }
+  
+    try {
+      const { data } = await toast.promise(
+        Verification({
+          variables: { email, code: otpValue },
+        }),
+        {
+          loading: "Verifying ...",
+          success: <b>Verification Success</b>,
+          error: (err) => <b>{err.message}</b>,
+        }
+      );
+  
+      const token = data?.verifyUser?.token;
+      
+      if (token) {
+        localStorage.setItem("authToken", token);
+        setSuccess(true);
+        setError("");
+  
+        setTimeout(() => {
+          navigate("/Home");
+        }, 500);
+      }
+    } catch (err) {
+      console.error("Verification Error:", err);
+    }
+  };
+  
 
   const handleResendOTP = () => {
     // Here you would typically call your API to resend the OTP

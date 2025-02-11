@@ -1,233 +1,273 @@
-import React, { useState } from "react"
-import { Calendar, Clock, User, Mail, Phone, CreditCard, ChevronLeft, ChevronRight } from "lucide-react"
+"use client"
 
-// Mock data for available dates and slots (replace with actual data fetching)
-const availableDates = [
-  { date: "2025-01-26", slots: ["9:00-12:00", "13:00-16:00", "17:00-20:00"] },
-  { date: "2025-01-27", slots: ["9:00-12:00", "13:00-16:00"] },
-  { date: "2025-01-28", slots: ["13:00-16:00", "17:00-20:00"] },
-]
+import { useState, useEffect } from "react"
+import { Calendar, Clock, MapPin, Users, DollarSign, AlertCircle } from "lucide-react"
 
 const BookNowPage = () => {
-  const [selectedDate, setSelectedDate] = useState(availableDates[0].date)
-  const [selectedSlot, setSelectedSlot] = useState("")
+  // Mock venue data (replace with actual data fetching)
+  const venue = {
+    name: "Sample Venue",
+    address: "123 Main St, City, Country",
+    capacity: 100,
+    pricePerHour: 50,
+    image: "/placeholder.svg?height=200&width=300",
+  }
+
   const [bookingDetails, setBookingDetails] = useState({
+    date: "",
+    startTime: "",
+    endTime: "",
     name: "",
     email: "",
     phone: "",
-    cardNumber: "",
-    expiryDate: "",
-    cvv: "",
   })
+
+  const [errors, setErrors] = useState({})
+
+  useEffect(() => {
+    // Set minimum date to today
+    const today = new Date().toISOString().split("T")[0]
+    document.getElementById("date").min = today
+  }, [])
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
-    setBookingDetails((prev) => ({ ...prev, [name]: value }))
+    setBookingDetails((prevDetails) => ({
+      ...prevDetails,
+      [name]: value,
+    }))
+
+    // Clear errors when input changes
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      [name]: "",
+    }))
+
+    // Validate date
+    if (name === "date") {
+      const selectedDate = new Date(value)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+
+      if (selectedDate < today) {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          date: "Please select a future date",
+        }))
+      }
+    }
+
+    // Validate time
+    if (name === "startTime" || name === "endTime") {
+      const { startTime, endTime } = {
+        ...bookingDetails,
+        [name]: value,
+      }
+
+      if (startTime && endTime) {
+        const start = new Date(`2000-01-01T${startTime}`)
+        const end = new Date(`2000-01-01T${endTime}`)
+        const diffInHours = (end - start) / (1000 * 60 * 60)
+
+        if (diffInHours < 1) {
+          setErrors((prevErrors) => ({
+            ...prevErrors,
+            time: "The duration must be at least 1 hour",
+          }))
+        } else {
+          setErrors((prevErrors) => ({
+            ...prevErrors,
+            time: "",
+          }))
+        }
+      }
+    }
   }
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    // Here you would typically send the booking data to your backend
-    console.log("Booking submitted:", { selectedDate, selectedSlot, ...bookingDetails })
-    // After successful booking, you might want to show a confirmation message or redirect the user
+    if (Object.values(errors).some((error) => error !== "")) {
+      console.log("Form has errors. Please correct them before submitting.")
+      return
+    }
+    console.log("Booking submitted:", bookingDetails)
+    // Handle form submission (e.g., send to API, show confirmation)
   }
 
+  // Generate time options from 00:00 to 23:30 in 30-minute intervals
+  const generateTimeOptions = () => {
+    const options = []
+    for (let i = 0; i < 24; i++) {
+      for (let j = 0; j < 60; j += 30) {
+        const hour = i.toString().padStart(2, "0")
+        const minute = j.toString().padStart(2, "0")
+        options.push(`${hour}:${minute}`)
+      }
+    }
+    return options
+  }
+
+  const timeOptions = generateTimeOptions()
+
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-3xl font-bold mb-6">Book Venue</h1>
+    <div className="container mx-auto p-4 md:p-8">
+      <h1 className="text-3xl font-bold mb-6">Book Now</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Date Selection */}
-        <div>
-          <h2 className="text-xl font-semibold mb-2">Select Date</h2>
-          <div className="flex items-center space-x-4">
-            <button
-              type="button"
-              onClick={() => setSelectedDate(availableDates[0].date)}
-              className="p-2 rounded-full hover:bg-gray-200"
-            >
-              <ChevronLeft size={24} />
-            </button>
-            <div className="flex items-center space-x-2">
-              <Calendar size={24} />
-              <select
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="border rounded px-2 py-1"
-              >
-                {availableDates.map((date) => (
-                  <option key={date.date} value={date.date}>
-                    {date.date}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <button
-              type="button"
-              onClick={() => setSelectedDate(availableDates[availableDates.length - 1].date)}
-              className="p-2 rounded-full hover:bg-gray-200"
-            >
-              <ChevronRight size={24} />
-            </button>
+      <div className="grid md:grid-cols-2 gap-8">
+        {/* Venue Details */}
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <h2 className="text-2xl font-semibold mb-4">{venue.name}</h2>
+          <img
+            src={venue.image || "/placeholder.svg"}
+            alt={venue.name}
+            className="w-full h-48 object-cover rounded-md mb-4"
+          />
+          <div className="space-y-2">
+            <p className="flex items-center">
+              <MapPin className="mr-2" size={18} /> {venue.address}
+            </p>
+            <p className="flex items-center">
+              <Users className="mr-2" size={18} /> Capacity: {venue.capacity}
+            </p>
+            <p className="flex items-center">
+              <DollarSign className="mr-2" size={18} /> ${venue.pricePerHour}/hour
+            </p>
           </div>
         </div>
 
-        {/* Time Slot Selection */}
-        <div>
-          <h2 className="text-xl font-semibold mb-2">Select Time Slot</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {availableDates
-              .find((d) => d.date === selectedDate)
-              ?.slots.map((slot) => (
-                <button
-                  key={slot}
-                  type="button"
-                  onClick={() => setSelectedSlot(slot)}
-                  className={`flex items-center justify-center py-2 px-4 rounded ${
-                    selectedSlot === slot ? "bg-blue-500 text-white" : "bg-gray-100 hover:bg-gray-200"
-                  }`}
-                >
-                  <Clock size={16} className="mr-2" />
-                  {slot}
-                </button>
-              ))}
-          </div>
-        </div>
-
-        {/* Personal Details */}
-        <div>
-          <h2 className="text-xl font-semibold mb-2">Personal Details</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Booking Form */}
+        <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-md">
+          <div className="space-y-4">
+            {/* Date Selection */}
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                Full Name
+              <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">
+                Select Date
               </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User className="h-5 w-5 text-gray-400" aria-hidden="true" />
+              <div className="flex items-center">
+                <Calendar size={20} className="text-gray-400 mr-2" />
+                <input
+                  type="date"
+                  id="date"
+                  name="date"
+                  value={bookingDetails.date}
+                  onChange={handleInputChange}
+                  className={`border rounded px-3 py-2 w-full focus:ring-blue-500 focus:border-blue-500 ${
+                    errors.date ? "border-red-500" : ""
+                  }`}
+                  required
+                />
+              </div>
+              {errors.date && (
+                <p className="text-red-500 text-sm mt-1 flex items-center">
+                  <AlertCircle size={16} className="mr-1" />
+                  {errors.date}
+                </p>
+              )}
+            </div>
+
+            {/* Time Selection */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="startTime" className="block text-sm font-medium text-gray-700 mb-1">
+                  Start Time
+                </label>
+                <div className="flex items-center">
+                  <Clock size={20} className="text-gray-400 mr-2" />
+                  <select
+                    id="startTime"
+                    name="startTime"
+                    value={bookingDetails.startTime}
+                    onChange={handleInputChange}
+                    className={`border rounded px-3 py-2 w-full focus:ring-blue-500 focus:border-blue-500 ${
+                      errors.time ? "border-red-500" : ""
+                    }`}
+                    required
+                  >
+                    <option value="">Select time</option>
+                    {timeOptions.map((time) => (
+                      <option key={`start-${time}`} value={time}>
+                        {time}
+                      </option>
+                    ))}
+                  </select>
                 </div>
+              </div>
+              <div>
+                <label htmlFor="endTime" className="block text-sm font-medium text-gray-700 mb-1">
+                  End Time
+                </label>
+                <div className="flex items-center">
+                  <Clock size={20} className="text-gray-400 mr-2" />
+                  <select
+                    id="endTime"
+                    name="endTime"
+                    value={bookingDetails.endTime}
+                    onChange={handleInputChange}
+                    className={`border rounded px-3 py-2 w-full focus:ring-blue-500 focus:border-blue-500 ${
+                      errors.time ? "border-red-500" : ""
+                    }`}
+                    required
+                  >
+                    <option value="">Select time</option>
+                    {timeOptions.map((time) => (
+                      <option key={`end-${time}`} value={time}>
+                        {time}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+            {errors.time && (
+              <p className="text-red-500 text-sm mt-1 flex items-center">
+                <AlertCircle size={16} className="mr-1" />
+                {errors.time}
+              </p>
+            )}
+
+            {/* Customer Details */}
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Customer Details</h3>
+              <div className="space-y-3">
                 <input
                   type="text"
                   name="name"
-                  id="name"
-                  className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md"
-                  placeholder="John Doe"
                   value={bookingDetails.name}
                   onChange={handleInputChange}
+                  placeholder="Full Name"
+                  className="border rounded px-3 py-2 w-full focus:ring-blue-500 focus:border-blue-500"
                   required
                 />
-              </div>
-            </div>
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" aria-hidden="true" />
-                </div>
                 <input
                   type="email"
                   name="email"
-                  id="email"
-                  className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md"
-                  placeholder="you@example.com"
                   value={bookingDetails.email}
                   onChange={handleInputChange}
+                  placeholder="Email Address"
+                  className="border rounded px-3 py-2 w-full focus:ring-blue-500 focus:border-blue-500"
                   required
                 />
-              </div>
-            </div>
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-                Phone Number
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Phone className="h-5 w-5 text-gray-400" aria-hidden="true" />
-                </div>
                 <input
                   type="tel"
                   name="phone"
-                  id="phone"
-                  className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md"
-                  placeholder="+1 (555) 987-6543"
                   value={bookingDetails.phone}
                   onChange={handleInputChange}
+                  placeholder="Phone Number"
+                  className="border rounded px-3 py-2 w-full focus:ring-blue-500 focus:border-blue-500"
                   required
                 />
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Payment Details */}
-        <div>
-          <h2 className="text-xl font-semibold mb-2">Payment Details</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="sm:col-span-2">
-              <label htmlFor="cardNumber" className="block text-sm font-medium text-gray-700">
-                Card Number
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <CreditCard className="h-5 w-5 text-gray-400" aria-hidden="true" />
-                </div>
-                <input
-                  type="text"
-                  name="cardNumber"
-                  id="cardNumber"
-                  className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md"
-                  placeholder="1234 5678 9012 3456"
-                  value={bookingDetails.cardNumber}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-            </div>
-            <div>
-              <label htmlFor="expiryDate" className="block text-sm font-medium text-gray-700">
-                Expiry Date
-              </label>
-              <input
-                type="text"
-                name="expiryDate"
-                id="expiryDate"
-                className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                placeholder="MM/YY"
-                value={bookingDetails.expiryDate}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="cvv" className="block text-sm font-medium text-gray-700">
-                CVV
-              </label>
-              <input
-                type="text"
-                name="cvv"
-                id="cvv"
-                className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                placeholder="123"
-                value={bookingDetails.cvv}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Submit Button */}
-        <div>
           <button
             type="submit"
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="mt-6 w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition duration-300"
           >
-            Confirm Booking
+            Proceed to Payment
           </button>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   )
 }

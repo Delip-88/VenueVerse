@@ -23,14 +23,14 @@ const typeDefs = gql`
     verificationTokenExpiresAt: String
   }
 
-  type Location{
+  type Location {
     street: String
     province: Provinces
     zipCode: Int
-    city: String  
+    city: String
   }
 
-  enum Provinces{
+  enum Provinces {
     Koshi
     Madhesh
     Bagmati
@@ -56,7 +56,7 @@ const typeDefs = gql`
     name: String!
     description: String
     location: Location!
-    price: Float!
+    pricePerHour: Float! # Hourly pricing
     capacity: Int!
     facilities: [String!]!
     owner: User!
@@ -64,11 +64,17 @@ const typeDefs = gql`
     reviews: [Review!]
     bookings: [Booking]! # Bookings made for this venue
     users: [User!]
+    image: Image
   }
 
   type Availability {
     date: String! # e.g., "2025-01-25"
-    slots: [String!]! # e.g., ["9:00-12:00", "13:00-16:00"]
+    slots: [TimeSlot!]! # Available slots on this date
+  }
+
+  type TimeSlot {
+    start: String! # e.g., "14:30"
+    end: String! # e.g., "17:00"
   }
 
   type Booking {
@@ -76,8 +82,10 @@ const typeDefs = gql`
     user: User!
     venue: Venue!
     date: String!
-    slot: String!
-    status: BookingStatus!
+    timeslots: [TimeSlot!]!
+    totalPrice: Float! # Calculated based on hours booked
+    bookingStatus: BookingStatus!
+    paymentStatus: PaymentStatus!
   }
 
   enum BookingStatus {
@@ -110,7 +118,7 @@ const typeDefs = gql`
   type Mutation {
     register(name: String!, email: String!, password: String!): Response!
     login(email: String!, password: String!): String! # Returns a JWT
-    logout:Response!
+    logout: Response!
     verifyUser(email: String!, code: String!): AuthPayload!
     resendCode(email: String!): Response!
     passwordReset(email: String!): Response!
@@ -118,23 +126,19 @@ const typeDefs = gql`
 
     addVenue(input: venueInput!): Venue!
     removeVenue(venueId: ID!): Response!
-    bookVenue(input: bookInput!): Booking!
+    bookVenue(input: BookInput!): Booking!
     approveBooking(bookingId: ID!): Booking!
     cancelBooking(bookingId: ID!): Booking!
 
-    updateToVenueOwner(input: venueOwnerInput!):Response!
+    updateToVenueOwner(input: venueOwnerInput!): Response!
 
     addReview(input: reviewInput!): ReviewResponse!
     updateReview(reviewId: ID!, comment: String, rating: Int): ReviewResponse!
     removeReview(reviewId: ID!): DeleteResponse!
 
-    addAvailability(venueId: ID!, date: String!, slots: [String!]!): Venue!
-    removeAvailability(venueId: ID!, date: String!, slots: [String!]!): Venue!
-
-    # Admin Only
+   # Admin Only
     deleteUser(userId: ID!): UserResponse!
     deleteVenue(venueId: ID!): VenueResponse!
-
   }
 
   type AuthPayload {
@@ -173,24 +177,31 @@ const typeDefs = gql`
     message: String!
   }
 
-  input bookInput {
+  input BookInput {
     venue: ID!
     date: String!
-    slot: String!
-    price: Float!
+    start: String! # Start time (e.g., "14:00")
+    end: String! # End time (e.g., "16:00")
+    totalPrice: Float! # Calculated based on hours
+    paymentStatus: PaymentStatus! # New field to track payment
   }
-
   input venueInput {
     name: String!
     description: String
-    location: String!
-    price: Float!
+    location: locationInput!
+    pricePerHour: Float!
     facilities: [String!]
     capacity: Int!
-    availability: [slotsInput!]! # ✅ Corrected to an array
+    image: imageInput!
   }
 
-  input venueOwnerInput{
+  enum PaymentStatus {
+    PENDING
+    PAID
+    FAILED
+  }
+
+  input venueOwnerInput {
     name: String!
     email: String!
     profileImg: imageInput!
@@ -198,11 +209,6 @@ const typeDefs = gql`
     location: locationInput!
     esewaId: String!
     companyName: String!
-  }
-
-  input slotsInput {
-    date: String! # e.g., "2025-01-25"
-    slots: [String!]! # e.g., ["9:00-12:00", "13:00-16:00"]
   }
 
   input reviewInput {
@@ -222,11 +228,11 @@ const typeDefs = gql`
     created_at: String
   }
 
-  input locationInput{
+  input locationInput {
     street: String
     province: Provinces
     zipCode: Int
-    city: String  
+    city: String
   }
 `;
 

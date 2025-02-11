@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from "react"
-import { PlusCircle, X, Upload, Calendar, Clock, Trash2 } from "lucide-react"
+"use client"
+
+import { useState, useEffect } from "react"
+import { PlusCircle, X, Upload, Trash2 } from "lucide-react"
 
 const AddNewVenue = () => {
   const [venue, setVenue] = useState({
@@ -10,13 +12,9 @@ const AddNewVenue = () => {
     capacity: "",
     facilities: [],
     images: [],
-    availability: [],
   })
 
   const [facility, setFacility] = useState("")
-  const [availabilityDate, setAvailabilityDate] = useState("")
-  const [availabilityStart, setAvailabilityStart] = useState("")
-  const [availabilityEnd, setAvailabilityEnd] = useState("")
   const [imagePreviews, setImagePreviews] = useState([])
 
   useEffect(() => {
@@ -64,39 +62,6 @@ const AddNewVenue = () => {
 
     URL.revokeObjectURL(imagePreviews[index].url)
     setImagePreviews((prev) => prev.filter((_, i) => i !== index))
-  }
-
-  const handleAvailabilityAdd = () => {
-    if (availabilityDate && availabilityStart && availabilityEnd) {
-      const newSlot = `${availabilityStart}-${availabilityEnd}`
-      setVenue((prev) => {
-        const existingDateIndex = prev.availability.findIndex((a) => a.date === availabilityDate)
-        if (existingDateIndex > -1) {
-          const updatedAvailability = [...prev.availability]
-          updatedAvailability[existingDateIndex].slots.push(newSlot)
-          return { ...prev, availability: updatedAvailability }
-        } else {
-          return { ...prev, availability: [...prev.availability, { date: availabilityDate, slots: [newSlot] }] }
-        }
-      })
-
-      setAvailabilityStart("")
-      setAvailabilityEnd("")
-    }
-  }
-
-  const handleAvailabilityRemove = (date, slot) => {
-    setVenue((prev) => ({
-      ...prev,
-      availability: prev.availability
-        .map((a) => {
-          if (a.date === date) {
-            return { ...a, slots: a.slots.filter((s) => s !== slot) }
-          }
-          return a
-        })
-        .filter((a) => a.slots.length > 0),
-    }))
   }
 
   const handleSubmit = (e) => {
@@ -154,7 +119,7 @@ const AddNewVenue = () => {
 
         <div>
           <label htmlFor="price" className="block text-sm font-medium text-gray-700">
-            Price
+            Price per Hour
           </label>
           <input
             type="number"
@@ -269,99 +234,6 @@ const AddNewVenue = () => {
               ))}
             </div>
           )}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Availability</label>
-          <div className="mt-1 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-            <div className="sm:col-span-2">
-              <label htmlFor="availability-date" className="block text-sm font-medium text-gray-700">
-                Date
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Calendar className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="date"
-                  name="availability-date"
-                  id="availability-date"
-                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md"
-                  value={availabilityDate}
-                  onChange={(e) => setAvailabilityDate(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="sm:col-span-2">
-              <label htmlFor="availability-start" className="block text-sm font-medium text-gray-700">
-                Start Time
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Clock className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="time"
-                  name="availability-start"
-                  id="availability-start"
-                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md"
-                  value={availabilityStart}
-                  onChange={(e) => setAvailabilityStart(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="sm:col-span-2">
-              <label htmlFor="availability-end" className="block text-sm font-medium text-gray-700">
-                End Time
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Clock className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="time"
-                  name="availability-end"
-                  id="availability-end"
-                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md"
-                  value={availabilityEnd}
-                  onChange={(e) => setAvailabilityEnd(e.target.value)}
-                />
-              </div>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={handleAvailabilityAdd}
-            className="mt-2 inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          >
-            <PlusCircle className="h-4 w-4 mr-1" /> Add Availability
-          </button>
-          <div className="mt-4 space-y-2">
-            {venue.availability.map((avail, index) => (
-              <div key={index} className="bg-gray-50 rounded-md p-3">
-                <h4 className="text-sm font-medium text-gray-700">{avail.date}</h4>
-                <div className="mt-1 flex flex-wrap gap-2">
-                  {avail.slots.map((slot, slotIndex) => (
-                    <span
-                      key={slotIndex}
-                      className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
-                    >
-                      {slot}
-                      <button
-                        type="button"
-                        onClick={() => handleAvailabilityRemove(avail.date, slot)}
-                        className="ml-1 inline-flex items-center justify-center h-4 w-4 rounded-full bg-indigo-200 text-indigo-500 hover:bg-indigo-300"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
 
         <div>

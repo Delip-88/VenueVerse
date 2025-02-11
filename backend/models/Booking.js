@@ -1,38 +1,42 @@
-// models/Booking.js
+import mongoose from "mongoose";
+import { TimeSchema } from "./Common.js";
 
-import mongoose from 'mongoose';
 
-const bookingSchema = new mongoose.Schema({
-  venue: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Venue',
-    required: true
+const bookingSchema = new mongoose.Schema(
+  {
+    venue: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Venue",
+      required: true,
+    },
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    date: {
+      type: String,
+      required: true,
+    },
+    timeslots: [TimeSchema], // Timeslots for booking
+    bookingStatus: {  // Renamed to align with GraphQL
+      type: String,
+      enum: ["PENDING", "APPROVED", "REJECTED", "CANCELLED"],
+      default: "PENDING",
+    },
+    paymentStatus: {
+      type: String,
+      enum: ["PENDING", "PAID", "FAILED"],
+      default: "PENDING",  // Default added
+    },
+    totalPrice: {
+      type: Number,
+      required: true,
+    },
   },
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  date:{
-    type: String,
-    required: true
-  },
-  slot: {
-    type: String,
-    required: true
-  },
-  status: {
-    type: String,
-    enum: ["PENDING","APPROVED","REJECTED","CANCELLED"],
-    default: "PENDING"
-  },
-  
-  price: {
-    type: Number,
-    required: true
-  }
-}, { timestamps: true });
+  { timestamps: true }
+);
 
-const Booking = mongoose.model('Booking', bookingSchema);
+const Booking = mongoose.model("Booking", bookingSchema);
 
 export default Booking;

@@ -17,18 +17,21 @@ export const AuthProvider = ({ children }) => {
   // Apollo client instance
   const client = useApolloClient();
 
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    !!localStorage.getItem("authToken") // Check if token exists
+  );
   const [user, setUser] = useState(null);
 
-  const { data, loading, error } = useQuery(ME_QUERY, {
+  const { data, loading, error, refetch } = useQuery(ME_QUERY, {
     fetchPolicy: "network-only",
+    skip: !isAuthenticated && !localStorage.getItem("authToken"), // Allow refetch if token exists
   });
 
   const [logoutUser] = useMutation(LOGOUT_USER);
 
   // Handle authentication state
   useEffect(() => {
-    if (data?.me) {
+    if (isAuthenticated && data?.me) {
       setIsAuthenticated(true);
       setUser(data.me);
     } else {
@@ -37,22 +40,33 @@ export const AuthProvider = ({ children }) => {
     }
   }, [data]);
 
+  // Function to store token and update user state after login
+  const login = async (token) => {
+    localStorage.setItem("authToken", token); // Store token
+    setIsAuthenticated(true);
+
+    const { data } = await refetch(); // Fetch user data after authentication
+
+    if (data?.me) {
+      setUser(data.me); // Set user state after fetching data
+    }
+  };
+
+
   // Function to handle user logout
   const logout = async () => {
     try {
       const response = await logoutUser();
-      const { message, success } = response.data?.logout || {};
+      const { success } = response.data?.logout || {};
 
       if (success) {
-        // Reset Apollo cache on logout to prevent showing old data
+        // Remove token and reset state
+        localStorage.removeItem("authToken");
         await client.resetStore();
-
-        // Update client-side auth state
         setIsAuthenticated(false);
         setUser(null);
 
-        // Redirect to home page
-        window.location.href = "/";
+        window.location.href = "/"; // Redirect to home page
       } else {
         console.error("Logout failed");
       }
@@ -66,12 +80,11 @@ export const AuthProvider = ({ children }) => {
       value={{
         CID,
         isAuthenticated,
-        setIsAuthenticated,
         user,
-        setUser,
         loading,
         error,
         CLOUD_NAME,
+        login, // Provide login function
         logout,
       }}
     >

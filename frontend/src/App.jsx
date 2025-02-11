@@ -23,42 +23,70 @@ import MyBookingsPage from "./components/User/MyBookings";
 import FavoritesPage from "./components/User/Favourites";
 import UserSettingsPage from "./components/User/UserSettings";
 import NotFound from "./pages/common/NotFound";
-
+import ProtectedRoute from "./middleware/ProtectedRoute";
+import {Toaster} from "react-hot-toast";
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<LandingPage />} />
-          <Route path="Venues" element={<VenuesPage />} />
-          <Route path="How-it-works" element={<HowItWorksPage />} />
-          <Route path="Contact" element={<ContactPage />} />
-          <Route path="/Login" element={<LoginPage />} />
-          <Route path="/SignUp" element={<SignUpPage />} />
-        </Route>
-        <Route path="/EmailVerification" element={<EmailVerificationPage />} />
-        <Route path="/OTPVerification" element={<OTPVerificationPage />} />
+    <>
+      <Toaster position="top-right" />
+      <Router>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<Layout />}>
+            <Route index element={<LandingPage />} />
+            <Route path="Venues" element={<VenuesPage />} />
+            <Route path="How-it-works" element={<HowItWorksPage />} />
+            <Route path="Contact" element={<ContactPage />} />
+            <Route path="Login" element={<LoginPage />} />
+            <Route path="SignUp" element={<SignUpPage />} />
+          </Route>
 
-        <Route path="Home" element={<User_Layout />}>
-          <Route index element={<HomePage />} />
-          <Route path="my-bookings" element={<MyBookingsPage />} />
-          <Route path="favorites" element={<FavoritesPage />} />
-          <Route path="settings" element={<UserSettingsPage />} />
-          <Route path="BookNow" element={<BookNowPage />} />
-          <Route path="VenueDetails/:id" element={<VenueDetailsPage />} />
-          <Route path="BecomeVenueOwner" element={<BecomeVenueOwnerPage />} />
-        </Route>
+          {/* Email Verification Routes */}
+          <Route
+            path="/forgot-password"
+            element={<EmailVerificationPage />}
+          />
+          <Route path="/OTPVerification" element={<OTPVerificationPage />} />
 
-        <Route path="Dashboard" element={<VendorLayout />}>
-          <Route index element={<VendorDashboard />} />
-          <Route path="add-venue" element={<AddNewVenue />} />
-          <Route path="bookings" element={<ManageBookings />} />
-          <Route path="help&support" element={<VenueOwnerSupport />} />
-          <Route path="settings" element={<SettingsPage />} />
-        </Route>
-        <Route path="*" element={<NotFound/>}/>
-      </Routes>
-    </Router>
+          {/* Authenticated User Routes */}
+          <Route
+            path="/Home"
+            element={
+              <ProtectedRoute>
+                <User_Layout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<HomePage />} />
+            <Route path="my-bookings" element={<MyBookingsPage />} />
+            <Route path="favorites" element={<FavoritesPage />} />
+            <Route path="settings" element={<UserSettingsPage />} />
+            <Route path="BookNow" element={<BookNowPage />} />
+            <Route path="venue/:id" element={<VenueDetailsPage />} />
+            <Route path="BecomeVenueOwner" element={<BecomeVenueOwnerPage />} />
+          </Route>
+
+          {/* Protected Vendor (VenueOwner) Routes */}
+          <Route
+            path="/Dashboard"
+            element={
+              <ProtectedRoute>
+                <VendorLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<VendorDashboard />} />
+            <Route path="add-venue" element={<AddNewVenue />} />
+            <Route path="bookings" element={<ManageBookings />} />
+            <Route path="help&support" element={<VenueOwnerSupport />} />
+            <Route path="settings" element={<SettingsPage />} />
+          </Route>
+
+          {/* 404 Page */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Router>
+    </>
   );
 }
 

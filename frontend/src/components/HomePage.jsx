@@ -1,69 +1,13 @@
-import React, { useState } from "react";
-import {
-  Search,
-  LogOut,
-  Home,
-  Calendar,
-  Star,
-  Settings,
-  Menu,
-} from "lucide-react";
+import React, { useContext, useEffect, useState } from "react";
+import { Search } from "lucide-react";
 import VenueCard from "../pages/common/VenueCard";
-
-const dummyVenues = [
-  {
-    id: 1,
-    name: "Elegant Ballroom",
-    location: "Downtown",
-    price: 1000,
-    rating: 4.8,
-    image: "https://picsum.photos/200/300",
-    capacity: 200,
-    features: ["WiFi", "Catering", "Parking"],
-  },
-  {
-    id: 2,
-    name: "Rustic Barn",
-    location: "Countryside",
-    price: 800,
-    rating: 4.6,
-    image: "https://picsum.photos/200/300",
-    capacity: 150,
-    features: ["Outdoor Space", "BBQ Area"],
-  },
-  {
-    id: 3,
-    name: "Modern Conference Center",
-    location: "Business District",
-    price: 1200,
-    rating: 4.9,
-    image: "https://picsum.photos/200/300",
-    capacity: 300,
-    features: ["AV Equipment", "Breakout Rooms"],
-  },
-  {
-    id: 4,
-    name: "Cozy Art Gallery",
-    location: "Arts District",
-    price: 600,
-    rating: 4.5,
-    image: "https://picsum.photos/200/300",
-    capacity: 80,
-    features: ["Exhibition Space", "Lighting"],
-  },
-  {
-    id: 5,
-    name: "Rooftop Lounge",
-    location: "City Center",
-    price: 1500,
-    rating: 4.7,
-    image: "https://picsum.photos/200/300",
-    capacity: 100,
-    features: ["Panoramic View", "Bar"],
-  },
-];
+import { AuthContext } from "../middleware/AuthContext";
+import { useQuery } from "@apollo/client";
+import VENUES from "./Graphql/query/venuesGql";
+import Loader from "../pages/common/Loader";
 
 const HomePage = () => {
+  const { user, isAuthenticated } = useContext(AuthContext);
   const [searchTerm, setSearchTerm] = useState("");
   const [isFilterVisible, setIsFilterVisible] = useState(false);
   const [filters, setFilters] = useState({
@@ -73,24 +17,45 @@ const HomePage = () => {
     minRating: "",
   });
 
+  const [venues, setVenues] = useState([]); // Initialize as an empty array
+  const { data, error, loading } = useQuery(VENUES);
+
+  useEffect(() => {
+    if (data?.venues) {
+      setVenues(data.venues);
+    }
+  }, [data]);
+
+  if (loading) return <Loader />;
+
+  // Handle filter input changes
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
-    setFilters({ ...filters, [name]: value });
+    setFilters((prevFilters) => ({
+      ...prevFilters,
+      [name]: value,
+    }));
   };
 
-  const filteredVenues = dummyVenues.filter((venue) => {
+  // Filter venues based on search and filter criteria
+  const filteredVenues = venues.filter((venue) => {
     const matchesSearch =
       venue.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      venue.location.toLowerCase().includes(searchTerm.toLowerCase());
+      venue.location.city.toLowerCase().includes(searchTerm.toLowerCase());
+
     const matchesPrice =
-      (!filters.minPrice || venue.price >= Number.parseInt(filters.minPrice)) &&
-      (!filters.maxPrice || venue.price <= Number.parseInt(filters.maxPrice));
+      (!filters.minPrice || venue.price >= Number(filters.minPrice)) &&
+      (!filters.maxPrice || venue.price <= Number(filters.maxPrice));
+
     const matchesLocation =
       !filters.location ||
-      venue.location.toLowerCase().includes(filters.location.toLowerCase());
+      venue.location.city
+        .toLowerCase()
+        .includes(filters.location.toLowerCase());
+
     const matchesRating =
       !filters.minRating ||
-      venue.rating >= Number.parseFloat(filters.minRating);
+      (venue.reviews?.rating ?? 0) >= Number(filters.minRating);
 
     return matchesSearch && matchesPrice && matchesLocation && matchesRating;
   });
@@ -98,7 +63,7 @@ const HomePage = () => {
   return (
     <>
       {/* Main Content */}
-      <div className="flex-1 ">
+      <div className="flex-1">
         <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
           {/* Search and filter section */}
           <div className="mb-6 flex flex-col md:flex-row gap-4">
@@ -127,91 +92,51 @@ const HomePage = () => {
           {isFilterVisible && (
             <div className="mb-6 p-4 bg-white rounded-lg shadow-md">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                  <label
-                    htmlFor="minPrice"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Min Price
-                  </label>
-                  <input
-                    type="number"
-                    id="minPrice"
-                    name="minPrice"
-                    placeholder="Min Price"
-                    className="w-full py-2 px-3 border rounded-lg"
-                    value={filters.minPrice}
-                    onChange={handleFilterChange}
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="maxPrice"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Max Price
-                  </label>
-                  <input
-                    type="number"
-                    id="maxPrice"
-                    name="maxPrice"
-                    placeholder="Max Price"
-                    className="w-full py-2 px-3 border rounded-lg"
-                    value={filters.maxPrice}
-                    onChange={handleFilterChange}
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="location"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Location
-                  </label>
-                  <input
-                    type="text"
-                    id="location"
-                    name="location"
-                    placeholder="Location"
-                    className="w-full py-2 px-3 border rounded-lg"
-                    value={filters.location}
-                    onChange={handleFilterChange}
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="minRating"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Min Rating
-                  </label>
-                  <input
-                    type="number"
-                    id="minRating"
-                    name="minRating"
-                    step="0.1"
-                    placeholder="Min Rating"
-                    className="w-full py-2 px-3 border rounded-lg"
-                    value={filters.minRating}
-                    onChange={handleFilterChange}
-                  />
-                </div>
+                {[
+                  { label: "Min Price", name: "minPrice", type: "number" },
+                  { label: "Max Price", name: "maxPrice", type: "number" },
+                  { label: "Location", name: "location", type: "text" },
+                  {
+                    label: "Min Rating",
+                    name: "minRating",
+                    type: "number",
+                    step: "0.1",
+                  },
+                ].map(({ label, name, type, step }) => (
+                  <div key={name}>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {label}
+                    </label>
+                    <input
+                      type={type}
+                      name={name}
+                      step={step}
+                      placeholder={label}
+                      className="w-full py-2 px-3 border rounded-lg"
+                      value={filters[name]}
+                      onChange={handleFilterChange}
+                    />
+                  </div>
+                ))}
               </div>
             </div>
           )}
 
           {/* Venue grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredVenues.map((venue) => (
-              <VenueCard
-              name={venue.name}
-              image={venue.image}
-              location={venue.location}
-              price={venue.price}
-              rating={venue.rating}
-              capacity={venue.capacity}
-              features={ venue.features}
+            {filteredVenues.map((venue,index) => (
+              <VenueCard 
+              key={index}
+              id={venue.id}
+              name={venue.name} 
+              image={venue.image?.secure_url} 
+              location={venue.location} 
+              pricePerHour={venue.pricePerHour} 
+              capacity={venue.capacity} 
+              facilities={venue.facilities} 
+              reviews={venue.reviews} 
             />
+            
             ))}
           </div>
         </main>
