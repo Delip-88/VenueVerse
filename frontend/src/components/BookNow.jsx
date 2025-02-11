@@ -1,25 +1,28 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useContext } from "react"
 import { Calendar, Clock, MapPin, Users, DollarSign, AlertCircle } from "lucide-react"
+import { useParams } from "react-router-dom"
+import { VENUE_BY_ID } from "./Graphql/query/venuesGql"
+import Loader from "../pages/common/Loader"
+import { useQuery } from "@apollo/client"
+import { AuthContext } from "../middleware/AuthContext"
 
 const BookNowPage = () => {
-  // Mock venue data (replace with actual data fetching)
-  const venue = {
-    name: "Sample Venue",
-    address: "123 Main St, City, Country",
-    capacity: 100,
-    pricePerHour: 50,
-    image: "/placeholder.svg?height=200&width=300",
-  }
+  const { venueId } = useParams() || {}
+  const { user } = useContext(AuthContext)
+
+  const { data, loading, error } = useQuery(VENUE_BY_ID, {
+    variables: { id: venueId },
+  })
 
   const [bookingDetails, setBookingDetails] = useState({
     date: "",
     startTime: "",
     endTime: "",
-    name: "",
-    email: "",
-    phone: "",
+    name: user?.name || "",
+    email: user?.email || "",
+    phone: user?.phone || "",
   })
 
   const [errors, setErrors] = useState({})
@@ -27,8 +30,17 @@ const BookNowPage = () => {
   useEffect(() => {
     // Set minimum date to today
     const today = new Date().toISOString().split("T")[0]
-    document.getElementById("date").min = today
+    const dateInput = document.getElementById("date")
+    if (dateInput) {
+      dateInput.min = today
+    }
   }, [])
+
+  if (loading) return <Loader />
+  if (error) return <div className="text-red-500">Error: {error.message}</div>
+  if (!data?.venue) return <div className="text-gray-500">Venue not found</div>
+
+  const venue = data.venue
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -118,13 +130,13 @@ const BookNowPage = () => {
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h2 className="text-2xl font-semibold mb-4">{venue.name}</h2>
           <img
-            src={venue.image || "/placeholder.svg"}
+            src={venue.image.secure_url || "/placeholder.svg"}
             alt={venue.name}
             className="w-full h-48 object-cover rounded-md mb-4"
           />
           <div className="space-y-2">
-            <p className="flex items-center">
-              <MapPin className="mr-2" size={18} /> {venue.address}
+            <p className="flex items-center text-gray-600 mb-2">
+              <MapPin className="mr-2" size={18} /> {venue.location.street}, {venue.location.city}, {venue.location.province}
             </p>
             <p className="flex items-center">
               <Users className="mr-2" size={18} /> Capacity: {venue.capacity}

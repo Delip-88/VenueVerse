@@ -31,14 +31,18 @@ export const AuthProvider = ({ children }) => {
 
   // Handle authentication state
   useEffect(() => {
-    if (isAuthenticated && data?.me) {
-      setIsAuthenticated(true);
-      setUser(data.me);
-    } else {
-      setIsAuthenticated(false);
-      setUser(null);
+    if (isAuthenticated) {
+      refetch().then(({ data }) => {
+        if (data?.me) {
+          setUser(data.me);
+        } else {
+          setUser(null);
+          setIsAuthenticated(false);
+        }
+      });
     }
-  }, [data]);
+  }, [isAuthenticated]);  // Depend on isAuthenticated explicitly
+  
 
   // Function to store token and update user state after login
   const login = async (token) => {

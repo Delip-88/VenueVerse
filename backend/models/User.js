@@ -22,6 +22,7 @@ const userSchema = new mongoose.Schema(
 
     location: LocationSchema, // Reusing LocationSchema
 
+    phoene: {type: String},
     esewaId: { type: String }, // Changed from Number to String for safety
     companyName: { type: String },
 

@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import BookNowPage from "./components/BookNow";
 import HomePage from "./components/HomePage";
 import BecomeVenueOwnerPage from "./components/RegisterAsVenueOwner";
-import VenueDetailsPage from "./components/VenueDeatils";
+import VenueDetailsPage from "./pages/common/VenueDeatils";
 import ManageBookings from "./components/VenueOwner/ManageBooking";
 import AddNewVenue from "./components/VenueOwner/NewVenue";
 import LoginPage from "./pages/Auth/Login";
@@ -25,7 +25,14 @@ import UserSettingsPage from "./components/User/UserSettings";
 import NotFound from "./pages/common/NotFound";
 import ProtectedRoute from "./middleware/ProtectedRoute";
 import {Toaster} from "react-hot-toast";
+import { useContext } from "react";
+import { AuthContext } from "./middleware/AuthContext";
+import Loader from "./pages/common/Loader";
 function App() {
+  const {loading} = useContext(AuthContext)
+
+
+  if(loading)  return <Loader/>
   return (
     <>
       <Toaster position="top-right" />
@@ -41,11 +48,14 @@ function App() {
             <Route path="SignUp" element={<SignUpPage />} />
           </Route>
 
+          <Route path="venue/:id" element={<VenueDetailsPage />} />
+
+
           {/* Email Verification Routes */}
           <Route
             path="/forgot-password"
             element={<EmailVerificationPage />}
-          />
+            />
           <Route path="/OTPVerification" element={<OTPVerificationPage />} />
 
           {/* Authenticated User Routes */}
@@ -61,8 +71,7 @@ function App() {
             <Route path="my-bookings" element={<MyBookingsPage />} />
             <Route path="favorites" element={<FavoritesPage />} />
             <Route path="settings" element={<UserSettingsPage />} />
-            <Route path="BookNow" element={<BookNowPage />} />
-            <Route path="venue/:id" element={<VenueDetailsPage />} />
+            <Route path="venue/:venueId/book-now" element={<BookNowPage />} />
             <Route path="BecomeVenueOwner" element={<BecomeVenueOwnerPage />} />
           </Route>
 

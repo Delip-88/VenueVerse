@@ -15,7 +15,7 @@ function VenueCard({ id, name, image, location, pricePerHour, capacity, faciliti
   return (
     <div
       className="bg-white rounded-lg shadow-md overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
-      onClick={() => navigate(`venue/${id}`)}
+      onClick={() => navigate(`/venue/${id}`)}
     >
       <img src={image || "/placeholder.svg"} alt={name} className="w-full h-48 object-cover rounded-t-lg" />
       <div className="p-4">

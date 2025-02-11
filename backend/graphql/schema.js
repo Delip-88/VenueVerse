@@ -17,6 +17,7 @@ const typeDefs = gql`
 
     location: Location
     esewaId: String
+    phone:String
 
     verified: Boolean! # Non-nullable verified field
     verificationToken: String

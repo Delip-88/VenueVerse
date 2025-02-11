@@ -1,8 +1,10 @@
 import { Star, MapPin, Users, DollarSign, Clock, Phone, Mail } from "lucide-react"
 import { useQuery } from "@apollo/client"
-import { VENUE_BY_ID } from "./Graphql/query/venuesGql"
-import Loader from "../pages/common/Loader"
-import { useParams } from "react-router-dom"
+import { VENUE_BY_ID } from "../../components/Graphql/query/venuesGql"
+import Loader from "./Loader"
+import { useNavigate, useParams } from "react-router-dom"
+import { useContext } from "react"
+import { AuthContext } from "../../middleware/AuthContext"
 
 const VenueDetailsPage = () => {
   const { id } = useParams()
@@ -10,6 +12,9 @@ const VenueDetailsPage = () => {
   const { data, loading, error } = useQuery(VENUE_BY_ID, {
     variables: { id },
   })
+
+  const {isAuthenticated} = useContext(AuthContext)
+  const navigate = useNavigate()
 
   if (loading) return <Loader />
   if (error) return <div className="text-red-500">Error: {error.message}</div>
@@ -53,7 +58,7 @@ const VenueDetailsPage = () => {
               <span className="text-gray-600">({venue.reviews.length} reviews)</span>
             </div>
           </div>
-          <button className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition duration-200">
+          <button className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition duration-200" onClick={() => navigate(isAuthenticated ? `/Home/venue/${id}/book-now` : "/login")}>
             Book Now
           </button>
         </div>
