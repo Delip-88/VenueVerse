@@ -6,7 +6,7 @@ import Review from "../models/Review.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { sendEmail } from "../config/mailtype.js";
-import { generateResetToken, setUserCookie } from "../utils/functions.js";
+import { calculateTotalPrice, generateResetToken, generateSignature, setUserCookie } from "../utils/functions.js";
 import { generateToken } from "../utils/functions.js";
 import { AuthenticationError, UserInputError } from "apollo-server-express";
 import {
@@ -14,7 +14,8 @@ import {
   validateImage,
   validateLocation,
 } from "../utils/Validation.js";
-
+import { v4 as uuidv4 } from "uuid";
+import Transaction from "../models/Transaction.js";
 const resolvers = {
   Query: {
     me: async (_, __, { user }) => {
@@ -60,6 +61,14 @@ const resolvers = {
     },
     reviewsByUser: async (_, { userId }) => {
       return await Review.find({ user: userId }).populate("venue");
+    },
+    transactions: async () => {
+      return await Transaction.find();
+    },
+    transaction: async (_, { id }) => {
+      return await Transaction.findById(id)
+        .populate("user")
+        .populate("booking");
     },
   },
 
@@ -114,7 +123,7 @@ const resolvers = {
       if (!user) {
         throw new Error("Not Authenticated");
       }
-      const { venue, date, start,end,paymentStatus, totalPrice } = args.input;
+      const { venue, date, start, end } = args.input;
 
       try {
         const venueData = await Venue.findById(venue);
@@ -122,6 +131,7 @@ const resolvers = {
           throw new Error("Venue not found");
         }
 
+        const totalAmount = calculateTotalPrice(start, end, venueData.pricePerHour)
         // Assuming slot is provided as start and end times
         // If slots are stored as `timeslots`, use this structure instead
         const timeslot = { start, end };
@@ -132,9 +142,8 @@ const resolvers = {
           venue,
           date,
           timeslots: [timeslot], // Assuming timeslots is an array, not just a single slot
-          totalPrice,
+          totalPrice: totalAmount,
           bookingStatus: "PENDING",
-          paymentStatus
         });
 
         await booking.save();
@@ -148,10 +157,15 @@ const resolvers = {
       if (!user || user.role !== "VenueOwner") {
         throw new Error("Not authenticated");
       }
-    
+
       const { bookingId } = args;
-      
+
       try {
+        const transaction = await Transaction.findOne({ bookingId });
+
+        if (!transaction || transaction.status !== "PAID") {
+          throw new Error("Payment not verified");
+        }
         // Find and update the booking first
         const booking = await Booking.findByIdAndUpdate(
           bookingId,
@@ -161,26 +175,25 @@ const resolvers = {
           },
           { new: true }
         );
-    
+
         if (!booking) {
           throw new Error("Booking not found");
         }
-    
+
         // If booking is found and updated, then update the user
         await User.findByIdAndUpdate(
           user.id,
           {
-            bookedVenue: booking._id,  
+            bookedVenue: booking._id,
           },
           { new: true }
         );
-    
+
         return booking;
       } catch (err) {
         throw new Error(`Failed to approve booking: ${err.message}`);
       }
     },
-    
 
     cancelBooking: async (_, { bookingId }) => {
       try {
@@ -189,26 +202,26 @@ const resolvers = {
         if (!booking) {
           throw new Error("Booking not found");
         }
-    
+
         // Update the booking status to CANCELLED
         booking.bookingStatus = "CANCELLED"; // Correct field to use is `bookingStatus`, not `status`
         await booking.save();
-    
+
         // Update the user's bookedVenue field to remove the cancelled booking
         await User.findByIdAndUpdate(
-          booking.user,  // Use the user associated with the booking
+          booking.user, // Use the user associated with the booking
           {
             $pull: { bookedVenue: booking._id }, // Remove the booking from the user's bookedVenue array
           },
           { new: true }
         );
-    
-        return booking;  // Return the updated booking
+
+        return booking; // Return the updated booking
       } catch (err) {
         throw new Error(`Error canceling booking: ${err.message}`);
       }
     },
-    
+
     addReview: async (_, args, { user }) => {
       const { comment, rating, venue } = args.input;
 
@@ -614,6 +627,131 @@ const resolvers = {
         return { success: false, message: error.message };
       }
     },
+
+    initiatePayment: async (_, { bookingId, amount }, { user }) => {
+      // Check if user is authenticated
+      if (!user) throw new AuthenticationError("User not authenticated");
+
+      
+      const transactionId = uuidv4(); // Generate a unique transaction ID
+      
+      console.log("iniitate payment " + transactionId)
+      // Save transaction in DB
+      const transaction = new Transaction({
+        transactionId,
+        user: user.id,
+        booking: bookingId,
+        amount,
+        status: "PENDING",
+      });
+
+      await transaction.save();
+
+      return {
+        response: { success: true, message: "payment inititated" },
+        transactionId,
+      };
+    },
+    esewaCallback: async (_, args, { user }) => {
+      if (!user) throw new AuthenticationError("User not authenticated");
+
+      const { transactionId, status, referenceId } = args;
+      try {
+        const transaction = await Transaction.findOne({ transactionId });
+
+        if (!transaction) {
+          throw new Error("Transaction not found");
+        }
+        if (status == "success") {
+          transaction.status = "PAID";
+          transaction.esewaReference = referenceId;
+          return {
+            response: { success: true, message: "payment received" },
+            transaction,
+          };
+        } else {
+          transaction.status = "FAILED";
+          return {
+            response: { success: false, message: "payment not received" },
+            transaction,
+          };
+        }
+      } catch (err) {
+        throw new Error("Error updating transaction : " + err.message);
+      }
+    },
+    generateSignature: async (_, { total_amount, transaction_uuid, product_code }) => {
+      const signed_field_names =  "total_amount,transaction_uuid,product_code";
+
+      const data = {
+        total_amount,
+        transaction_uuid,
+        product_code,
+        signed_field_names,
+      };
+      
+      console.log("gen sign : "+ data.transaction_uuid)
+      
+      const signature = generateSignature(data);
+      
+      return {
+        signature,
+        signed_field_names,
+      };
+    },
+    async verifyPayment(_, { transactionId }) {
+      const transaction = await Transaction.findOne({ transactionId });
+    
+      if (!transaction) {
+        return { success: false, message: "Transaction not found!" };
+      }
+    
+      const productCode = "EPAYTEST"; // Replace with actual product code if stored
+    
+      // Construct the URL with query parameters
+      const url = new URL("https://rc.esewa.com.np/api/epay/transaction/status/");
+      url.searchParams.append("product_code", productCode); // Merchant Code
+      url.searchParams.append("total_amount", transaction.amount); // Total amount
+      url.searchParams.append("transaction_uuid", transactionId); // Transaction Reference ID
+    
+      try {
+        const esewaResponse = await fetch(url, {
+          method: "GET", // Use GET for this endpoint
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded", // Typically, for GET requests, this may not be needed
+          },
+        });
+    
+        const responseJson = await esewaResponse.json();
+        console.log("eSewa Response:", responseJson);
+    
+        // Check for the "status" field and verify if it's "COMPLETE"
+        if (responseJson.status === "COMPLETE") {
+          transaction.status = "PAID";
+          await transaction.save();
+    
+          const booking = await Booking.findById(transaction.booking);
+          if (booking) {
+            booking.paymentStatus = "PAID";
+            await booking.save();
+          }
+    
+          return {
+            success: true,
+            message: "Payment verified and booking confirmed!",
+          };
+        }
+    
+        return { success: false, message: "Payment verification failed!" };
+      } catch (error) {
+        console.error("Error verifying payment:", error);
+        return { success: false, message: `Internal server error: ${error.message}` };
+      }
+    }
+    
+    
+    
+    
   },
   User: {
     async venues(parent) {
@@ -649,6 +787,18 @@ const resolvers = {
     },
     async bookings(parent) {
       return await Booking.find({ venue: parent._id });
+    },
+  },
+  Transaction: {
+    async user(parent) {
+      return await User.findById(parent.userId); // Fetch user who initiated the transaction
+    },
+    async booking(parent) {
+      return await Booking.findById(parent.bookingId); // Fetch related booking
+    },
+    async venue(parent) {
+      const booking = await Booking.findById(parent.bookingId);
+      return booking ? await Venue.findById(booking.venue) : null; // Fetch venue from booking
     },
   },
 };

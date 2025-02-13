@@ -1,8 +1,10 @@
-import { useState } from "react"
+import { useContext, useState } from "react"
 import { LogOut, Home, Calendar, Star, Settings, Menu, X } from "lucide-react"
 import { NavLink, Outlet } from "react-router-dom"
+import { AuthContext } from "../../middleware/AuthContext"
 
 const User_Layout = () => {
+  const {logout} = useContext(AuthContext)
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const toggleSidebar = () => {
@@ -77,8 +79,8 @@ const User_Layout = () => {
             <img src="https://picsum.photos/200" alt="User Avatar" className="w-10 h-10 rounded-full mr-3" />
             <div>
               <p className="text-gray-800 font-medium">John Doe</p>
-              <button className="flex items-center text-gray-700 hover:text-gray-900 mt-1">
-                <LogOut className="mr-2 cursor-pointer" size={20} />
+              <button className="flex items-center text-gray-700 hover:text-gray-900 mt-1 cursor-pointer" onClick={()=>{if(window.confirm("Are you sure ?")) logout()}}>
+                <LogOut className="mr-2 " size={20} />
                 Logout
               </button>
             </div>

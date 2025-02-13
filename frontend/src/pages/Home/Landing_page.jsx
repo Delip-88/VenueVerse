@@ -25,7 +25,7 @@ export default function LandingPage() {
     <div className="min-h-screen bg-gray-100">
 
       {/* Hero Section */}
-      <section className="bg-gray-100  py-20">
+      <section className="bg-gray-100 pt-10">
         <div className="container mx-auto px-6 text-center">
           <h1 className="text-4xl md:text-6xl font-bold mb-4">Find Your Perfect Venue</h1>
           <p className="text-xl mb-8">Book unique spaces for any event, anywhere.</p>
@@ -36,7 +36,7 @@ export default function LandingPage() {
       </section>
 
       {/* Featured Venues Section */}
-      <section className="py-20">
+      <section className="py-10">
         <div className="container mx-auto px-6">
           <h2 className="text-3xl font-bold text-center mb-12">Featured Venues</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

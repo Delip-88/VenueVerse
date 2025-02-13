@@ -6,8 +6,6 @@ import Loader from "../pages/common/Loader";
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, user , loading} = useContext(AuthContext);
 
-  console.log(user)
-
   if(loading) return <Loader/>
 
   // if (!isAuthenticated) {

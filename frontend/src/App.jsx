@@ -28,6 +28,8 @@ import {Toaster} from "react-hot-toast";
 import { useContext } from "react";
 import { AuthContext } from "./middleware/AuthContext";
 import Loader from "./pages/common/Loader";
+import PaymentFailed from "./components/PaymentFailed";
+import PaymentSuccess from "./components/PaymentSuccess";
 function App() {
   const {loading} = useContext(AuthContext)
 
@@ -73,6 +75,8 @@ function App() {
             <Route path="settings" element={<UserSettingsPage />} />
             <Route path="venue/:venueId/book-now" element={<BookNowPage />} />
             <Route path="BecomeVenueOwner" element={<BecomeVenueOwnerPage />} />
+            <Route path="venue/payment-success" element={<PaymentSuccess />} />
+            <Route path="venue/payment-failure" element={<PaymentFailed />} />
           </Route>
 
           {/* Protected Vendor (VenueOwner) Routes */}

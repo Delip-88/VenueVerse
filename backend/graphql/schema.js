@@ -17,11 +17,20 @@ const typeDefs = gql`
 
     location: Location
     esewaId: String
-    phone:String
+    phone: String
 
     verified: Boolean! # Non-nullable verified field
     verificationToken: String
     verificationTokenExpiresAt: String
+  }
+
+  type Transaction {
+    transactionId: ID!
+    user: User!
+    booking: Booking!
+    amount: Int!
+    status: PaymentStatus!
+    venue: Venue!
   }
 
   type Location {
@@ -114,6 +123,8 @@ const typeDefs = gql`
     user(id: ID!): User
     reviewsByVenue(venueId: ID!): [Review!]
     reviewsByUser(userId: ID!): [Review!]
+    transactions: [Transaction!]
+    transaction(id: ID!): Transaction
   }
 
   type Mutation {
@@ -131,20 +142,47 @@ const typeDefs = gql`
     approveBooking(bookingId: ID!): Booking!
     cancelBooking(bookingId: ID!): Booking!
 
+    initiatePayment(bookingId: ID!, amount: Int): TransactionResponse!
+    esewaCallback(
+      transactionId: ID!
+      status: PaymentStatus!
+      referenceId: ID!
+    ): EsewaCallbackResponse!
+    verifyPayment(transactionId: String!): Response!
+
+    generateSignature(
+      total_amount: Float!
+      transaction_uuid: String!
+      product_code: String!
+    ): SignatureResponse!
+
     updateToVenueOwner(input: venueOwnerInput!): Response!
 
     addReview(input: reviewInput!): ReviewResponse!
     updateReview(reviewId: ID!, comment: String, rating: Int): ReviewResponse!
     removeReview(reviewId: ID!): DeleteResponse!
 
-   # Admin Only
+    # Admin Only
     deleteUser(userId: ID!): UserResponse!
     deleteVenue(venueId: ID!): VenueResponse!
   }
-
+  type SignatureResponse {
+    signature: String!
+    signed_field_names: String!
+  }
   type AuthPayload {
     token: String!
     user: User!
+  }
+
+  type EsewaCallbackResponse {
+    response: Response!
+    transaction: Transaction!
+  }
+
+  type TransactionResponse {
+    response: Response!
+    transactionId: ID!
   }
 
   type UserResponse {
@@ -183,8 +221,6 @@ const typeDefs = gql`
     date: String!
     start: String! # Start time (e.g., "14:00")
     end: String! # End time (e.g., "16:00")
-    totalPrice: Float! # Calculated based on hours
-    paymentStatus: PaymentStatus! # New field to track payment
   }
   input venueInput {
     name: String!
