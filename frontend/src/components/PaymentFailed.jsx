@@ -44,7 +44,7 @@ const PaymentFailed = () => {
         </Link>
 
         <Link
-          to="/contact-support"
+          to="#"
           className="block w-full text-center bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition duration-300"
         >
           <Mail className="inline-block mr-2" />
@@ -52,7 +52,7 @@ const PaymentFailed = () => {
         </Link>
 
         <Link
-          to="/"
+          to="/Home"
           className="block w-full text-center bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded transition duration-300"
         >
           <Home className="inline-block mr-2" />

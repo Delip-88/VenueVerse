@@ -161,7 +161,7 @@ const resolvers = {
       const { bookingId } = args;
 
       try {
-        const transaction = await Transaction.findOne({ bookingId });
+        const transaction = await Transaction.findOne({ booking: bookingId });
 
         if (!transaction || transaction.status !== "PAID") {
           throw new Error("Payment not verified");
@@ -652,34 +652,6 @@ const resolvers = {
         transactionId,
       };
     },
-    esewaCallback: async (_, args, { user }) => {
-      if (!user) throw new AuthenticationError("User not authenticated");
-
-      const { transactionId, status, referenceId } = args;
-      try {
-        const transaction = await Transaction.findOne({ transactionId });
-
-        if (!transaction) {
-          throw new Error("Transaction not found");
-        }
-        if (status == "success") {
-          transaction.status = "PAID";
-          transaction.esewaReference = referenceId;
-          return {
-            response: { success: true, message: "payment received" },
-            transaction,
-          };
-        } else {
-          transaction.status = "FAILED";
-          return {
-            response: { success: false, message: "payment not received" },
-            transaction,
-          };
-        }
-      } catch (err) {
-        throw new Error("Error updating transaction : " + err.message);
-      }
-    },
     generateSignature: async (_, { total_amount, transaction_uuid, product_code }) => {
       const signed_field_names =  "total_amount,transaction_uuid,product_code";
 
@@ -728,6 +700,7 @@ const resolvers = {
         // Check for the "status" field and verify if it's "COMPLETE"
         if (responseJson.status === "COMPLETE") {
           transaction.status = "PAID";
+          transaction.esewaReference = responseJson.ref_id
           await transaction.save();
     
           const booking = await Booking.findById(transaction.booking);

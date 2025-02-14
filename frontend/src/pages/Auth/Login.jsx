@@ -28,7 +28,7 @@ const LoginPage = () => {
       const token = data?.login;
       if (token) {
         await login(token);
-        navigate("/dashboard");
+        window.location.href= "/Home"
       }
     },
     onError: (error) => {

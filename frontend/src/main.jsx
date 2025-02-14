@@ -7,11 +7,9 @@ import client from "./middleware/ApolloClient.jsx";
 import { AuthProvider } from "./middleware/AuthContext.jsx";
 
 createRoot(document.getElementById("root")).render(
-  <StrictMode>
     <ApolloProvider client={client}>
       <AuthProvider>
         <App />
       </AuthProvider>
     </ApolloProvider>
-  </StrictMode>
 );

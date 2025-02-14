@@ -31,6 +31,7 @@ const typeDefs = gql`
     amount: Int!
     status: PaymentStatus!
     venue: Venue!
+    esewaReference: String
   }
 
   type Location {
@@ -143,18 +144,12 @@ const typeDefs = gql`
     cancelBooking(bookingId: ID!): Booking!
 
     initiatePayment(bookingId: ID!, amount: Int): TransactionResponse!
-    esewaCallback(
-      transactionId: ID!
-      status: PaymentStatus!
-      referenceId: ID!
-    ): EsewaCallbackResponse!
-    verifyPayment(transactionId: String!): Response!
-
     generateSignature(
       total_amount: Float!
       transaction_uuid: String!
       product_code: String!
     ): SignatureResponse!
+    verifyPayment(transactionId: String!):Response!
 
     updateToVenueOwner(input: venueOwnerInput!): Response!
 
@@ -173,11 +168,6 @@ const typeDefs = gql`
   type AuthPayload {
     token: String!
     user: User!
-  }
-
-  type EsewaCallbackResponse {
-    response: Response!
-    transaction: Transaction!
   }
 
   type TransactionResponse {

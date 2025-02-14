@@ -1,32 +1,34 @@
 import { gql } from "@apollo/client";
 
 const ME_QUERY = gql`
-  query Me {
+ query Me {
     me {
         id
         name
         email
         role
+        esewaId
         verified
         verificationToken
-        profileImg {
-            public_id
-            secure_url
-        }
-        legalDocImg {
-            public_id
-            secure_url
-        }
         verificationTokenExpiresAt
-        esewaId
-        location {
-            street
-            province
-            zipCode
-            city
+        bookings {
+            id
+            date
+            totalPrice
+            bookingStatus
+            paymentStatus
+            timeslots {
+                start
+                end
+            }
+            venue {
+                name
+            }
         }
     }
 }
+
+
 
 `;
 

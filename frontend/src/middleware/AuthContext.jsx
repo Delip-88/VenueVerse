@@ -73,6 +73,7 @@ export const AuthProvider = ({ children }) => {
         window.location.href = "/"; // Redirect to home page
       } else {
         console.error("Logout failed");
+        window.location.href = "/"; // Redirect to home page
       }
     } catch (err) {
       console.error("Error logging out:", err);

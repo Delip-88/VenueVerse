@@ -12,8 +12,7 @@ const EsewaPaymentForm = ({ venue, date, start, end }) => {
   const [errorMessage, setErrorMessage] = useState(null);
 
   const [bookVenue, { loading: bookingLoading }] = useMutation(BOOK_VENUE);
-  const [initiatePayment, { loading: iLoading }] =
-    useMutation(INITIATE_PAYMENT);
+  const [initiatePayment, { loading: iLoading }] = useMutation(INITIATE_PAYMENT);
   const [genSignature, { loading: sLoading }] = useMutation(GEN_SIGNATURE);
 
   if (bookingLoading || iLoading || sLoading) return <Loader />;

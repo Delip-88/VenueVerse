@@ -1,59 +1,45 @@
-import { useState } from "react"
-import { Calendar, MapPin, Clock, AlertCircle, CheckCircle, XCircle } from "lucide-react"
+"use client"
 
-// Mock data for bookings
-const mockBookings = [
-  {
-    id: 1,
-    venueName: "Elegant Ballroom",
-    date: "2023-08-15",
-    time: "18:00 - 23:00",
-    status: "confirmed",
-    guests: 150,
-    totalPrice: 2500,
-  },
-  {
-    id: 2,
-    venueName: "Rustic Barn",
-    date: "2023-09-22",
-    time: "14:00 - 20:00",
-    status: "pending",
-    guests: 80,
-    totalPrice: 1800,
-  },
-  {
-    id: 3,
-    venueName: "Beachfront Resort",
-    date: "2023-07-10",
-    time: "11:00 - 16:00",
-    status: "completed",
-    guests: 200,
-    totalPrice: 3500,
-  },
-  {
-    id: 4,
-    venueName: "City View Rooftop",
-    date: "2023-10-05",
-    time: "19:00 - 23:00",
-    status: "cancelled",
-    guests: 100,
-    totalPrice: 2200,
-  },
-]
+import { useContext, useEffect, useState } from "react"
+import { AlertCircle, CheckCircle, XCircle } from "lucide-react"
+import { AuthContext } from "../../middleware/AuthContext"
+import Loader from "../../pages/common/Loader"
 
+// Add a new function to get payment status color
+const getPaymentStatusColor = (status) => {
+  switch (status) {
+    case "PAID":
+      return "text-green-600"
+    case "PENDING":
+      return "text-yellow-600"
+    case "REFUNDED":
+      return "text-blue-600"
+    default:
+      return "text-gray-600"
+  }
+}
 export default function MyBookingsPage() {
-  const [bookings, setBookings] = useState(mockBookings)
+  const { user, loading } = useContext(AuthContext);
+  const [bookings, setBookings] = useState([]);
+
+  useEffect(() => {
+    if (user?.bookings) {
+      setBookings(user.bookings);
+    }
+  }, [user]); // Re-run effect when `user` changes
+
+  if (loading) return <Loader />;
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "confirmed":
+      case "APPROVED":
         return "text-green-600"
-      case "pending":
+      case "PENDING":
         return "text-yellow-600"
-      case "completed":
-        return "text-blue-600"
-      case "cancelled":
+      case "REJECTED":
         return "text-red-600"
+      case "CANCELLED":
+        return "text-gray-600"
       default:
         return "text-gray-600"
     }
@@ -61,13 +47,13 @@ export default function MyBookingsPage() {
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case "confirmed":
+      case "APPROVED":
         return <CheckCircle className="h-5 w-5" />
-      case "pending":
+      case "PENDING":
         return <AlertCircle className="h-5 w-5" />
-      case "completed":
-        return <CheckCircle className="h-5 w-5" />
-      case "cancelled":
+      case "REJECTED":
+        return <XCircle className="h-5 w-5" />
+      case "CANCELLED":
         return <XCircle className="h-5 w-5" />
       default:
         return null
@@ -76,60 +62,108 @@ export default function MyBookingsPage() {
 
   const handleCancelBooking = (bookingId) => {
     // In a real application, you would make an API call to cancel the booking
-    setBookings(bookings.map((booking) => (booking.id === bookingId ? { ...booking, status: "cancelled" } : booking)))
+    setBookings(
+      bookings.map((booking) => (booking.id === bookingId ? { ...booking, bookingStatus: "CANCELLED" } : booking)),
+    )
   }
 
   return (
-    <div className="w-max mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <h1 className="text-3xl font-bold text-gray-900 mb-6">My Bookings</h1>
-      <div className="bg-white shadow overflow-hidden sm:rounded-md">
-        <ul className="divide-y divide-gray-200 grid md:grid-cols-2 xs:grid-cols-1 gap-4">
-          {bookings.map((booking) => (
-            <li key={booking.id}>
-              <div className="px-4 py-4 sm:px-6">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-medium text-gray-900 truncate">{booking.venueName}</h2>
-                  <div className={`flex items-center ${getStatusColor(booking.status)}`}>
-                    {getStatusIcon(booking.status)}
-                    <p className="ml-2 text-sm font-medium capitalize">{booking.status}</p>
+      <div className="overflow-x-auto bg-white shadow-md rounded-lg">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Venue
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Date & Time
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Total Price
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Booking Status
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Payment Status
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {bookings.map((booking) => (
+              <tr key={booking.id}>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm font-medium text-gray-900">{booking.venue.name}</div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-900">{booking.date}</div>
+                  <div className="text-sm text-gray-500">
+                    {booking.timeslots.map((slot, index) => (
+                      <span key={index}>
+                        {slot.start} - {slot.end}
+                      </span>
+                    ))}
                   </div>
-                </div>
-                <div className="mt-2 sm:flex sm:justify-between">
-                  <div className="sm:flex">
-                    <p className="flex items-center text-sm text-gray-500">
-                      <Calendar className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                      {booking.date}
-                    </p>
-                    <p className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0 sm:ml-6">
-                      <Clock className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                      {booking.time}
-                    </p>
-                  </div>
-                  <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-                    <MapPin className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                    <p>Guests: {booking.guests}</p>
-                  </div>
-                </div>
-                <div className="mt-2 sm:flex sm:justify-between">
-                  <p className="text-sm font-medium text-gray-900">Total: ${booking.totalPrice}</p>
-                  {booking.status === "confirmed" && (
-                    <button
-                      onClick={() => handleCancelBooking(booking.id)}
-                      className="mt-2 sm:mt-0 inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                    >
-                      Cancel Booking
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-900">Rs. {booking.totalPrice}</div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span
+                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
+                      booking.bookingStatus,
+                    )} bg-${getStatusColor(booking.bookingStatus).split("-")[1]}-100`}
+                  >
+                    {getStatusIcon(booking.bookingStatus)}
+                    <span className="ml-1">{booking.bookingStatus}</span>
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span
+                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPaymentStatusColor(
+                      booking.paymentStatus,
+                    )} bg-${getPaymentStatusColor(booking.paymentStatus).split("-")[1]}-100`}
+                  >
+                    {booking.paymentStatus}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  {booking.bookingStatus === "APPROVED" && (
+                    <button onClick={() => handleCancelBooking(booking.id)} className="text-red-600 hover:text-red-900">
+                      Cancel
                     </button>
                   )}
-                  {booking.status === "completed" && (
-                    <button className="mt-2 sm:mt-0 inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                      Leave Review
-                    </button>
+                  {booking.bookingStatus === "APPROVED" && booking.paymentStatus === "PAID" && (
+                    <button className="ml-4 text-blue-600 hover:text-blue-900">Leave Review</button>
                   )}
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   )

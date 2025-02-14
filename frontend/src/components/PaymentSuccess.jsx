@@ -5,6 +5,26 @@ import { useLocation, Link } from "react-router-dom"
 import { useMutation } from "@apollo/client"
 import { VERIFY_PAYMENT } from "./Graphql/mutations/paymentGql"
 import { CheckCircle, AlertCircle, Loader, CreditCard, Calendar, Home } from "lucide-react"
+import AnotherLoader from "../pages/common/AnotherLoader"
+
+const animationStyles = `
+  @keyframes scaleUp {
+    0% { transform: scale(0); opacity: 0; }
+    60% { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes checkPop {
+    0% { transform: scale(0); opacity: 0; }
+    60% { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .animate-scale-up {
+    animation: scaleUp 0.5s ease-out forwards;
+  }
+  .animate-check-pop {
+    animation: checkPop 0.5s ease-out 0.2s forwards;
+  }
+`
 
 const PaymentSuccess = () => {
   const location = useLocation()
@@ -27,6 +47,7 @@ const PaymentSuccess = () => {
           variables: {
             transactionId: decodedData.transaction_uuid,
           },
+          fetchPolicy: 'network-only'
         })
           .then((res) => {
             if (!res.data.verifyPayment.success) {
@@ -50,14 +71,7 @@ const PaymentSuccess = () => {
     }
   }, [location.search, verifyPayment])
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-        <Loader className="w-12 h-12 text-blue-500 animate-spin" />
-        <p className="mt-4 text-lg font-semibold text-gray-700">Verifying payment...</p>
-      </div>
-    )
-  }
+  if (isLoading) return <AnotherLoader loading_text={"Verifying payment..."}/>
 
   if (verificationError) {
     return (
@@ -68,7 +82,7 @@ const PaymentSuccess = () => {
         <h2 className="text-2xl font-bold text-center text-red-700 mb-4">Payment Verification Failed</h2>
         <p className="text-center text-gray-600 mb-6">{verificationError}</p>
         <Link
-          to="/"
+          to="/Home"
           className="block w-full text-center bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition duration-300"
         >
           <Home className="inline-block mr-2" />
@@ -80,9 +94,13 @@ const PaymentSuccess = () => {
 
   return (
     <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-lg shadow-lg">
-      <div className="flex items-center justify-center text-green-500 mb-4">
-        <CheckCircle className="w-16 h-16" />
-      </div>
+      <div className="flex items-center justify-center mb-4">
+      <style>{animationStyles}</style>
+          <div className="relative">
+            <div className="w-16 h-16 bg-green-100 rounded-full animate-scale-up"></div>
+            <CheckCircle className="w-16 h-16 text-green-500 absolute top-0 left-0 animate-check-pop" />
+          </div>
+        </div>
       <h2 className="text-2xl font-bold text-center text-green-700 mb-4">Payment Successful!</h2>
 
       {paymentDetails && (
@@ -115,7 +133,7 @@ const PaymentSuccess = () => {
       )}
 
       <Link
-        to="/"
+        to="/Home"
         className="block w-full text-center mt-8 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition duration-300"
       >
         <Home className="inline-block mr-2" />

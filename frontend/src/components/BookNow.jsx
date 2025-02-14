@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect, useContext } from "react";
 import {
   Calendar,
@@ -15,6 +13,7 @@ import Loader from "../pages/common/Loader";
 import { useQuery } from "@apollo/client";
 import { AuthContext } from "../middleware/AuthContext";
 import EsewaPaymentForm from "./EsewaPaymentForm";
+import { calculateTotalPrice } from "./Functions/calc";
 
 const BookNowPage = () => {
   const { venueId } = useParams() || {};
@@ -290,6 +289,9 @@ const BookNowPage = () => {
               </div>
             </div>
           </div>
+
+            {(bookingDetails && bookingDetails.startTime && bookingDetails.endTime && venue) ? <p className="text-xl mt-5"> Total Amount : Rs. {calculateTotalPrice(bookingDetails.startTime,bookingDetails.endTime,venue.pricePerHour)}</p>: ''}
+
           <EsewaPaymentForm
             venue={venueId}
             start={bookingDetails.startTime}
