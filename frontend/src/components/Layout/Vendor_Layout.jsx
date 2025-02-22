@@ -1,8 +1,13 @@
-import React, { useState, useEffect } from "react"
-import { Menu, X, Home, Calendar, PlusCircle, Settings, LogOut, Bell, SettingsIcon } from "lucide-react"
+"use client"
+
+import { useState, useEffect, useContext } from "react"
+import { Menu, X, Building, Calendar, PlusCircle, Settings, LogOut, BadgeHelp } from "lucide-react"
 import { Outlet, NavLink } from "react-router-dom"
+import { AuthContext } from "../../middleware/AuthContext"
+import Loader from "../../pages/common/Loader"
 
 export default function VendorLayout() {
+  const { user, loading } = useContext(AuthContext)
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
 
@@ -27,6 +32,10 @@ export default function VendorLayout() {
     setIsSidebarOpen(!isSidebarOpen)
   }
 
+  if (loading) return <Loader />
+
+  if (!user) return <p>User not found or not logged in.</p>
+
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
@@ -50,13 +59,18 @@ export default function VendorLayout() {
 
           {/* Navigation */}
           <nav className="flex-1 px-2 py-4">
+            <Link href="my-venues" icon={<Building className="h-5 w-5" />}>
+              My Venues
+            </Link>
             <Link href="bookings" icon={<Calendar className="h-5 w-5" />}>
               Bookings
             </Link>
             <Link href="add-venue" icon={<PlusCircle className="h-5 w-5" />}>
               Add Venue
             </Link>
-       
+            <Link href="help&support" icon={<BadgeHelp className="h-5 w-5" />}>
+              Help & Support
+            </Link>
           </nav>
 
           {/* User Profile and Logout */}
@@ -64,8 +78,8 @@ export default function VendorLayout() {
             <div className="flex items-center mb-4">
               <img className="h-10 w-10 rounded-full" src="https://picsum.photos/id/237/200/300" alt="User profile" />
               <div className="ml-3">
-                <div className="text-sm font-medium text-gray-900">Venue Owner Name</div>
-                <div className="text-xs text-gray-500">venue.owner@example.com</div>
+                <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                <div className="text-xs text-gray-500">{user.email}</div>
               </div>
             </div>
             <Link href="settings" icon={<Settings className="h-5 w-5" />}>
@@ -96,7 +110,6 @@ export default function VendorLayout() {
               )}
             </button>
             <h1 className="text-xl font-semibold text-gray-900 lg:hidden">VenueBook</h1>
-           
           </div>
         </header>
 
@@ -110,7 +123,7 @@ export default function VendorLayout() {
 
       {/* Overlay for mobile */}
       {isMobile && isSidebarOpen && (
-        <div className="fixed inset-0 z-20 bg-black bg-opacity-10 lg:hidden" onClick={toggleSidebar}></div>
+        <div className="fixed inset-0 z-20 bg-transparent bg-opacity-5 lg:hidden" onClick={toggleSidebar}></div>
       )}
     </div>
   )

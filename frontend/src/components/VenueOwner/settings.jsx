@@ -1,12 +1,13 @@
-import React, { useState } from "react"
+import React, { useContext, useState } from "react"
 import { Save, AlertCircle } from "lucide-react"
+import { AuthContext } from "../../middleware/AuthContext"
 
 export default function SettingsPage() {
+  const {user} = useContext(AuthContext)
   const [personalInfo, setPersonalInfo] = useState({
-    firstName: "John",
-    lastName: "Doe",
-    email: "john.doe@example.com",
-    phone: "+1 (555) 123-4567",
+    fullName: user?.name,
+    email: user?.email,
+    phone: user?.phone || "",
   })
 
   const [security, setSecurity] = useState({
@@ -95,31 +96,17 @@ export default function SettingsPage() {
           <div className="grid grid-cols-1 gap-y-6 sm:grid-cols-2 sm:gap-x-4">
             <div>
               <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
-                First name
+                Full name
               </label>
               <input
                 type="text"
                 name="firstName"
                 id="firstName"
-                value={personalInfo.firstName}
+                value={personalInfo.fullName}
                 onChange={handlePersonalInfoChange}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               />
               {errors.firstName && <p className="mt-2 text-sm text-red-600">{errors.firstName}</p>}
-            </div>
-            <div>
-              <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
-                Last name
-              </label>
-              <input
-                type="text"
-                name="lastName"
-                id="lastName"
-                value={personalInfo.lastName}
-                onChange={handlePersonalInfoChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              />
-              {errors.lastName && <p className="mt-2 text-sm text-red-600">{errors.lastName}</p>}
             </div>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">

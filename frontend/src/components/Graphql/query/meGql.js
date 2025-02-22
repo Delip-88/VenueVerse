@@ -1,7 +1,7 @@
 import { gql } from "@apollo/client";
 
 const ME_QUERY = gql`
- query Me {
+query Me {
     me {
         id
         name
@@ -24,11 +24,49 @@ const ME_QUERY = gql`
             venue {
                 name
             }
+            user {
+                name
+            }
+        }
+        venues {
+            id
+            name
+            description
+            pricePerHour
+            capacity
+            facilities
+            availability {
+                date
+                slots {
+                    start
+                    end
+                }
+            }
+            reviews {
+                id
+                rating
+                comment
+            }
+            image {
+                public_id
+                secure_url
+            }
+            location {
+                street
+                province
+                zipCode
+                city
+            }
+            bookings {
+                id
+                date
+                totalPrice
+                bookingStatus
+                paymentStatus
+            }
         }
     }
 }
-
-
 
 `;
 

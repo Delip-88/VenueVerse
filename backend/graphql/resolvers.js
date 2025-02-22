@@ -6,7 +6,14 @@ import Review from "../models/Review.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { sendEmail } from "../config/mailtype.js";
-import { calculateTotalPrice, generateResetToken, generateSignature, setUserCookie } from "../utils/functions.js";
+import {
+  calculateTotalPrice,
+  deleteSignature,
+  generateResetToken,
+  generateSignature,
+  setUserCookie,
+  uploadSignature,
+} from "../utils/functions.js";
 import { generateToken } from "../utils/functions.js";
 import { AuthenticationError, UserInputError } from "apollo-server-express";
 import {
@@ -101,7 +108,26 @@ const resolvers = {
       await newVenue.save();
       return newVenue.populate("owner");
     },
-
+    updateVenue: async (_, { id, input }, { user }) => {
+      if (!user || user.role !== "VenueOwner") {
+        throw new Error("Not authenticated");
+      }
+    
+      const venue = await Venue.findById(id);
+      if (!venue) {
+        throw new Error("Venue not found");
+      }
+    
+      if (venue.owner.toString() !== user.id) {
+        throw new Error("Not authorized to update this venue");
+      }
+    
+      Object.assign(venue, input);
+      await venue.save();
+    
+      return {success: true, message: "Updated sucessfully"}
+    },
+    
     removeVenue: async (_, args, { user }) => {
       if (!user || user.role !== "VenueOwner") {
         throw new Error("Not authenticated");
@@ -131,7 +157,11 @@ const resolvers = {
           throw new Error("Venue not found");
         }
 
-        const totalAmount = calculateTotalPrice(start, end, venueData.pricePerHour)
+        const totalAmount = calculateTotalPrice(
+          start,
+          end,
+          venueData.pricePerHour
+        );
         // Assuming slot is provided as start and end times
         // If slots are stored as `timeslots`, use this structure instead
         const timeslot = { start, end };
@@ -632,10 +662,9 @@ const resolvers = {
       // Check if user is authenticated
       if (!user) throw new AuthenticationError("User not authenticated");
 
-      
       const transactionId = uuidv4(); // Generate a unique transaction ID
-      
-      console.log("iniitate payment " + transactionId)
+
+      console.log("iniitate payment " + transactionId);
       // Save transaction in DB
       const transaction = new Transaction({
         transactionId,
@@ -652,8 +681,11 @@ const resolvers = {
         transactionId,
       };
     },
-    generateSignature: async (_, { total_amount, transaction_uuid, product_code }) => {
-      const signed_field_names =  "total_amount,transaction_uuid,product_code";
+    generateSignature: async (
+      _,
+      { total_amount, transaction_uuid, product_code }
+    ) => {
+      const signed_field_names = "total_amount,transaction_uuid,product_code";
 
       const data = {
         total_amount,
@@ -661,11 +693,11 @@ const resolvers = {
         product_code,
         signed_field_names,
       };
-      
-      console.log("gen sign : "+ data.transaction_uuid)
-      
+
+      console.log("gen sign : " + data.transaction_uuid);
+
       const signature = generateSignature(data);
-      
+
       return {
         signature,
         signed_field_names,
@@ -673,19 +705,21 @@ const resolvers = {
     },
     async verifyPayment(_, { transactionId }) {
       const transaction = await Transaction.findOne({ transactionId });
-    
+
       if (!transaction) {
         return { success: false, message: "Transaction not found!" };
       }
-    
+
       const productCode = "EPAYTEST"; // Replace with actual product code if stored
-    
+
       // Construct the URL with query parameters
-      const url = new URL("https://rc.esewa.com.np/api/epay/transaction/status/");
+      const url = new URL(
+        "https://rc.esewa.com.np/api/epay/transaction/status/"
+      );
       url.searchParams.append("product_code", productCode); // Merchant Code
       url.searchParams.append("total_amount", transaction.amount); // Total amount
       url.searchParams.append("transaction_uuid", transactionId); // Transaction Reference ID
-    
+
       try {
         const esewaResponse = await fetch(url, {
           method: "GET", // Use GET for this endpoint
@@ -693,38 +727,49 @@ const resolvers = {
             "Content-Type": "application/x-www-form-urlencoded", // Typically, for GET requests, this may not be needed
           },
         });
-    
+
         const responseJson = await esewaResponse.json();
         console.log("eSewa Response:", responseJson);
-    
+
         // Check for the "status" field and verify if it's "COMPLETE"
         if (responseJson.status === "COMPLETE") {
           transaction.status = "PAID";
-          transaction.esewaReference = responseJson.ref_id
+          transaction.esewaReference = responseJson.ref_id;
           await transaction.save();
-    
+
           const booking = await Booking.findById(transaction.booking);
           if (booking) {
             booking.paymentStatus = "PAID";
             await booking.save();
           }
-    
+
           return {
             success: true,
             message: "Payment verified and booking confirmed!",
           };
         }
-    
+
         return { success: false, message: "Payment verification failed!" };
       } catch (error) {
         console.error("Error verifying payment:", error);
-        return { success: false, message: `Internal server error: ${error.message}` };
+        return {
+          success: false,
+          message: `Internal server error: ${error.message}`,
+        };
       }
-    }
-    
-    
-    
-    
+    },
+    async getUploadSignature(
+      _,
+      { tags, upload_preset, uploadFolder },
+      context
+    ) {
+
+      return uploadSignature(tags, upload_preset, uploadFolder);
+    },
+    async getDeleteSignature(_, { publicId }, context) {
+
+      return deleteSignature(publicId);
+    },
   },
   User: {
     async venues(parent) {

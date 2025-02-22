@@ -30,6 +30,9 @@ import { AuthContext } from "./middleware/AuthContext";
 import Loader from "./pages/common/Loader";
 import PaymentFailed from "./components/PaymentFailed";
 import PaymentSuccess from "./components/PaymentSuccess";
+import MyVenues from "./components/VenueOwner/MyVenues";
+import EditVenue from "./components/VenueOwner/EditVenue";
+import VenueDetails from "./components/VenueOwner/VenueDetails";
 function App() {
   const {loading} = useContext(AuthContext)
 
@@ -76,7 +79,7 @@ function App() {
             <Route path="venue/:venueId/book-now" element={<BookNowPage />} />
             <Route path="BecomeVenueOwner" element={<BecomeVenueOwnerPage />} />
             <Route path="venue/payment-success" element={<PaymentSuccess />} />
-            <Route path="venue/payment-failure" element={<PaymentFailed />} />
+            <Route path="venue/payment-failure" element={<PaymentFailed />} /> 
           </Route>
 
           {/* Protected Vendor (VenueOwner) Routes */}
@@ -93,6 +96,10 @@ function App() {
             <Route path="bookings" element={<ManageBookings />} />
             <Route path="help&support" element={<VenueOwnerSupport />} />
             <Route path="settings" element={<SettingsPage />} />
+            <Route path="my-venues" element={<MyVenues />} />
+            <Route path="edit-venue/:id" element={<EditVenue/>} />
+            <Route path="venue-details/:id" element={<VenueDetails/>} />
+
           </Route>
 
           {/* 404 Page */}

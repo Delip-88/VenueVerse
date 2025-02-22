@@ -1,69 +1,95 @@
-import React, { useState } from "react"
-import { Check, X, Calendar, Clock, User, DollarSign } from "lucide-react"
+"use client"
+
+import { useContext, useEffect, useState } from "react"
+import { Check, X, Calendar, Clock, User, DollarSign, AlertCircle } from "lucide-react"
+import { AuthContext } from "../../middleware/AuthContext"
+import Loader from "../../pages/common/Loader"
 
 const ManageBookings = () => {
-  const [bookings, setBookings] = useState({
-    pending: [
-      { id: 1, venueName: "Grand Hall", date: "2023-06-15", time: "14:00-18:00", user: "John Doe", price: 500 },
-      { id: 2, venueName: "Rooftop Terrace", date: "2023-06-18", time: "19:00-23:00", user: "Jane Smith", price: 750 },
-    ],
-    reserved: [
-      {
-        id: 3,
-        venueName: "Conference Room A",
-        date: "2023-06-20",
-        time: "09:00-17:00",
-        user: "Alice Johnson",
-        price: 1000,
-      },
-      {
-        id: 4,
-        venueName: "Garden Pavilion",
-        date: "2023-06-25",
-        time: "12:00-16:00",
-        user: "Bob Williams",
-        price: 600,
-      },
-    ],
-  })
+  const {user,loading} = useContext(AuthContext)
+  const [bookings, setBookings] = useState([])
+
+  useEffect(() => {
+    if(user?.bookings){
+      setBookings(user.bookings)
+    }
+
+  }, [user])
+  
+  if(loading) return <Loader/>
 
   const handleApprove = (id) => {
-    const approvedBooking = bookings.pending.find((booking) => booking.id === id)
-    setBookings((prevBookings) => ({
-      pending: prevBookings.pending.filter((booking) => booking.id !== id),
-      reserved: [...prevBookings.reserved, approvedBooking],
-    }))
+    // setBookings((prevBookings) =>
+    //   prevBookings.map((booking) => (booking.id === id ? { ...booking, bookingStatus: "APPROVED" } : booking)),
+    // )
   }
 
   const handleReject = (id) => {
-    setBookings((prevBookings) => ({
-      ...prevBookings,
-      pending: prevBookings.pending.filter((booking) => booking.id !== id),
-    }))
+    // setBookings((prevBookings) =>
+    //   prevBookings.map((booking) => (booking.id === id ? { ...booking, bookingStatus: "REJECTED" } : booking)),
+    // )
   }
 
-  const BookingCard = ({ booking, isPending }) => (
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "APPROVED":
+        return "text-green-600"
+      case "PENDING":
+        return "text-yellow-600"
+      case "REJECTED":
+        return "text-red-600"
+      default:
+        return "text-gray-600"
+    }
+  }
+
+  const getPaymentStatusColor = (status) => {
+    switch (status) {
+      case "PAID":
+        return "text-green-600"
+      case "PENDING":
+        return "text-yellow-600"
+      case "REFUNDED":
+        return "text-blue-600"
+      default:
+        return "text-gray-600"
+    }
+  }
+
+  const BookingCard = ({ booking }) => (
     <div className="bg-white shadow-md rounded-lg p-6 mb-4">
-      <h3 className="text-xl font-semibold mb-2">{booking.venueName}</h3>
-      <div className="grid grid-cols-2 gap-2 text-sm">
+      <h3 className="text-xl font-semibold mb-2">{booking.venue.name}</h3>
+      <div className="grid grid-cols-2 gap-2 text-sm mb-4">
         <div className="flex items-center">
           <Calendar className="w-4 h-4 mr-2 text-gray-500" />
           <span>{booking.date}</span>
         </div>
         <div className="flex items-center">
           <Clock className="w-4 h-4 mr-2 text-gray-500" />
-          <span>{booking.time}</span>
+          <span>
+            {booking.timeslots[0].start} - {booking.timeslots[0].end}
+          </span>
         </div>
         <div className="flex items-center">
           <User className="w-4 h-4 mr-2 text-gray-500" />
-          <span>{booking.user}</span>
+          <span>{booking.user.name}</span>
         </div>
         <div className="flex items-center">
           <DollarSign className="w-4 h-4 mr-2 text-gray-500" />
-          <span>${booking.price}</span>
+          <span>Rs. {booking.totalPrice}</span>
         </div>
       </div>
-      {isPending && (
+      <div className="flex justify-between items-center">
+        <div className={`flex items-center ${getStatusColor(booking.bookingStatus)}`}>
+          <AlertCircle className="w-4 h-4 mr-2" />
+          <span>Booking: {booking.bookingStatus}</span>
+        </div>
+        <div className={`flex items-center ${getPaymentStatusColor(booking.paymentStatus)}`}>
+          <AlertCircle className="w-4 h-4 mr-2" />
+          <span>Payment: {booking.paymentStatus}</span>
+        </div>
+      </div>
+      {booking.bookingStatus === "PENDING" && (
         <div className="mt-4 flex justify-end space-x-2">
           <button
             onClick={() => handleApprove(booking.id)}
@@ -90,19 +116,34 @@ const ManageBookings = () => {
 
       <div className="mb-8">
         <h2 className="text-2xl font-semibold mb-4">Pending Bookings</h2>
-        {bookings.pending.length === 0 ? (
+        {bookings.filter((booking) => booking.bookingStatus === "PENDING").length === 0 ? (
           <p className="text-gray-500">No pending bookings.</p>
         ) : (
-          bookings.pending.map((booking) => <BookingCard key={booking.id} booking={booking} isPending={true} />)
+          bookings
+            .filter((booking) => booking.bookingStatus === "PENDING")
+            .map((booking) => <BookingCard key={booking.id} booking={booking} />)
         )}
       </div>
 
       <div>
-        <h2 className="text-2xl font-semibold mb-4">Reserved Bookings</h2>
-        {bookings.reserved.length === 0 ? (
-          <p className="text-gray-500">No reserved bookings.</p>
+        <h2 className="text-2xl font-semibold mb-4">Approved Bookings</h2>
+        {bookings.filter((booking) => booking.bookingStatus === "APPROVED").length === 0 ? (
+          <p className="text-gray-500">No approved bookings.</p>
         ) : (
-          bookings.reserved.map((booking) => <BookingCard key={booking.id} booking={booking} isPending={false} />)
+          bookings
+            .filter((booking) => booking.bookingStatus === "APPROVED")
+            .map((booking) => <BookingCard key={booking.id} booking={booking} />)
+        )}
+      </div>
+
+      <div className="mt-8">
+        <h2 className="text-2xl font-semibold mb-4">Rejected Bookings</h2>
+        {bookings.filter((booking) => booking.bookingStatus === "REJECTED").length === 0 ? (
+          <p className="text-gray-500">No rejected bookings.</p>
+        ) : (
+          bookings
+            .filter((booking) => booking.bookingStatus === "REJECTED")
+            .map((booking) => <BookingCard key={booking.id} booking={booking} />)
         )}
       </div>
     </div>

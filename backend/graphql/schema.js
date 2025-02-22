@@ -138,6 +138,7 @@ const typeDefs = gql`
     newPassword(token: String!, password: String!): Response!
 
     addVenue(input: venueInput!): Venue!
+    updateVenue(id: ID!, input: UpdateVenueInput!): Response!
     removeVenue(venueId: ID!): Response!
     bookVenue(input: BookInput!): Booking!
     approveBooking(bookingId: ID!): Booking!
@@ -149,7 +150,7 @@ const typeDefs = gql`
       transaction_uuid: String!
       product_code: String!
     ): SignatureResponse!
-    verifyPayment(transactionId: String!):Response!
+    verifyPayment(transactionId: String!): Response!
 
     updateToVenueOwner(input: venueOwnerInput!): Response!
 
@@ -160,10 +161,22 @@ const typeDefs = gql`
     # Admin Only
     deleteUser(userId: ID!): UserResponse!
     deleteVenue(venueId: ID!): VenueResponse!
+
+    getUploadSignature(
+      tags: [String]
+      upload_preset: String!
+      uploadFolder: String!
+    ): Signature!
+    getDeleteSignature(publicId: String!): Signature!
   }
   type SignatureResponse {
     signature: String!
     signed_field_names: String!
+  }
+
+  type Signature {
+    timestamp: Int!
+    signature: String!
   }
   type AuthPayload {
     token: String!
@@ -244,9 +257,18 @@ const typeDefs = gql`
     venue: ID!
   }
 
+  input UpdateVenueInput {
+  name: String
+  description: String
+  location: locationInput
+  pricePerHour: Float
+  facilities: [String]
+  capacity: Int
+  image: imageInput
+}
   input imageInput {
-    public_id: String
-    secure_url: String
+    public_id: String!
+    secure_url: String!
     asset_id: String
     version: Int
     format: String

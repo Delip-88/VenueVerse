@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
+import {v2 as cloudinary}  from "cloudinary"
 
 export const setUserCookie = async (token, context) => {
   const { res } = context;
@@ -55,4 +56,45 @@ export const generateSignature = (data) => {
   const signData = sortedKeys.map((key) => `${key}=${data[key]}`).join(",");
 
   return crypto.createHmac("sha256", process.env.SECRET_KEY).update(signData).digest("base64");
+};
+
+
+export const uploadSignature = async (tags, upload_preset, uploadFolder) => {
+  const timestamp = Math.round(new Date().getTime() / 1000);
+
+  const paramsToSign = {
+    timestamp: timestamp,
+    folder: uploadFolder,
+    upload_preset: upload_preset,
+    tags: tags || undefined,
+    // moderation: "aws_rek" (disabled because it is paid only) // or "google_video_intelligence" or "cloudinary_ai" depending on your choice
+  };
+
+  //Generate the signature
+  const signature = cloudinary.utils.api_sign_request(
+    paramsToSign,
+    cloudinary.config().api_secret
+  );
+
+  console.log("Signature : " + signature)
+  console.log("timestamp : " + timestamp)
+
+  return { timestamp: timestamp, signature: signature };
+};
+
+export const deleteSignature = async (publicId) => {
+  const timestamp = Math.round(new Date().getTime() / 1000);
+
+  const paramsToSign = {
+    timestamp: timestamp,
+    public_id: publicId,
+  };
+
+  //Generate the signature
+  const signature = cloudinary.utils.api_sign_request(
+    paramsToSign,
+    cloudinary.config().api_secret
+  );
+
+  return { timestamp: timestamp, signature: signature };
 };

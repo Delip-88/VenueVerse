@@ -69,10 +69,10 @@ const VenueOwnerSupport = () => {
           {faqs.map((faq, index) => (
             <div key={index} className="border border-gray-200 rounded-lg transition-all ease-in-out">
               <button
-                className="flex justify-between items-center w-full p-4 text-left"
+                className="flex justify-between items-center w-full p-4 text-left cursor-pointer"
                 onClick={() => toggleFaq(index)}
               >
-                <span className="font-medium">{faq.question}</span>
+                <span className="font-medium ">{faq.question}</span>
                 {openFaq === index ? (
                   <ChevronUp className="w-5 h-5 text-gray-500" />
                 ) : (

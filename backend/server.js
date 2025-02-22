@@ -11,6 +11,7 @@ import cookieParser from "cookie-parser";
 // Import your GraphQL schema and resolvers
 import typeDefs from "./graphql/schema.js";
 import resolvers from "./graphql/resolvers.js";
+import { v2 as cloudinary } from "cloudinary";
 
 // Load environment variables from .env file
 dotenv.config();
@@ -21,6 +22,14 @@ const PORT = process.env.PORT || 4000;
 
 // Use cookieParser
 app.use(cookieParser());
+
+// Cloudinary configuration
+cloudinary.config({
+  cloud_name: process.env.CLOUD_NAME,
+  api_key: process.env.CLOUD_API_KEY,
+  api_secret: process.env.CLOUD_API_SECRET,
+});
+
 
 // CORS options
 const corsOptions = {

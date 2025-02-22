@@ -3,13 +3,21 @@ import { Loader, PlusCircle, Trash2, Upload, X } from "lucide-react";
 import { useUploadImage } from "../Functions/UploadImage";
 import { useDeleteImage } from "../Functions/deleteImage";
 import { AuthContext } from "../../middleware/AuthContext";
-import { useMutation } from "@apollo/client";
-import { ADD_VENUE } from "../Graphql/mutations/VenueGql";
-import { useNavigate } from "react-router-dom";
+import { useMutation, useQuery } from "@apollo/client";
+import {  UPDATE_VENUE } from "../Graphql/mutations/VenueGql";
+import { useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
+import { VENUE_BY_ID } from "../Graphql/query/venuesGql";
 
-const AddNewVenue = () => {
+const EditVenue = () => {
+  const { id } = useParams();
+
+  const { data, loading, error } = useQuery(VENUE_BY_ID, {
+    variables: { id },
+  });
+
   const navigate = useNavigate();
+
   const { CLOUD_NAME } = useContext(AuthContext);
   const [venue, setVenue] = useState({
     name: "",
@@ -20,11 +28,17 @@ const AddNewVenue = () => {
       city: "",
       zipCode: "",
     },
-    price: "",
+    pricePerHour: "",
     capacity: "",
     facilities: [],
     image: null,
   });
+
+  useEffect(() => {
+    if (data?.venue) {
+      setVenue(data?.venue);
+    }
+  }, [data]);
 
   const [facility, setFacility] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
@@ -34,8 +48,8 @@ const AddNewVenue = () => {
 
   const { uploadImage, loading: uLoading } = useUploadImage();
   const { deleteImage, loading: dLoading } = useDeleteImage();
-  const [addVenue, { loading: vLoading, error: vError }] =
-    useMutation(ADD_VENUE);
+  const [updateVenue, { loading: vLoading, error: vError }] =
+    useMutation(UPDATE_VENUE);
 
   useEffect(() => {
     return () => {
@@ -210,9 +224,9 @@ const AddNewVenue = () => {
           ? (({ __typename, ...rest }) => rest)(requiredImageProps)
           : null;
 
-        const response = await addVenue({
+        const response = await updateVenue({
           variables: {
-            venueInput: {
+            updateVenueInput: {
               name: venue.name,
               description: venue.description,
               location: {
@@ -220,19 +234,23 @@ const AddNewVenue = () => {
                 zipCode: venue.location.zipCode
                   ? parseInt(venue.location.zipCode, 10)
                   : null,
+                  __typename : undefined
               },
-              pricePerHour: venue.price ? parseInt(venue.price, 10) : null,
+              pricePerHour: venue.pricePerHour ? parseInt(venue.pricePerHour, 10) : null,
               capacity: venue.capacity ? parseInt(venue.capacity, 10) : null,
               facilities: venue.facilities,
               image: imageWithoutTypename,
             },
+            id
           },
         });
 
-        if (!response.data?.addVenue)
-          throw new Error("Failed to create venue");
+        const {success, message} = response.data?.updateVenue
+        if(!success){
+            throw new Error("Failed to create venue");
+        }
 
-        return ;
+        return true
       } catch (err) {
         console.error("GraphQL Error:", err);
         if (requiredImageProps) {
@@ -248,9 +266,9 @@ const AddNewVenue = () => {
 
     toast
       .promise(venueMutation(), {
-        loading: "Adding venue...",
-        success: "Venue added successfully!",
-        error: "Failed to add venue. Please try again.",
+        loading: "Updating venue...",
+        success: "Venue updated successfully!",
+        error: "Failed to update venue. Please try again.",
       })
       .then(() => {
         setVenue({
@@ -262,18 +280,21 @@ const AddNewVenue = () => {
             city: "",
             zipCode: "",
           },
-          price: "",
+          pricePerHour: "",
           capacity: "",
           facilities: [],
           image: null,
         });
-        
         navigate("/dashboard");
       })
       .finally(() => {
         setIsSubmitting(false);
       });
   };
+
+  if (loading) return <Loader />;
+  if (error) return <div className="text-red-500">Error: {error.message}</div>;
+  if (!data?.venue) return <div className="text-gray-500">Venue not found</div>;
 
   return (
     <div className="container mx-auto p-6">
@@ -405,16 +426,16 @@ const AddNewVenue = () => {
 
         <div>
           <label
-            htmlFor="price"
+            htmlFor="pricePerHour"
             className="block text-sm font-medium text-gray-700"
           >
             Price per Hour
           </label>
           <input
             type="number"
-            id="price"
-            name="price"
-            value={venue.price}
+            id="pricePerHour"
+            name="pricePerHour"
+            value={venue.pricePerHour}
             onChange={handleChange}
             required
             min="0"
@@ -536,10 +557,10 @@ const AddNewVenue = () => {
             {isSubmitting ? (
               <>
                 <Loader className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" />
-                Adding Venue...
+                Updating Venue...
               </>
             ) : (
-              "Add Venue"
+              "Edit Venue"
             )}
           </button>
         </div>
@@ -548,4 +569,4 @@ const AddNewVenue = () => {
   );
 };
 
-export default AddNewVenue;
+export default EditVenue;

@@ -1,9 +1,9 @@
 import { GET_UPLOAD_SIGNATURE } from "../Graphql/mutations/getSignature";
-import ME_QUERY from "../Graphql/query/meGql";
 import { useMutation } from "@apollo/client";
 import { checkImageModeration } from "./Purify";
 import { toast } from "react-toastify";
 import { useDeleteImage } from "./deleteImage";
+import ME_QUERY from "../Graphql/query/meGql";
 
 // A reusable function for uploading images to Cloudinary
 export const useUploadImage = () => {
@@ -17,11 +17,15 @@ export const useUploadImage = () => {
       const res = await getUploadSignature({
         variables: {
           upload_preset,
-          uploadFolder,
+          uploadFolder
         },
       });
+
   
       const { timestamp, signature } = res.data?.getUploadSignature;
+
+      console.log(signature)
+      console.log(timestamp)
   
       const data = new FormData();
       data.append("file", file);
@@ -30,12 +34,6 @@ export const useUploadImage = () => {
       data.append("folder", uploadFolder);
       data.append("timestamp", timestamp);
       data.append("signature", signature);
-  
-      // Set a custom name for the image
-      const uniqueSuffix = Date.now(); // To avoid duplicate names
-      const sanitizedFileName = fileName.replace(/\s+/g, "_"); // Replace spaces with underscores
-      const publicId = `${uploadFolder}/${sanitizedFileName}_${uniqueSuffix}`; 
-      data.append("public_id", publicId);
   
       const response = await fetch(
         `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
