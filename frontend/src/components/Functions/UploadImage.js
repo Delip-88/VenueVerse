@@ -3,7 +3,7 @@ import { useMutation } from "@apollo/client";
 import { checkImageModeration } from "./Purify";
 import { toast } from "react-toastify";
 import { useDeleteImage } from "./deleteImage";
-import ME_QUERY from "../Graphql/query/meGql";
+import {ME_QUERY} from "../Graphql/query/meGql";
 
 // A reusable function for uploading images to Cloudinary
 export const useUploadImage = () => {

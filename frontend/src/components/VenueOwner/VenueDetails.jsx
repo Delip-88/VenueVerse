@@ -1,6 +1,3 @@
-
-"use client"
-
 import { useState } from "react"
 import { MapPin, Users, Star, Building2, Phone, Mail, DollarSign, CheckCircle2, XCircle } from "lucide-react"
 

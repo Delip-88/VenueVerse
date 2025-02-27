@@ -77,6 +77,13 @@ const resolvers = {
         .populate("user")
         .populate("booking");
     },
+    myVenues: async (_, __, { user }) => {
+      if (!user) {
+        throw new Error("Not Authenticated");
+      }
+      return Venue.find({ owner: user.id });
+  },
+
   },
 
   Mutation: {
@@ -150,38 +157,50 @@ const resolvers = {
         throw new Error("Not Authenticated");
       }
       const { venue, date, start, end } = args.input;
-
+    
       try {
         const venueData = await Venue.findById(venue);
         if (!venueData) {
           throw new Error("Venue not found");
         }
-
-        const totalAmount = calculateTotalPrice(
-          start,
-          end,
-          venueData.pricePerHour
-        );
-        // Assuming slot is provided as start and end times
-        // If slots are stored as `timeslots`, use this structure instead
+    
+        const totalAmount = calculateTotalPrice(start, end, venueData.pricePerHour);
         const timeslot = { start, end };
-
-        // Create a new booking
+    
+        // Check if the requested time slot overlaps with any existing booking for the same venue and date
+        const existingBooking = await Booking.findOne({
+          venue,
+          date,
+          timeslots: {
+            $elemMatch: {
+              $or: [
+                { start: { $lt: end }, end: { $gt: start } }, // Overlapping range check
+              ],
+            },
+          },
+        });
+    
+        if (existingBooking) {
+          throw new Error("Time slot already booked. Please choose a different time.");
+        }
+    
+        // Create a new booking if time slot is available
         const booking = new Booking({
           user: user.id,
           venue,
           date,
-          timeslots: [timeslot], // Assuming timeslots is an array, not just a single slot
+          timeslots: [timeslot],
           totalPrice: totalAmount,
           bookingStatus: "PENDING",
         });
-
+    
         await booking.save();
         return booking;
       } catch (err) {
         throw new Error(`Error booking venue: ${err.message}`);
       }
     },
+    
 
     approveBooking: async (parent, args, { user }) => {
       if (!user || user.role !== "VenueOwner") {
@@ -219,12 +238,36 @@ const resolvers = {
           { new: true }
         );
 
-        return booking;
+        return {success: true, message: "Booking approved sucessfully"};
       } catch (err) {
         throw new Error(`Failed to approve booking: ${err.message}`);
       }
     },
-
+    rejectBooking: async (parent, args, { user }) => {
+      if (!user || user.role !== "VenueOwner") {
+        throw new Error("Not authenticated");
+      }
+    
+      const { bookingId } = args;
+    
+      try {
+        // Find and update the booking
+        const booking = await Booking.findByIdAndUpdate(
+          bookingId,
+          { bookingStatus: "REJECTED" },
+          { new: true }
+        );
+    
+        if (!booking) {
+          throw new Error("Booking not found");
+        }
+    
+        return { success: true, message: "Booking rejected successfully" };
+      } catch (err) {
+        throw new Error(`Failed to reject booking: ${err.message}`);
+      }
+    },
+    
     cancelBooking: async (_, { bookingId }) => {
       try {
         // Find the booking to cancel

@@ -126,6 +126,7 @@ const typeDefs = gql`
     reviewsByUser(userId: ID!): [Review!]
     transactions: [Transaction!]
     transaction(id: ID!): Transaction
+    myVenues: [Venue!]
   }
 
   type Mutation {
@@ -141,7 +142,8 @@ const typeDefs = gql`
     updateVenue(id: ID!, input: UpdateVenueInput!): Response!
     removeVenue(venueId: ID!): Response!
     bookVenue(input: BookInput!): Booking!
-    approveBooking(bookingId: ID!): Booking!
+    approveBooking(bookingId: ID!): Response!
+    rejectBooking(bookingId: ID!): Response!
     cancelBooking(bookingId: ID!): Booking!
 
     initiatePayment(bookingId: ID!, amount: Int): TransactionResponse!

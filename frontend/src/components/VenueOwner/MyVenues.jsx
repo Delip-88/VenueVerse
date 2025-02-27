@@ -42,13 +42,6 @@ export default function MyVenues() {
     }
   }, [user]);
 
-  const hasAvailableSlots = (availability) => {
-    const today = new Date();
-    return availability.some((day) => {
-      const date = new Date(day.date);
-      return date >= today && day.slots.length > 0;
-    });
-  };
   const calculateAverageRating = (reviews) => {
     if (!reviews || reviews.length === 0) return "No ratings";
     const average =
@@ -175,17 +168,6 @@ export default function MyVenues() {
                   >
                     {venue.name}
                   </h3>
-                  <span
-                    className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                      hasAvailableSlots(venue.availability)
-                        ? "bg-green-100 text-green-800"
-                        : "bg-gray-100 text-gray-800"
-                    }`}
-                  >
-                    {hasAvailableSlots(venue.availability)
-                      ? "Available"
-                      : "No Slots"}
-                  </span>
                 </div>
 
                 <p className="text-gray-600 text-sm mb-4 line-clamp-2">
@@ -202,7 +184,7 @@ export default function MyVenues() {
                     Capacity: {venue.capacity}
                   </p>
                   <p className="flex items-center text-gray-600">
-                    <Clock className="h-4 w-4 mr-2" />${venue.pricePerHour}/hour
+                    <Clock className="h-4 w-4 mr-2" />Rs. {venue.pricePerHour}/hour
                   </p>
                   <div className="flex items-center">
                     <Calendar className="h-4 w-4 mr-2 text-gray-600" />
@@ -234,7 +216,7 @@ export default function MyVenues() {
                       onClick={() =>
                         navigate(`/Dashboard/edit-venue/${venue.id}`)
                       }
-                      className="p-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                      className="p-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors cursor-pointer"
                       aria-label="Edit venue"
                     >
                       <Pencil className="h-4 w-4" />
@@ -242,7 +224,7 @@ export default function MyVenues() {
                     <button
                       onClick={() => handleDeleteClick(venue.id)}
                       disabled={isLoading}
-                      className="p-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                       aria-label="Delete venue"
                     >
                       {isLoading && venueToDelete === venue.id ? (

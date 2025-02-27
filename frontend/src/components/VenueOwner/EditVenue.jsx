@@ -298,7 +298,7 @@ const EditVenue = () => {
 
   return (
     <div className="container mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6">Add New Venue</h1>
+      <h1 className="text-3xl font-bold mb-6">Edit Venue</h1>
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label

@@ -13,26 +13,16 @@ const UserSettingsPage = () => {
     phone: user?.phone || "",
   });
 
-  const [notifications, setNotifications] = useState({
-    emailNotifications: true,
-    smsNotifications: false,
-    marketingEmails: true,
-  });
-
   const [showRoleChangeModal, setShowRoleChangeModal] = useState(false);
 
   const handlePersonalInfoChange = (e) => {
     setPersonalInfo({ ...personalInfo, [e.target.name]: e.target.value });
   };
 
-  const handleNotificationChange = (e) => {
-    setNotifications({ ...notifications, [e.target.name]: e.target.checked });
-  };
-
   const handleSubmit = (e) => {
     e.preventDefault();
     // Here you would typically send the updated data to your backend
-    console.log("Updated settings:", { personalInfo, notifications });
+    console.log("Updated settings:", { personalInfo });
     alert("Settings updated successfully!");
   };
 
@@ -85,6 +75,7 @@ if(loading) return <Loader/>
                 value={personalInfo.email}
                 onChange={handlePersonalInfoChange}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                readOnly
               />
             </div>
             <div>
@@ -121,88 +112,6 @@ if(loading) return <Loader/>
           >
             Change Password
           </button>
-        </section>
-
-        {/* Notification Preferences */}
-        <section aria-labelledby="notifications-heading">
-          <h2
-            id="notifications-heading"
-            className="text-xl font-semibold mb-4 flex items-center"
-          >
-            <Bell className="mr-2" />
-            Notification Preferences
-          </h2>
-          <div className="space-y-4">
-            <div className="flex items-start">
-              <div className="flex items-center h-5">
-                <input
-                  id="emailNotifications"
-                  name="emailNotifications"
-                  type="checkbox"
-                  checked={notifications.emailNotifications}
-                  onChange={handleNotificationChange}
-                  className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
-                />
-              </div>
-              <div className="ml-3 text-sm">
-                <label
-                  htmlFor="emailNotifications"
-                  className="font-medium text-gray-700"
-                >
-                  Email notifications
-                </label>
-                <p className="text-gray-500">
-                  Receive email notifications about your account and bookings.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start">
-              <div className="flex items-center h-5">
-                <input
-                  id="smsNotifications"
-                  name="smsNotifications"
-                  type="checkbox"
-                  checked={notifications.smsNotifications}
-                  onChange={handleNotificationChange}
-                  className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
-                />
-              </div>
-              <div className="ml-3 text-sm">
-                <label
-                  htmlFor="smsNotifications"
-                  className="font-medium text-gray-700"
-                >
-                  SMS notifications
-                </label>
-                <p className="text-gray-500">
-                  Receive text message notifications about your bookings.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start">
-              <div className="flex items-center h-5">
-                <input
-                  id="marketingEmails"
-                  name="marketingEmails"
-                  type="checkbox"
-                  checked={notifications.marketingEmails}
-                  onChange={handleNotificationChange}
-                  className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
-                />
-              </div>
-              <div className="ml-3 text-sm">
-                <label
-                  htmlFor="marketingEmails"
-                  className="font-medium text-gray-700"
-                >
-                  Marketing emails
-                </label>
-                <p className="text-gray-500">
-                  Receive emails about new features, promotions, and news.
-                </p>
-              </div>
-            </div>
-          </div>
         </section>
 
         {/* Change to Venue Owner */}

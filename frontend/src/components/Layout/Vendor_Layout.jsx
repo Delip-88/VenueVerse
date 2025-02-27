@@ -7,7 +7,7 @@ import { AuthContext } from "../../middleware/AuthContext"
 import Loader from "../../pages/common/Loader"
 
 export default function VendorLayout() {
-  const { user, loading } = useContext(AuthContext)
+  const { user, loading, logout } = useContext(AuthContext)
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
 
@@ -85,9 +85,12 @@ export default function VendorLayout() {
             <Link href="settings" icon={<Settings className="h-5 w-5" />}>
               Settings
             </Link>
-            <Link href="logout" icon={<LogOut className="h-5 w-5" />}>
+            <button onClick={()=>{if(window.confirm("Are you sure ?")) logout()}}>
+            <Link href="#" icon={<LogOut className="h-5 w-5" />}>
               Sign out
             </Link>
+
+            </button>
           </div>
         </div>
       </div>

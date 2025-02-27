@@ -25,23 +25,17 @@ import UserSettingsPage from "./components/User/UserSettings";
 import NotFound from "./pages/common/NotFound";
 import ProtectedRoute from "./middleware/ProtectedRoute";
 import {Toaster} from "react-hot-toast";
-import { useContext } from "react";
-import { AuthContext } from "./middleware/AuthContext";
-import Loader from "./pages/common/Loader";
 import PaymentFailed from "./components/PaymentFailed";
 import PaymentSuccess from "./components/PaymentSuccess";
 import MyVenues from "./components/VenueOwner/MyVenues";
 import EditVenue from "./components/VenueOwner/EditVenue";
 import VenueDetails from "./components/VenueOwner/VenueDetails";
 function App() {
-  const {loading} = useContext(AuthContext)
 
 
-  if(loading)  return <Loader/>
   return (
     <>
       <Toaster position="top-right" />
-      <Router>
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Layout />}>
@@ -105,7 +99,6 @@ function App() {
           {/* 404 Page */}
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </Router>
     </>
   );
 }

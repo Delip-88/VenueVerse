@@ -1,6 +1,6 @@
 import { gql } from "@apollo/client";
 
-const ME_QUERY = gql`
+export const ME_QUERY = gql`
 query Me {
     me {
         id
@@ -70,4 +70,42 @@ query Me {
 
 `;
 
-export default ME_QUERY;
+
+export const MY_VENUES= gql`
+query MyVenues {
+    myVenues {
+        id
+        name
+        description
+        pricePerHour
+        capacity
+        facilities
+        bookings {
+            id
+            date
+            totalPrice
+            bookingStatus
+            paymentStatus
+            timeslots {
+                start
+                end
+            }
+            user {
+                name
+            }
+        }
+        location {
+            street
+            province
+            zipCode
+            city
+        }
+        image {
+            public_id
+            secure_url
+        }
+    }
+}
+
+
+`

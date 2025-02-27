@@ -1,5 +1,5 @@
 import React, { useContext, useState } from "react"
-import { Save, AlertCircle } from "lucide-react"
+import { Save } from "lucide-react"
 import { AuthContext } from "../../middleware/AuthContext"
 
 export default function SettingsPage() {
@@ -16,18 +16,6 @@ export default function SettingsPage() {
     confirmPassword: "",
   })
 
-  const [notifications, setNotifications] = useState({
-    emailNotifications: true,
-    smsNotifications: false,
-    marketingEmails: true,
-  })
-
-  const [paymentInfo, setPaymentInfo] = useState({
-    cardNumber: "**** **** **** 1234",
-    expiryDate: "12/24",
-    cvv: "",
-  })
-
   const [errors, setErrors] = useState({})
 
   const handlePersonalInfoChange = (e) => {
@@ -36,14 +24,6 @@ export default function SettingsPage() {
 
   const handleSecurityChange = (e) => {
     setSecurity({ ...security, [e.target.name]: e.target.value })
-  }
-
-  const handleNotificationChange = (e) => {
-    setNotifications({ ...notifications, [e.target.name]: e.target.checked })
-  }
-
-  const handlePaymentInfoChange = (e) => {
-    setPaymentInfo({ ...paymentInfo, [e.target.name]: e.target.value })
   }
 
   const validateForm = () => {
@@ -64,10 +44,6 @@ export default function SettingsPage() {
       formErrors.confirmPassword = "Passwords do not match"
     }
 
-    // Validate payment info
-    if (paymentInfo.cvv && !/^\d{3,4}$/.test(paymentInfo.cvv)) {
-      formErrors.cvv = "CVV must be 3 or 4 digits"
-    }
 
     setErrors(formErrors)
     return Object.keys(formErrors).length === 0
@@ -77,7 +53,7 @@ export default function SettingsPage() {
     e.preventDefault()
     if (validateForm()) {
       // Here you would typically send the updated data to your backend
-      console.log("Form submitted:", { personalInfo, security, notifications, paymentInfo })
+      console.log("Form submitted:", { personalInfo, security })
       alert("Settings updated successfully!")
     } else {
       console.log("Form has errors")
@@ -185,121 +161,6 @@ export default function SettingsPage() {
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               />
               {errors.confirmPassword && <p className="mt-2 text-sm text-red-600">{errors.confirmPassword}</p>}
-            </div>
-          </div>
-        </section>
-
-        {/* Notification Preferences */}
-        <section aria-labelledby="notifications-heading">
-          <h2 id="notifications-heading" className="text-xl font-semibold mb-4">
-            Notification Preferences
-          </h2>
-          <div className="space-y-4">
-            <div className="flex items-start">
-              <div className="flex items-center h-5">
-                <input
-                  id="emailNotifications"
-                  name="emailNotifications"
-                  type="checkbox"
-                  checked={notifications.emailNotifications}
-                  onChange={handleNotificationChange}
-                  className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
-                />
-              </div>
-              <div className="ml-3 text-sm">
-                <label htmlFor="emailNotifications" className="font-medium text-gray-700">
-                  Email notifications
-                </label>
-                <p className="text-gray-500">Receive email notifications about your account and bookings.</p>
-              </div>
-            </div>
-            <div className="flex items-start">
-              <div className="flex items-center h-5">
-                <input
-                  id="smsNotifications"
-                  name="smsNotifications"
-                  type="checkbox"
-                  checked={notifications.smsNotifications}
-                  onChange={handleNotificationChange}
-                  className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
-                />
-              </div>
-              <div className="ml-3 text-sm">
-                <label htmlFor="smsNotifications" className="font-medium text-gray-700">
-                  SMS notifications
-                </label>
-                <p className="text-gray-500">Receive text message notifications about your bookings.</p>
-              </div>
-            </div>
-            <div className="flex items-start">
-              <div className="flex items-center h-5">
-                <input
-                  id="marketingEmails"
-                  name="marketingEmails"
-                  type="checkbox"
-                  checked={notifications.marketingEmails}
-                  onChange={handleNotificationChange}
-                  className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
-                />
-              </div>
-              <div className="ml-3 text-sm">
-                <label htmlFor="marketingEmails" className="font-medium text-gray-700">
-                  Marketing emails
-                </label>
-                <p className="text-gray-500">Receive emails about new features, promotions, and news.</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Payment Information */}
-        <section aria-labelledby="payment-heading">
-          <h2 id="payment-heading" className="text-xl font-semibold mb-4">
-            Payment Information
-          </h2>
-          <div className="grid grid-cols-1 gap-y-6 sm:grid-cols-2 sm:gap-x-4">
-            <div>
-              <label htmlFor="cardNumber" className="block text-sm font-medium text-gray-700">
-                Card number
-              </label>
-              <input
-                type="text"
-                name="cardNumber"
-                id="cardNumber"
-                value={paymentInfo.cardNumber}
-                onChange={handlePaymentInfoChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                placeholder="**** **** **** ****"
-              />
-            </div>
-            <div>
-              <label htmlFor="expiryDate" className="block text-sm font-medium text-gray-700">
-                Expiry date
-              </label>
-              <input
-                type="text"
-                name="expiryDate"
-                id="expiryDate"
-                value={paymentInfo.expiryDate}
-                onChange={handlePaymentInfoChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                placeholder="MM/YY"
-              />
-            </div>
-            <div>
-              <label htmlFor="cvv" className="block text-sm font-medium text-gray-700">
-                CVV
-              </label>
-              <input
-                type="text"
-                name="cvv"
-                id="cvv"
-                value={paymentInfo.cvv}
-                onChange={handlePaymentInfoChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                placeholder="***"
-              />
-              {errors.cvv && <p className="mt-2 text-sm text-red-600">{errors.cvv}</p>}
             </div>
           </div>
         </section>

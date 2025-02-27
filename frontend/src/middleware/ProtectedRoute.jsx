@@ -8,21 +8,13 @@ const ProtectedRoute = ({ children }) => {
 
   if(loading) return <Loader/>
 
-  // if (!isAuthenticated) {
-  //   return <Navigate to="/" />;
-  // }
+  if (!isAuthenticated) {
+    return <Navigate to="/" />;
+  }
 
-  // if (user === null) {
-  //   return <div>Loading...</div>; // Prevent redirect before user loads
-  // }
-
-  // if (user.role === "VenueOwner") {
-  //   return <Navigate to="/Dashboard" replace />;
-  // }
-
-  // if (user.role === "Customer") {
-  //   return <Navigate to="/Home" replace />;
-  // }
+  if (user === null) {
+    return <div>Loading...</div>; // Prevent redirect before user loads
+  }
 
   return children;
 };

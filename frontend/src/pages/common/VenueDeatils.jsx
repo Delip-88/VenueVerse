@@ -1,4 +1,4 @@
-import { Star, MapPin, Users, DollarSign, Clock, Phone, Mail } from "lucide-react"
+import { Star, MapPin, Users, DollarSign, Clock, Phone, Mail, IndianRupee } from "lucide-react"
 import { useQuery } from "@apollo/client"
 import { VENUE_BY_ID } from "../../components/Graphql/query/venuesGql"
 import Loader from "./Loader"
@@ -49,7 +49,7 @@ const VenueDetailsPage = () => {
             </p>
             <p className="flex items-center text-gray-600 mb-2">
               <Clock className="mr-2" size={20} />
-              <DollarSign className="mr-1" size={16} />
+              <IndianRupee className="mr-1" size={16} />
               {venue.pricePerHour} per hour
             </p>
             <div className="flex items-center mb-2">
@@ -58,7 +58,7 @@ const VenueDetailsPage = () => {
               <span className="text-gray-600">({venue.reviews.length} reviews)</span>
             </div>
           </div>
-          <button className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition duration-200" onClick={() => navigate(isAuthenticated ? `/Home/venue/${id}/book-now` : "/login")}>
+          <button className="bg-blue-500 text-white py-2 px-4 rounded cursor-pointer hover:bg-blue-600 transition duration-200" onClick={() => navigate(isAuthenticated ? `/Home/venue/${id}/book-now` : "/login")}>
             Book Now
           </button>
         </div>

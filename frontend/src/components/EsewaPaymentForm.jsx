@@ -6,6 +6,7 @@ import {
   INITIATE_PAYMENT,
 } from "./Graphql/mutations/paymentGql";
 import Loader from "../pages/common/Loader";
+import { toast } from "react-hot-toast";
 
 const EsewaPaymentForm = ({ venue, date, start, end }) => {
   const [formData, setFormData] = useState(null);
@@ -17,70 +18,79 @@ const EsewaPaymentForm = ({ venue, date, start, end }) => {
 
   if (bookingLoading || iLoading || sLoading) return <Loader />;
 
+
   const handleSubmit = async (e) => {
-    e.preventDefault(); // Prevent default submission initially
-
-    try {
-      // Step 1: Book the venue
-      const bookingRes = await bookVenue({
-        variables: { input: { venue, date, start, end } },
-      });
-
-      const { id: bookingId, totalPrice } = bookingRes.data?.bookVenue;
-
-      // Step 2: Initiate Payment
-      const initiatePaymentRes = await initiatePayment({
-        variables: { bookingId, amount: totalPrice },
-      });
-
-      const { transactionId } = initiatePaymentRes.data?.initiatePayment;
-
-      // Step 3: Generate Signature
-      const getSignatureRes = await genSignature({
-        variables: {
-          total_amount: totalPrice,
-          transaction_uuid: transactionId,
-          product_code: import.meta.env.VITE_PAYMENT_PRODUCT_CODE,
-        },
-      });
-
-      const { signature, signed_field_names } =
-        getSignatureRes.data?.generateSignature;
-
-      // Step 4: Prepare Form Data
-      const newFormData = {
-        amount: totalPrice,
-        tax_amount: 0,
-        total_amount: totalPrice,
-        transaction_uuid: transactionId,
-        product_code: import.meta.env.VITE_PAYMENT_PRODUCT_CODE,
-        product_service_charge: 0,
-        product_delivery_charge: 0,
-        success_url: import.meta.env.VITE_PAYMENT_SUCCESS_URL,
-        failure_url: import.meta.env.VITE_PAYMENT_FAILURE_URL,
-        signed_field_names,
-        signature,
-      };
-
-      setFormData(newFormData);
-      console.log("Signed Field Names:", signed_field_names);
-      console.log("Signature:", signature);
-      console.log("Total Amount:", totalPrice);
-      console.log("Transaction UUID:", transactionId);
-      console.log("Product Code:", import.meta.env.VITE_PAYMENT_PRODUCT_CODE);
-      console.log("Success URL:", import.meta.env.VITE_PAYMENT_SUCCESS_URL);
-      console.log("Failure URL:", import.meta.env.VITE_PAYMENT_FAILURE_URL);
-
-      // Wait for state update before submitting
-      setTimeout(() => {
-        document.getElementById("esewa-form").submit();
-      }, 100);
-    } catch (err) {
-      console.error("Payment process failed:", err);
-      setErrorMessage("Something went wrong! Please try again.");
-    }
+    e.preventDefault();
+  
+    await toast.promise(
+      (async () => {
+        try {
+          // Step 1: Book the venue
+          const bookingRes = await bookVenue({
+            variables: { input: { venue, date, start, end } },
+          });
+  
+          const { id: bookingId, totalPrice } = bookingRes.data?.bookVenue;
+  
+          // Step 2: Initiate Payment
+          const initiatePaymentRes = await initiatePayment({
+            variables: { bookingId, amount: totalPrice },
+          });
+  
+          const { transactionId } = initiatePaymentRes.data?.initiatePayment;
+  
+          // Step 3: Generate Signature
+          const getSignatureRes = await genSignature({
+            variables: {
+              total_amount: totalPrice,
+              transaction_uuid: transactionId,
+              product_code: import.meta.env.VITE_PAYMENT_PRODUCT_CODE,
+            },
+          });
+  
+          const { signature, signed_field_names } =
+            getSignatureRes.data?.generateSignature;
+  
+          // Step 4: Prepare Form Data
+          const newFormData = {
+            amount: totalPrice,
+            tax_amount: 0,
+            total_amount: totalPrice,
+            transaction_uuid: transactionId,
+            product_code: import.meta.env.VITE_PAYMENT_PRODUCT_CODE,
+            product_service_charge: 0,
+            product_delivery_charge: 0,
+            success_url: import.meta.env.VITE_PAYMENT_SUCCESS_URL,
+            failure_url: import.meta.env.VITE_PAYMENT_FAILURE_URL,
+            signed_field_names,
+            signature,
+          };
+  
+          setFormData(newFormData);
+          console.log("Signed Field Names:", signed_field_names);
+          console.log("Signature:", signature);
+          console.log("Total Amount:", totalPrice);
+          console.log("Transaction UUID:", transactionId);
+          console.log("Product Code:", import.meta.env.VITE_PAYMENT_PRODUCT_CODE);
+          console.log("Success URL:", import.meta.env.VITE_PAYMENT_SUCCESS_URL);
+          console.log("Failure URL:", import.meta.env.VITE_PAYMENT_FAILURE_URL);
+  
+          // Wait for state update before submitting
+          setTimeout(() => {
+            document.getElementById("esewa-form").submit();
+          }, 100);
+        } catch (err) {
+          throw new Error(err.message || "Booking failed! Please try again.");
+        }
+      })(),
+      {
+        loading: "Processing your booking...",
+        success: "Booking successful! Redirecting to payment...",
+        error: (err) => err.message, // Show backend error message
+      }
+    );
   };
-
+  
   return (
     <form
       action="https://rc-epay.esewa.com.np/api/epay/main/v2/form"

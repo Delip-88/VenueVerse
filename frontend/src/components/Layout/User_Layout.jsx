@@ -1,14 +1,24 @@
 import { useContext, useState } from "react"
 import { LogOut, Home, Calendar, Star, Settings, Menu, X } from "lucide-react"
-import { NavLink, Outlet } from "react-router-dom"
+import { NavLink, Outlet, useNavigate } from "react-router-dom"
 import { AuthContext } from "../../middleware/AuthContext"
+import Loader from "../../pages/common/Loader"
 
 const User_Layout = () => {
-  const {logout} = useContext(AuthContext)
+  const {user,logout,loading} = useContext(AuthContext)
+  const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen)
+  }
+
+  if(loading) return <Loader/>
+
+  const handleLogout = async ()=>{
+    if(window.confirm("Are you sure ?")){
+      logout()
+    }
+    navigate('/')
   }
 
   return (
@@ -78,8 +88,8 @@ const User_Layout = () => {
           <div className="mt-auto flex items-center p-4 border-t">
             <img src="https://picsum.photos/200" alt="User Avatar" className="w-10 h-10 rounded-full mr-3" />
             <div>
-              <p className="text-gray-800 font-medium">John Doe</p>
-              <button className="flex items-center text-gray-700 hover:text-gray-900 mt-1 cursor-pointer" onClick={()=>{if(window.confirm("Are you sure ?")) logout()}}>
+              <p className="text-gray-800 font-medium">{user && user.name}</p>
+              <button className="flex items-center text-gray-700 hover:text-gray-900 mt-1 cursor-pointer" onClick={handleLogout}>
                 <LogOut className="mr-2 " size={20} />
                 Logout
               </button>

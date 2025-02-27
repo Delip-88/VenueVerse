@@ -1,15 +1,15 @@
-import React, { useEffect, useState } from "react"
+import React, { useContext, useEffect, useState } from "react"
 import { CalendarDaysIcon, MapPinIcon, StarIcon, CurrencyIcon as CurrencyDollarIcon } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import VenueCard from "../common/VenueCard"
-import toast from "react-hot-toast"
 import VENUES from "../../components/Graphql/query/venuesGql"
 import Loader from "../common/Loader"
 import { useQuery } from "@apollo/client"
+import { AuthContext } from "../../middleware/AuthContext"
 
 export default function LandingPage() {
   const navigate = useNavigate()
-
+  const {isAuthenticated} = useContext(AuthContext)
   const [venues, setVenues] = useState([]); // Initialize as an empty array
   const { data, error, loading } = useQuery(VENUES);
 
