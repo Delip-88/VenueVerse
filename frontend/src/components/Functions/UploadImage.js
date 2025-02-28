@@ -4,15 +4,18 @@ import { checkImageModeration } from "./Purify";
 import { toast } from "react-toastify";
 import { useDeleteImage } from "./deleteImage";
 import {ME_QUERY} from "../Graphql/query/meGql";
+import { useContext } from "react";
+import { AuthContext } from "../../middleware/AuthContext";
 
 // A reusable function for uploading images to Cloudinary
 export const useUploadImage = () => {
   const {deleteImage} = useDeleteImage()
+  const {CLOUD_NAME} = useContext(AuthContext)
   const [getUploadSignature, { error, loading }] = useMutation(GET_UPLOAD_SIGNATURE,{
     refetchQueries: {query: ME_QUERY},
     awaitRefetchQueries: true
   });
-  const uploadImage = async (cloudName, file, upload_preset, uploadFolder, fileName) => {
+  const uploadImage = async ( file, upload_preset, uploadFolder) => {
     try {
       const res = await getUploadSignature({
         variables: {
@@ -23,9 +26,6 @@ export const useUploadImage = () => {
 
   
       const { timestamp, signature } = res.data?.getUploadSignature;
-
-      console.log(signature)
-      console.log(timestamp)
   
       const data = new FormData();
       data.append("file", file);
@@ -36,7 +36,7 @@ export const useUploadImage = () => {
       data.append("signature", signature);
   
       const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
         { method: "POST", body: data }
       );
   

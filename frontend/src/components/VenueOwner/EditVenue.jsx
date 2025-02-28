@@ -1,8 +1,7 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect } from "react";
 import { Loader, PlusCircle, Trash2, Upload, X } from "lucide-react";
 import { useUploadImage } from "../Functions/UploadImage";
 import { useDeleteImage } from "../Functions/deleteImage";
-import { AuthContext } from "../../middleware/AuthContext";
 import { useMutation, useQuery } from "@apollo/client";
 import {  UPDATE_VENUE } from "../Graphql/mutations/VenueGql";
 import { useNavigate, useParams } from "react-router-dom";
@@ -17,8 +16,6 @@ const EditVenue = () => {
   });
 
   const navigate = useNavigate();
-
-  const { CLOUD_NAME } = useContext(AuthContext);
   const [venue, setVenue] = useState({
     name: "",
     description: "",
@@ -195,7 +192,6 @@ const EditVenue = () => {
       if (venue.image) {
         try {
           const imageData = await uploadImage(
-            CLOUD_NAME,
             venue.image,
             import.meta.env.VITE_SIGNED_UPLOAD_PRESET,
             import.meta.env.VITE_UPLOAD_VENUE_IMAGE_FOLDER,
@@ -255,7 +251,7 @@ const EditVenue = () => {
         console.error("GraphQL Error:", err);
         if (requiredImageProps) {
           try {
-            await deleteImage(CLOUD_NAME, requiredImageProps.public_id);
+            await deleteImage(requiredImageProps.public_id);
           } catch (deleteError) {
             console.error("Image Delete Error:", deleteError);
           }

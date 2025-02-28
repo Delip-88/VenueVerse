@@ -1,5 +1,3 @@
-"use client";
-
 import { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -34,7 +32,7 @@ export default function MyVenues() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [venueToDelete, setVenueToDelete] = useState(null);
   const [removeVenue] = useMutation(REMOVE_VENUE);
-  const { deleteImage, loading: dLoading } = useDeleteImage();
+  const { deleteImage } = useDeleteImage();
   useEffect(() => {
     if (user?.venues) {
       setVenues(user.venues);

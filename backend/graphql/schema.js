@@ -16,8 +16,11 @@ const typeDefs = gql`
     legalDocImg: Image
 
     location: Location
+    address: String
     esewaId: String
     phone: String
+    description: String
+    
 
     verified: Boolean! # Non-nullable verified field
     verificationToken: String
@@ -246,9 +249,11 @@ const typeDefs = gql`
   input venueOwnerInput {
     name: String!
     email: String!
+    description: String!
     profileImg: imageInput!
     legalDocImg: imageInput!
-    location: locationInput!
+    phone: String!
+    address: String!
     esewaId: String!
     companyName: String!
   }

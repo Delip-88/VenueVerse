@@ -11,6 +11,14 @@ export default function VendorLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
 
+  
+  const handleLogout = async ()=>{
+    if(window.confirm("Are you sure ?")){
+      logout()
+    }
+    navigate('/')
+  }
+
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 1024)
@@ -85,7 +93,7 @@ export default function VendorLayout() {
             <Link href="settings" icon={<Settings className="h-5 w-5" />}>
               Settings
             </Link>
-            <button onClick={()=>{if(window.confirm("Are you sure ?")) logout()}}>
+            <button onClick={handleLogout}>
             <Link href="#" icon={<LogOut className="h-5 w-5" />}>
               Sign out
             </Link>

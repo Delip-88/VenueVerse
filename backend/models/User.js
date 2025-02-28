@@ -21,8 +21,10 @@ const userSchema = new mongoose.Schema(
     legalDocImg: ImageSchema, // Reusing ImageSchema
 
     location: LocationSchema, // Reusing LocationSchema
+    address: {type: String},
+    phone: {type: String},
+    description: {type: String},
 
-    phoene: {type: String},
     esewaId: { type: String }, // Changed from Number to String for safety
     companyName: { type: String },
 

@@ -1,5 +1,5 @@
 import React, { useContext, useState } from "react"
-import { Save } from "lucide-react"
+import { Lock, Save } from "lucide-react"
 import { AuthContext } from "../../middleware/AuthContext"
 
 export default function SettingsPage() {
@@ -8,12 +8,7 @@ export default function SettingsPage() {
     fullName: user?.name,
     email: user?.email,
     phone: user?.phone || "",
-  })
-
-  const [security, setSecurity] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
+    esewaId: user?.esewaId || ""
   })
 
   const [errors, setErrors] = useState({})
@@ -22,9 +17,6 @@ export default function SettingsPage() {
     setPersonalInfo({ ...personalInfo, [e.target.name]: e.target.value })
   }
 
-  const handleSecurityChange = (e) => {
-    setSecurity({ ...security, [e.target.name]: e.target.value })
-  }
 
   const validateForm = () => {
     const formErrors = {}
@@ -36,14 +28,6 @@ export default function SettingsPage() {
     else if (!/\S+@\S+\.\S+/.test(personalInfo.email)) formErrors.email = "Email is invalid"
     if (!personalInfo.phone.trim()) formErrors.phone = "Phone number is required"
 
-    // Validate password change
-    if (security.newPassword && security.newPassword.length < 8) {
-      formErrors.newPassword = "Password must be at least 8 characters long"
-    }
-    if (security.newPassword !== security.confirmPassword) {
-      formErrors.confirmPassword = "Passwords do not match"
-    }
-
 
     setErrors(formErrors)
     return Object.keys(formErrors).length === 0
@@ -53,7 +37,7 @@ export default function SettingsPage() {
     e.preventDefault()
     if (validateForm()) {
       // Here you would typically send the updated data to your backend
-      console.log("Form submitted:", { personalInfo, security })
+      console.log("Form submitted:", { personalInfo })
       alert("Settings updated successfully!")
     } else {
       console.log("Form has errors")
@@ -112,57 +96,39 @@ export default function SettingsPage() {
               />
               {errors.phone && <p className="mt-2 text-sm text-red-600">{errors.phone}</p>}
             </div>
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+                Esewa Number
+              </label>
+              <input
+                type="tel"
+                name="esewaId"
+                id="esewaId"
+                value={personalInfo.esewaId}
+                onChange={handlePersonalInfoChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              />
+              {errors.esewaId && <p className="mt-2 text-sm text-red-600">{errors.esewaId}</p>}
+            </div>
           </div>
         </section>
 
         {/* Security Settings */}
-        <section aria-labelledby="security-heading">
-          <h2 id="security-heading" className="text-xl font-semibold mb-4">
-            Security
+        {/* Password Change */}
+        <section aria-labelledby="password-heading">
+          <h2
+            id="password-heading"
+            className="text-xl font-semibold mb-4 flex items-center"
+          >
+            <Lock className="mr-2" />
+            Password
           </h2>
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700">
-                Current password
-              </label>
-              <input
-                type="password"
-                name="currentPassword"
-                id="currentPassword"
-                value={security.currentPassword}
-                onChange={handleSecurityChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">
-                New password
-              </label>
-              <input
-                type="password"
-                name="newPassword"
-                id="newPassword"
-                value={security.newPassword}
-                onChange={handleSecurityChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              />
-              {errors.newPassword && <p className="mt-2 text-sm text-red-600">{errors.newPassword}</p>}
-            </div>
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                Confirm new password
-              </label>
-              <input
-                type="password"
-                name="confirmPassword"
-                id="confirmPassword"
-                value={security.confirmPassword}
-                onChange={handleSecurityChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              />
-              {errors.confirmPassword && <p className="mt-2 text-sm text-red-600">{errors.confirmPassword}</p>}
-            </div>
-          </div>
+          <button
+            type="button"
+            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500"
+          >
+            Change Password
+          </button>
         </section>
 
         {/* Submit Button */}

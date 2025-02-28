@@ -671,8 +671,8 @@ const resolvers = {
         }
 
         // Validate location
-        if (!validateLocation(input.location)) {
-          throw new UserInputError("Invalid location data");
+        if (!validateLocation(input.address)) {
+          throw new UserInputError("Invalid address data");
         }
 
         // Validate Esewa ID
@@ -684,9 +684,11 @@ const resolvers = {
         existingUser.name = input.name;
         existingUser.email = input.email;
         existingUser.role = "VenueOwner";
+        existingUser.phone = input.phone;
+        existingUser.description = input.description;
         existingUser.profileImg = input.profileImg;
         existingUser.legalDocImg = input.legalDocImg;
-        existingUser.location = input.location;
+        existingUser.address = input.address;
         existingUser.esewaId = input.esewaId;
         existingUser.companyName = input.companyName;
 

@@ -1,12 +1,12 @@
 import { gql } from "@apollo/client";
 
-const UPDATE_USER_INFO = gql`
-mutation updateUser($user: updateUser!){
-    updateUser(user: $user){
+const UPDATE_TO_VENUE_OWNER = gql`
+mutation updateToVenueOwner($input: venueOwnerInput!){
+    updateToVenueOwner(input: $input){
         message
         success
     }
 }
 `
 
-export default UPDATE_USER_INFO
+export {UPDATE_TO_VENUE_OWNER}

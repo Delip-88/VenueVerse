@@ -1,8 +1,7 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect } from "react";
 import { Loader, PlusCircle, Trash2, Upload, X } from "lucide-react";
 import { useUploadImage } from "../Functions/UploadImage";
 import { useDeleteImage } from "../Functions/deleteImage";
-import { AuthContext } from "../../middleware/AuthContext";
 import { useMutation } from "@apollo/client";
 import { ADD_VENUE } from "../Graphql/mutations/VenueGql";
 import { useNavigate } from "react-router-dom";
@@ -10,7 +9,6 @@ import toast from "react-hot-toast";
 
 const AddNewVenue = () => {
   const navigate = useNavigate();
-  const { CLOUD_NAME } = useContext(AuthContext);
   const [venue, setVenue] = useState({
     name: "",
     description: "",
@@ -32,9 +30,9 @@ const AddNewVenue = () => {
   const [cityData, setCityData] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { uploadImage, loading: uLoading } = useUploadImage();
-  const { deleteImage, loading: dLoading } = useDeleteImage();
-  const [addVenue, { loading: vLoading, error: vError }] =
+  const { uploadImage} = useUploadImage();
+  const { deleteImage} = useDeleteImage();
+  const [addVenue] =
     useMutation(ADD_VENUE);
 
   useEffect(() => {
@@ -181,11 +179,9 @@ const AddNewVenue = () => {
       if (venue.image) {
         try {
           const imageData = await uploadImage(
-            CLOUD_NAME,
             venue.image,
             import.meta.env.VITE_SIGNED_UPLOAD_PRESET,
-            import.meta.env.VITE_UPLOAD_VENUE_IMAGE_FOLDER,
-            "Venue"
+            import.meta.env.VITE_UPLOAD_VENUE_IMAGE_FOLDER
           );
           if (!imageData) throw new Error("Failed to upload image");
 
@@ -237,7 +233,7 @@ const AddNewVenue = () => {
         console.error("GraphQL Error:", err);
         if (requiredImageProps) {
           try {
-            await deleteImage(CLOUD_NAME, requiredImageProps.public_id);
+            await deleteImage(requiredImageProps.public_id);
           } catch (deleteError) {
             console.error("Image Delete Error:", deleteError);
           }

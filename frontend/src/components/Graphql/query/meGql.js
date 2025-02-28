@@ -8,9 +8,6 @@ query Me {
         email
         role
         esewaId
-        verified
-        verificationToken
-        verificationTokenExpiresAt
         bookings {
             id
             date
@@ -63,10 +60,24 @@ query Me {
                 totalPrice
                 bookingStatus
                 paymentStatus
+                user {
+                    name
+                }
             }
         }
+        profileImg {
+            public_id
+            secure_url
+        }
+        legalDocImg {
+            public_id
+            secure_url
+        }
+        address
+        phone
     }
 }
+
 
 `;
 

@@ -1,10 +1,13 @@
+import { useContext } from "react";
 import { GET_DELETE_SIGNATURE } from "../Graphql/mutations/getSignature";
 import { useMutation } from "@apollo/client";
+import { AuthContext } from "../../middleware/AuthContext";
 
 export const useDeleteImage = () => {
+  const {CLOUD_NAME} = useContext(AuthContext)
   const [getDeleteSignature, { error, loading }] = useMutation(GET_DELETE_SIGNATURE);
 
-  const deleteImage = async (cloudName, publicId) => {
+  const deleteImage = async (publicId) => {
     try {
       // Request the signature from the backend for image deletion
       const res = await getDeleteSignature({
@@ -17,7 +20,7 @@ export const useDeleteImage = () => {
 
       // Make a request to Cloudinary to delete the image
       const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloudName}/image/destroy`,
+        `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/destroy`,
         {
           method: "POST",
           body: JSON.stringify({

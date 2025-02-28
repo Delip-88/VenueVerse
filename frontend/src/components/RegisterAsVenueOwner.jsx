@@ -1,152 +1,165 @@
-import { useState } from "react"
-import { User, Mail, Phone, Building, FileText, MapPin, Upload } from "lucide-react"
-import { useUploadImage } from "./Functions/UploadImage"
+import { useContext, useState } from "react";
+import { User, Mail, Phone, Building, FileText, MapPin, Upload } from "lucide-react";
+import { useUploadImage } from "./Functions/UploadImage";
+import { AuthContext } from "../middleware/AuthContext";
+import toast from "react-hot-toast";
+import { useMutation } from "@apollo/client";
+import { UPDATE_TO_VENUE_OWNER } from "./Graphql/mutations/updateUserGql";
+import { useNavigate } from "react-router-dom";
 
 const BecomeVenueOwnerPage = () => {
+  const { user} = useContext(AuthContext);
+  const [updateToVenueOwner] = useMutation(UPDATE_TO_VENUE_OWNER);
+  const { uploadImage } = useUploadImage();
+  const navigate = useNavigate()
+
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
+    name: user.name,
+    email: user.email,
+    phone: user?.phone || "",
     companyName: "",
     description: "",
     governmentId: null,
     profilePicture: null,
-    street: "",
-    city: "",
-    province: "",
-    zipCode: "",
+    address: "",
     eSewaId: "",
     termsAccepted: false,
-  })
+  });
 
-  const {uploadImage, loading:uLoading} = useUploadImage()
-
-  const [errors, setErrors] = useState({})
-
-  const provinces = [
-    "Koshi",
-    "Madhesh",
-    "Bagmati",
-    "Gandaki",
-    "Lumbini",
-    "Karnali",
-    "Sudurpashchim",
-  ]
+  const [errors, setErrors] = useState({});
 
   const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target
+    const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
-    }))
-    // Clear the error when the user starts typing
+    }));
     if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: "" }))
+      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
-  }
+  };
 
   const handleFileChange = (e) => {
-    const { name, files } = e.target
+    const { name, files } = e.target;
     if (files && files.length > 0) {
-      setFormData((prev) => ({ ...prev, [name]: files[0] }))
-      // Clear the error when the user uploads a file
+      setFormData((prev) => ({ ...prev, [name]: files[0] }));
       if (errors[name]) {
-        setErrors((prev) => ({ ...prev, [name]: "" }))
+        setErrors((prev) => ({ ...prev, [name]: "" }));
       }
     }
-  }
+  };
 
   const validateForm = () => {
-    const newErrors = {}
+    const newErrors = {};
+    if (!formData.name.trim()) newErrors.name = "Name is required";
+    if (!formData.email.trim()) newErrors.email = "Email is required";
+    if (!formData.phone.trim()) newErrors.phone = "Phone number is required";
+    if (!formData.companyName.trim()) newErrors.companyName = "Company name is required";
+    if (!formData.description.trim()) newErrors.description = "Description is required";
+    if (!formData.governmentId) newErrors.governmentId = "Government ID is required";
+    if (!formData.address.trim()) newErrors.address = "Address is required";
+    if (!formData.eSewaId.trim()) newErrors.eSewaId = "eSewa ID is required";
+    if (!formData.termsAccepted) newErrors.termsAccepted = "You must accept the Terms and Conditions";
 
-    // Name validation
-    if (!formData.name.trim()) {
-      newErrors.name = "Name is required"
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validateForm()) {
+      console.log("Form has errors");
+      return;
     }
 
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required"
-    } else if (!emailRegex.test(formData.email)) {
-      newErrors.email = "Invalid email format"
-    }
-
-    // Phone validation
-    const phoneRegex = /^(\+977|0)[0-9]{9,10}$/
-    if (!formData.phone.trim()) {
-      newErrors.phone = "Phone number is required"
-    } else if (!phoneRegex.test(formData.phone)) {
-      newErrors.phone = "Invalid phone number format (should be +977XXXXXXXXXX or 0XXXXXXXXXX)"
-    }
-
-    // Company Name validation
-    if (!formData.companyName.trim()) {
-      newErrors.companyName = "Company name is required"
-    }
-
-    // Description validation
-    if (!formData.description.trim()) {
-      newErrors.description = "Description is required"
-    }
-
-    // Government ID validation
-    if (!formData.governmentId) {
-      newErrors.governmentId = "Government ID is required"
-    }
-
-    // Address validation
-    if (!formData.street.trim()) {
-      newErrors.street = "Street address is required"
-    }
-    if (!formData.city.trim()) {
-      newErrors.city = "City is required"
-    }
-    if (!formData.province) {
-      newErrors.province = "Province is required"
-    }
-
-    // ZIP Code validation
-    // const zipRegex = /^\d{5}$/
-    // if (!formData.zipCode.trim()) {
-    //   newErrors.zipCode = "ZIP code is required"
-    // } else if (!zipRegex.test(formData.zipCode)) {
-    //   newErrors.zipCode = "Invalid ZIP code format (should be 5 digits)"
-    // }
-
-    // eSewa ID validation
-    if (!formData.eSewaId.trim()) {
-      newErrors.eSewaId = "eSewa ID is required"
-    }
-
-    // Terms and Conditions validation
-    if (!formData.termsAccepted) {
-      newErrors.termsAccepted = "You must accept the Terms and Conditions"
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
-  const handleSubmit =async (e) => {
-    e.preventDefault()
-    if (validateForm()) {
-      // Here you would typically send the form data to your backend
-      console.log("Form submitted:", formData)
-      try {
-        if(formData.profilePicture && formData.governmentId){
-          const profileImgData = await uploadImage(import.meta.env.VITE_CLOUDN_NAME,formData.profilePicture,import.meta.env.VITE_SIGNED_UPLOAD_PRESET, `users/profile_${123}`,"profile")
-          const legalDocImgData = await uploadImage(import.meta.env.VITE_CLOUDN_NAME,formData.profilePicture,import.meta.env.VITE_SIGNED_UPLOAD_PRESET, `users/profile_${123}`,"legal_doc")
+    toast.promise(
+      (async () => {
+        try {
+          let profileImgData = null;
+          let legalDocImgData = null;
+    
+          if (formData.profilePicture && formData.governmentId) {
+            profileImgData = await uploadImage(
+              formData.profilePicture,
+              import.meta.env.VITE_SIGNED_UPLOAD_PRESET,
+              import.meta.env.VITE_UPLOAD_USER_IMAGE_FOLDER
+            );
+    
+            legalDocImgData = await uploadImage(
+              formData.governmentId, // Fix: Upload the correct file
+              import.meta.env.VITE_SIGNED_UPLOAD_PRESET,
+              import.meta.env.VITE_UPLOAD_USER_DOCS_IMAGE_FOLDER
+            );
+    
+            if (!profileImgData || !legalDocImgData) {
+              throw new Error("Failed to upload image");
+            }
+          }
+    
+          const extractImageData = (imageData) =>
+            imageData
+              ? {
+                  public_id: imageData.public_id,
+                  secure_url: imageData.secure_url,
+                  asset_id: imageData.asset_id,
+                  version: Number.parseInt(imageData.version, 10),
+                  format: imageData.format,
+                  width: Number.parseInt(imageData.width, 10),
+                  height: Number.parseInt(imageData.height, 10),
+                  created_at: imageData.created_at,
+                }
+              : null;
+    
+          const pfpImageWithoutTypename = extractImageData(profileImgData);
+          const govIdImageWithoutTypename = extractImageData(legalDocImgData);
+    
+          const response = await updateToVenueOwner({
+            variables: {
+              input: {
+                name: formData.name,
+                email: formData.email,
+                description: formData.description,
+                phone: formData.phone,
+                address: formData.address,
+                profileImg: pfpImageWithoutTypename,
+                legalDocImg: govIdImageWithoutTypename,
+                esewaId: formData.eSewaId,
+                companyName: formData.companyName,
+              },
+            },
+          });
+    
+          const { success, message } = response.data?.updateToVenueOwner;
+    
+          if (!success) throw new Error("Failed to update, try again later");
+        } catch (error) {
+          console.error("Update error:", error);
+          throw error;
         }
-        
-      } catch (err) {
-        
+      })(),
+      {
+        loading: "Updating...",
+        success: "Updated successfully!",
+        error: "Failed to update. Please try again.",
       }
-      // After successful submission, you might want to show a confirmation message or redirect the user
-    } else {
-      console.log("Form has errors")
-    }
-  }
+    ).then(() => {
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        companyName: "",
+        description: "",
+        governmentId: null,
+        profilePicture: null,
+        address: "",
+        eSewaId: "",
+        termsAccepted: false,
+      });
+      navigate('/Dashboard')
+    });
+    
+  };
+
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -259,8 +272,8 @@ const BecomeVenueOwnerPage = () => {
         {/* Location Address Fields */}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div>
-            <label htmlFor="street" className="block text-sm font-medium text-gray-700">
-              Street Address
+            <label htmlFor="address" className="block text-sm font-medium text-gray-700">
+               Address
             </label>
             <div className="mt-1 relative rounded-md shadow-sm">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -268,77 +281,18 @@ const BecomeVenueOwnerPage = () => {
               </div>
               <input
                 type="text"
-                name="street"
-                id="street"
+                name="address"
+                id="address"
                 className={`focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md ${
-                  errors.street ? "border-red-500" : ""
+                  errors.address ? "border-red-500" : ""
                 }`}
                 placeholder="123 Main St"
-                value={formData.street}
+                value={formData.address}
                 onChange={handleInputChange}
                 required
               />
             </div>
-            {errors.street && <p className="mt-2 text-sm text-red-600">{errors.street}</p>}
-          </div>
-          <div>
-            <label htmlFor="city" className="block text-sm font-medium text-gray-700">
-              City
-            </label>
-            <input
-              type="text"
-              name="city"
-              id="city"
-              className={`mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md ${
-                errors.city ? "border-red-500" : ""
-              }`}
-              placeholder="Kathmandu"
-              value={formData.city}
-              onChange={handleInputChange}
-              required
-            />
-            {errors.city && <p className="mt-2 text-sm text-red-600">{errors.city}</p>}
-          </div>
-          <div>
-            <label htmlFor="province" className="block text-sm font-medium text-gray-700">
-              Province
-            </label>
-            <select
-              name="province"
-              id="province"
-              className={`mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md ${
-                errors.province ? "border-red-500" : ""
-              }`}
-              value={formData.province}
-              onChange={handleInputChange}
-              required
-            >
-              <option value="">Select a province</option>
-              {provinces.map((province) => (
-                <option key={province} value={province}>
-                  {province}
-                </option>
-              ))}
-            </select>
-            {errors.province && <p className="mt-2 text-sm text-red-600">{errors.province}</p>}
-          </div>
-          <div>
-            <label htmlFor="zipCode" className="block text-sm font-medium text-gray-700">
-              ZIP / Postal Code
-            </label>
-            <input
-              type="text"
-              name="zipCode"
-              id="zipCode"
-              className={`mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md ${
-                errors.zipCode ? "border-red-500" : ""
-              }`}
-              placeholder="44600"
-              value={formData.zipCode}
-              onChange={handleInputChange}
-              required
-            />
-            {errors.zipCode && <p className="mt-2 text-sm text-red-600">{errors.zipCode}</p>}
+            {errors.address && <p className="mt-2 text-sm text-red-600">{errors.address}</p>}
           </div>
         </div>
 
