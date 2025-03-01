@@ -26,10 +26,9 @@ const VENUES = gql`
     }
   }
 `;
-export default VENUES;
 
-export const VENUE_BY_ID = gql`
-  query Venue($id: ID!) {
+const VENUE_BY_ID = gql`
+ query Venue($id: ID!){
     venue(id: $id) {
         id
         name
@@ -62,11 +61,25 @@ export const VENUE_BY_ID = gql`
             id
             rating
             comment
-            user {
-                name
-                id
+            user{
+              name
             }
         }
+        bookings {
+            id
+            totalPrice
+            date
+            timeslots {
+                start
+                end
+            }
+            bookingStatus
+            paymentStatus
+        }
     }
-  }
+}
+
 `;
+
+
+export {VENUE_BY_ID, VENUES}

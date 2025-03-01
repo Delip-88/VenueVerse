@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { SearchIcon, FilterIcon } from "lucide-react";
 import VenueCard from "../common/VenueCard";
 import { useQuery } from "@apollo/client";
-import VENUES from "../../components/Graphql/query/venuesGql";
+import {VENUES} from "../../components/Graphql/query/venuesGql";
 
 export default function VenuesPage() {
   const [searchTerm, setSearchTerm] = useState("");

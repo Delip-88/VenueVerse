@@ -1,4 +1,4 @@
-import { Star, MapPin, Users, DollarSign, Clock, Phone, Mail, IndianRupee } from "lucide-react"
+import { Star, MapPin, Users, Clock, Phone, Mail, IndianRupee } from "lucide-react"
 import { useQuery } from "@apollo/client"
 import { VENUE_BY_ID } from "../../components/Graphql/query/venuesGql"
 import Loader from "./Loader"
@@ -90,7 +90,7 @@ const VenueDetailsPage = () => {
             {venue.reviews.map((review) => (
               <div key={review.id} className="border-b pb-4">
                 <div className="flex items-center mb-2">
-                  <span className="font-semibold mr-2">{review.user.name}</span>
+                  <span className="font-semibold mr-2">{review?.user?.name}</span>
                   <div className="flex">
                     {[...Array(5)].map((_, i) => (
                       <Star

@@ -3,7 +3,7 @@ import { Search, SlidersHorizontal, X } from 'lucide-react'
 import VenueCard from "../pages/common/VenueCard"
 import { AuthContext } from "../middleware/AuthContext"
 import { useQuery } from "@apollo/client"
-import VENUES from "./Graphql/query/venuesGql"
+import {VENUES} from "./Graphql/query/venuesGql"
 import Loader from "../pages/common/Loader"
 
 const HomePage = () => {

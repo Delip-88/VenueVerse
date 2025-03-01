@@ -47,7 +47,7 @@ export const useUploadImage = () => {
       // Handle moderation result (optional)
       const moderation = await checkImageModeration(uploadResult.secure_url);
       if (moderation) {
-        await deleteImage(cloudName, uploadResult.public_id);
+        await deleteImage( uploadResult.public_id);
         toast.warn("Image was rejected due to content moderation.");
         throw new Error("Image was rejected due to content moderation.");
       }

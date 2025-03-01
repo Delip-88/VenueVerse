@@ -31,7 +31,7 @@ const resolvers = {
         throw new Error("Not Authenticated");
       }
 
-      const foundUser = await User.findById(user.id); // Use `.id` from JWT payload
+      const foundUser = await User.findById(user.id);
       return foundUser;
     },
     // Fetch all events
@@ -82,8 +82,7 @@ const resolvers = {
         throw new Error("Not Authenticated");
       }
       return Venue.find({ owner: user.id });
-  },
-
+    },
   },
 
   Mutation: {
@@ -119,22 +118,22 @@ const resolvers = {
       if (!user || user.role !== "VenueOwner") {
         throw new Error("Not authenticated");
       }
-    
+
       const venue = await Venue.findById(id);
       if (!venue) {
         throw new Error("Venue not found");
       }
-    
+
       if (venue.owner.toString() !== user.id) {
         throw new Error("Not authorized to update this venue");
       }
-    
+
       Object.assign(venue, input);
       await venue.save();
-    
-      return {success: true, message: "Updated sucessfully"}
+
+      return { success: true, message: "Updated sucessfully" };
     },
-    
+
     removeVenue: async (_, args, { user }) => {
       if (!user || user.role !== "VenueOwner") {
         throw new Error("Not authenticated");
@@ -157,16 +156,20 @@ const resolvers = {
         throw new Error("Not Authenticated");
       }
       const { venue, date, start, end } = args.input;
-    
+
       try {
         const venueData = await Venue.findById(venue);
         if (!venueData) {
           throw new Error("Venue not found");
         }
-    
-        const totalAmount = calculateTotalPrice(start, end, venueData.pricePerHour);
+
+        const totalAmount = calculateTotalPrice(
+          start,
+          end,
+          venueData.pricePerHour
+        );
         const timeslot = { start, end };
-    
+
         // Check if the requested time slot overlaps with any existing booking for the same venue and date
         const existingBooking = await Booking.findOne({
           venue,
@@ -179,11 +182,13 @@ const resolvers = {
             },
           },
         });
-    
+
         if (existingBooking) {
-          throw new Error("Time slot already booked. Please choose a different time.");
+          throw new Error(
+            "Time slot already booked. Please choose a different time."
+          );
         }
-    
+
         // Create a new booking if time slot is available
         const booking = new Booking({
           user: user.id,
@@ -193,14 +198,13 @@ const resolvers = {
           totalPrice: totalAmount,
           bookingStatus: "PENDING",
         });
-    
+
         await booking.save();
         return booking;
       } catch (err) {
         throw new Error(`Error booking venue: ${err.message}`);
       }
     },
-    
 
     approveBooking: async (parent, args, { user }) => {
       if (!user || user.role !== "VenueOwner") {
@@ -238,18 +242,19 @@ const resolvers = {
           { new: true }
         );
 
-        return {success: true, message: "Booking approved sucessfully"};
+        return { success: true, message: "Booking approved sucessfully" };
       } catch (err) {
         throw new Error(`Failed to approve booking: ${err.message}`);
       }
     },
+
     rejectBooking: async (parent, args, { user }) => {
       if (!user || user.role !== "VenueOwner") {
         throw new Error("Not authenticated");
       }
-    
+
       const { bookingId } = args;
-    
+
       try {
         // Find and update the booking
         const booking = await Booking.findByIdAndUpdate(
@@ -257,17 +262,17 @@ const resolvers = {
           { bookingStatus: "REJECTED" },
           { new: true }
         );
-    
+
         if (!booking) {
           throw new Error("Booking not found");
         }
-    
+
         return { success: true, message: "Booking rejected successfully" };
       } catch (err) {
         throw new Error(`Failed to reject booking: ${err.message}`);
       }
     },
-    
+
     cancelBooking: async (_, { bookingId }) => {
       try {
         // Find the booking to cancel
@@ -323,6 +328,7 @@ const resolvers = {
         throw new Error(`Error adding review: ${err.message}`);
       }
     },
+
     removeReview: async (_, args) => {
       const { reviewId } = args;
 
@@ -436,6 +442,28 @@ const resolvers = {
       } catch (err) {}
     },
 
+    updateUserDetails: async (_, { input }, { user }) => {
+      if (!user) {
+        throw new Error("Unauthorized!!!!");
+      }
+      try {
+        const existingUser = await User.findById(user.id);
+        if (!existingUser) {
+          throw new Error("User doesn't exist");
+        }
+    
+        Object.assign(existingUser, input);
+        await existingUser.save(); // ✅ Save changes to the database
+    
+        return { 
+          message: "User details updated successfully", 
+          success: true,
+        };
+      } catch (err) {
+        throw new Error("Error updating user details: " + err.message);
+      }
+    },
+    
     // Login user and return a JWT
     login: async (_, { email, password }, context) => {
       const user = await User.findOne({ email }).select("+password"); // Ensure password is selected
@@ -473,6 +501,7 @@ const resolvers = {
       });
       return { message: "logged out sucessfully", success: true };
     },
+
     resendCode: async (_, { email }) => {
       try {
         const user = await User.findOne({ email });
@@ -597,6 +626,7 @@ const resolvers = {
         throw new Error(`Failed to reset password: ${err.message}`);
       }
     },
+
     newPassword: async (_, { password, token }, context) => {
       try {
         // Find user by the reset token
@@ -635,6 +665,7 @@ const resolvers = {
         throw new Error(err.message);
       }
     },
+
     deleteVenue: async (_, args) => {
       const { venueId } = args;
       try {
@@ -726,6 +757,7 @@ const resolvers = {
         transactionId,
       };
     },
+
     generateSignature: async (
       _,
       { total_amount, transaction_uuid, product_code }
@@ -748,6 +780,7 @@ const resolvers = {
         signed_field_names,
       };
     },
+
     async verifyPayment(_, { transactionId }) {
       const transaction = await Transaction.findOne({ transactionId });
 
@@ -803,16 +836,16 @@ const resolvers = {
         };
       }
     },
+
     async getUploadSignature(
       _,
       { tags, upload_preset, uploadFolder },
       context
     ) {
-
       return uploadSignature(tags, upload_preset, uploadFolder);
     },
-    async getDeleteSignature(_, { publicId }, context) {
 
+    async getDeleteSignature(_, { publicId }, context) {
       return deleteSignature(publicId);
     },
   },
@@ -836,6 +869,11 @@ const resolvers = {
     async venue(parent) {
       // Changed 'venues' to 'venue'
       return await Venue.findById(parent.venue); // ✅ Booking relates to one venue
+    },
+  },
+  Review: {
+    async user(parent) {
+      return await User.findById(parent.user);
     },
   },
 

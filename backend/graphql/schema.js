@@ -158,8 +158,9 @@ const typeDefs = gql`
     verifyPayment(transactionId: String!): Response!
 
     updateToVenueOwner(input: venueOwnerInput!): Response!
+    updateUserDetails(input: UserInput!): Response!
 
-    addReview(input: reviewInput!): ReviewResponse!
+    addReview(input: ReviewInput!): ReviewResponse!
     updateReview(reviewId: ID!, comment: String, rating: Int): ReviewResponse!
     removeReview(reviewId: ID!): DeleteResponse!
 
@@ -240,6 +241,13 @@ const typeDefs = gql`
     image: imageInput!
   }
 
+  input UserInput{
+    name: String!
+    esewaId: String!
+    phone: String!
+    email: String!
+  }
+
   enum PaymentStatus {
     PENDING
     PAID
@@ -258,7 +266,7 @@ const typeDefs = gql`
     companyName: String!
   }
 
-  input reviewInput {
+  input ReviewInput {
     comment: String!
     rating: Int!
     venue: ID!

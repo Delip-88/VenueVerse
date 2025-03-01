@@ -27,7 +27,7 @@ const User_Layout = () => {
       <div
         className={`bg-white w-64 shadow-lg fixed h-full z-20 transition-transform duration-300 ease-in-out ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } md:translate-x-0`}
+        } md:translate-x-0`} 
       >
         <div className="p-4 flex flex-col h-full">
           <div className="flex justify-between items-center">

@@ -2,7 +2,7 @@ import { createContext, useEffect, useState } from "react";
 import { useMutation, useQuery, useApolloClient } from "@apollo/client";
 import { Cloudinary } from "@cloudinary/url-gen";
 import { ME_QUERY } from "../components/Graphql/query/meGql";
-import LOGOUT_USER from "../components/Graphql/mutations/logoutGql";
+import { LOGOUT_USER } from "../components/Graphql/mutations/AuthGql";
 
 export const AuthContext = createContext();
 
@@ -51,10 +51,8 @@ export const AuthProvider = ({ children }) => {
         await client.resetStore();
         setIsAuthenticated(false);
         setUser(null);
-        window.location.href = "/";
       } else {
         console.error("Logout failed");
-        window.location.href = "/";
       }
     } catch (err) {
       console.error("Error logging out:", err);
@@ -62,7 +60,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ CID, isAuthenticated, user, loading, error, CLOUD_NAME, login, logout }}>
+    <AuthContext.Provider value={{ CID, isAuthenticated, user, loading, error, CLOUD_NAME, login, logout, refetch }}>
       {children}
     </AuthContext.Provider>
   );

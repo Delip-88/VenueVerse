@@ -92,7 +92,7 @@ function App() {
             <Route path="settings" element={<SettingsPage />} />
             <Route path="my-venues" element={<MyVenues />} />
             <Route path="edit-venue/:id" element={<EditVenue/>} />
-            <Route path="venue-details/:id" element={<VenueDetails/>} />
+            <Route path="my-venues/:id" element={<VenueDetails/>} />
 
           </Route>
 

@@ -8,5 +8,13 @@ mutation updateToVenueOwner($input: venueOwnerInput!){
     }
 }
 `
+const UPDATE_USER_DETAILS = gql`
+mutation UpdateUserDetails($input: UserInput!) {
+    updateUserDetails(input: $input) {
+        success
+        message
+    }
+}
 
-export {UPDATE_TO_VENUE_OWNER}
+`
+export {UPDATE_TO_VENUE_OWNER, UPDATE_USER_DETAILS}

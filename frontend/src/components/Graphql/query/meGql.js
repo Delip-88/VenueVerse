@@ -20,6 +20,7 @@ query Me {
             }
             venue {
                 name
+                id
             }
             user {
                 name
@@ -43,6 +44,9 @@ query Me {
                 id
                 rating
                 comment
+                user {
+                    name
+                }
             }
             image {
                 public_id

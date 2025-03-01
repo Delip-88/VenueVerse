@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { User, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { useMutation } from "@apollo/client";
-import REGISTER_USER from "../../components/Graphql/mutations/registerGql";
+import { REGISTER_USER } from "../../components/Graphql/mutations/AuthGql";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
@@ -16,7 +16,7 @@ export default function SignUpPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
-  const [register, { data, error, loading }] = useMutation(REGISTER_USER);
+  const [register] = useMutation(REGISTER_USER);
 
   const handleChange = (e) => {
     const { name, value } = e.target;

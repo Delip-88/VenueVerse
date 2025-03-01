@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react"
 import { CheckCircle, AlertCircle } from "lucide-react"
 import { useLocation, useNavigate } from "react-router-dom"
 import { useMutation } from "@apollo/client"
-import VERIFICATION_CODE from "../../components/Graphql/mutations/verificationCodeGql"
+import { VERIFICATION_CODE } from "../../components/Graphql/mutations/AuthGql"
 import toast from "react-hot-toast"
 
 export default function OTPVerificationPage() {

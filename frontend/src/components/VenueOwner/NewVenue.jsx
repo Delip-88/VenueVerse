@@ -173,8 +173,45 @@ const AddNewVenue = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+  
+    // Validation
+    const errors = {};
+  
+    if (!venue.name.trim()) errors.name = "Venue name is required";
+    if (!venue.description.trim()) errors.description = "Description is required";
+    if (!venue.location.street.trim()) errors.street = "Street address is required";
+    if (!venue.location.province.trim()) errors.province = "Province is required";
+    if (!venue.location.city.trim()) errors.city = "City is required";
+    
+    if (!venue.price.trim() || isNaN(venue.price) || venue.price <= 0) {
+      errors.price = "Valid price per hour is required";
+    }
+  
+    if (!venue.capacity.trim() || isNaN(venue.capacity) || venue.capacity <= 0) {
+      errors.capacity = "Valid capacity is required";
+    }
+  
+    if (venue.location.zipCode.trim() && isNaN(venue.location.zipCode)) {
+      errors.zipCode = "Zip code must be a number";
+    }
+  
+    if (venue.facilities.length === 0) {
+      errors.facilities = "At least one facility is required";
+    }
+  
+    if (!venue.image) {
+      errors.image = "Venue image is required";
+    }
+  
+    // If there are errors, display a toast and stop submission
+    if (Object.keys(errors).length > 0) {
+      Object.values(errors).forEach((error) => toast.error(error));
+      setIsSubmitting(false);
+      return;
+    }
+  
     let requiredImageProps = null;
-
+  
     const venueMutation = async () => {
       if (venue.image) {
         try {
@@ -184,7 +221,7 @@ const AddNewVenue = () => {
             import.meta.env.VITE_UPLOAD_VENUE_IMAGE_FOLDER
           );
           if (!imageData) throw new Error("Failed to upload image");
-
+  
           requiredImageProps = {
             public_id: imageData.public_id,
             secure_url: imageData.secure_url,
@@ -200,12 +237,12 @@ const AddNewVenue = () => {
           throw new Error("Image upload failed");
         }
       }
-
+  
       try {
         const imageWithoutTypename = requiredImageProps
           ? (({ __typename, ...rest }) => rest)(requiredImageProps)
           : null;
-
+  
         const response = await addVenue({
           variables: {
             venueInput: {
@@ -224,11 +261,10 @@ const AddNewVenue = () => {
             },
           },
         });
-
-        if (!response.data?.addVenue)
-          throw new Error("Failed to create venue");
-
-        return ;
+  
+        if (!response.data?.addVenue) throw new Error("Failed to create venue");
+  
+        return;
       } catch (err) {
         console.error("GraphQL Error:", err);
         if (requiredImageProps) {
@@ -241,7 +277,7 @@ const AddNewVenue = () => {
         throw new Error("Venue creation failed");
       }
     };
-
+  
     toast
       .promise(venueMutation(), {
         loading: "Adding venue...",
@@ -263,14 +299,14 @@ const AddNewVenue = () => {
           facilities: [],
           image: null,
         });
-        
+  
         navigate("/dashboard");
       })
       .finally(() => {
         setIsSubmitting(false);
       });
   };
-
+  
   return (
     <div className="container mx-auto p-6">
       <h1 className="text-3xl font-bold mb-6">Add New Venue</h1>

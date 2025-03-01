@@ -1,8 +1,6 @@
-"use client"
-
 import { useState, useEffect, useContext } from "react"
 import { Menu, X, Building, Calendar, PlusCircle, Settings, LogOut, BadgeHelp } from "lucide-react"
-import { Outlet, NavLink } from "react-router-dom"
+import { Outlet, NavLink, useNavigate } from "react-router-dom"
 import { AuthContext } from "../../middleware/AuthContext"
 import Loader from "../../pages/common/Loader"
 
@@ -10,7 +8,7 @@ export default function VendorLayout() {
   const { user, loading, logout } = useContext(AuthContext)
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
-
+  const navigate= useNavigate()
   
   const handleLogout = async ()=>{
     if(window.confirm("Are you sure ?")){
@@ -84,7 +82,7 @@ export default function VendorLayout() {
           {/* User Profile and Logout */}
           <div className="p-4 border-t border-gray-200">
             <div className="flex items-center mb-4">
-              <img className="h-10 w-10 rounded-full" src="https://picsum.photos/id/237/200/300" alt="User profile" />
+              <img className="h-10 w-10 rounded-full object-cover" src={ user?.profileImg?.secure_url ||"https://picsum.photos/id/237/200/300"} alt="User profile" />
               <div className="ml-3">
                 <div className="text-sm font-medium text-gray-900">{user.name}</div>
                 <div className="text-xs text-gray-500">{user.email}</div>
@@ -134,7 +132,7 @@ export default function VendorLayout() {
 
       {/* Overlay for mobile */}
       {isMobile && isSidebarOpen && (
-        <div className="fixed inset-0 z-20 bg-transparent bg-opacity-5 lg:hidden" onClick={toggleSidebar}></div>
+        <div className="fixed inset-0 z-20  lg:hidden" style={{ backgroundColor: "rgba(0, 0, 0, 0.3)" }} onClick={toggleSidebar}></div>
       )}
     </div>
   )

@@ -1,9 +1,12 @@
 import React, { useContext, useState } from "react"
 import { Lock, Save } from "lucide-react"
 import { AuthContext } from "../../middleware/AuthContext"
+import { useMutation } from "@apollo/client"
+import { UPDATE_USER_DETAILS } from "../Graphql/mutations/updateUserGql"
+import toast from "react-hot-toast"
 
 export default function SettingsPage() {
-  const {user} = useContext(AuthContext)
+  const {user,refetch} = useContext(AuthContext)
   const [personalInfo, setPersonalInfo] = useState({
     fullName: user?.name,
     email: user?.email,
@@ -12,7 +15,7 @@ export default function SettingsPage() {
   })
 
   const [errors, setErrors] = useState({})
-
+  const [updateDetails] = useMutation(UPDATE_USER_DETAILS)
   const handlePersonalInfoChange = (e) => {
     setPersonalInfo({ ...personalInfo, [e.target.name]: e.target.value })
   }
@@ -22,8 +25,7 @@ export default function SettingsPage() {
     const formErrors = {}
 
     // Validate personal info
-    if (!personalInfo.firstName.trim()) formErrors.firstName = "First name is required"
-    if (!personalInfo.lastName.trim()) formErrors.lastName = "Last name is required"
+    if (!personalInfo.fullName.trim()) formErrors.fullName = "First name is required"
     if (!personalInfo.email.trim()) formErrors.email = "Email is required"
     else if (!/\S+@\S+\.\S+/.test(personalInfo.email)) formErrors.email = "Email is invalid"
     if (!personalInfo.phone.trim()) formErrors.phone = "Phone number is required"
@@ -33,16 +35,59 @@ export default function SettingsPage() {
     return Object.keys(formErrors).length === 0
   }
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+  
     if (validateForm()) {
-      // Here you would typically send the updated data to your backend
-      console.log("Form submitted:", { personalInfo })
-      alert("Settings updated successfully!")
+      try {
+        // Use toast.promise and await updatePromise
+        const response = await toast.promise(
+          updateDetails({
+            variables: {
+              input: {
+                name: personalInfo.fullName,
+                email: personalInfo.email,
+                phone: personalInfo.phone,
+                esewaId: personalInfo.esewaId
+              }
+            }
+          }),
+          {
+            pending: "Updating details...",
+            success: "Updated successfully! 🎉",
+            error: "Failed to update details. ❌"
+          }
+        );
+  
+        // Extract response data
+        const { success } = response.data?.updateUserDetails;
+  
+        // If update failed, show toast error
+        if (!success) {
+          return toast.error("Failed to update details");
+        }
+  
+        // Update context state
+        setUser((prev) => ({
+          ...prev,
+          name: personalInfo.fullName,
+          email: personalInfo.email,
+          phone: personalInfo.phone,
+          esewaId: personalInfo.esewaId
+        }));
+  
+        // Refetch the updated data
+        refetch();
+  
+      } catch (err) {
+        console.error("Unexpected error:", err);
+      }
     } else {
-      console.log("Form has errors")
+      console.log("Form has errors");
     }
-  }
+  };
+  
+  
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -55,18 +100,18 @@ export default function SettingsPage() {
           </h2>
           <div className="grid grid-cols-1 gap-y-6 sm:grid-cols-2 sm:gap-x-4">
             <div>
-              <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
                 Full name
               </label>
               <input
                 type="text"
-                name="firstName"
-                id="firstName"
+                name="fullName"
+                id="fullName"
                 value={personalInfo.fullName}
                 onChange={handlePersonalInfoChange}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               />
-              {errors.firstName && <p className="mt-2 text-sm text-red-600">{errors.firstName}</p>}
+              {errors.fullName && <p className="mt-2 text-sm text-red-600">{errors.fullName}</p>}
             </div>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
