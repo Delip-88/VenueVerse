@@ -30,6 +30,7 @@ import PaymentSuccess from "./components/PaymentSuccess";
 import MyVenues from "./components/VenueOwner/MyVenues";
 import EditVenue from "./components/VenueOwner/EditVenue";
 import VenueDetails from "./components/VenueOwner/VenueDetails";
+import ResetPassword from "./pages/Auth/ResetPassword";
 function App() {
 
 
@@ -55,6 +56,7 @@ function App() {
             path="/forgot-password"
             element={<EmailVerificationPage />}
             />
+          <Route path="/reset-password/:token" element={<ResetPassword/>}/>
           <Route path="/OTPVerification" element={<OTPVerificationPage />} />
 
           {/* Authenticated User Routes */}

@@ -1,51 +1,73 @@
 import React, { useState } from "react"
 import { Mail, ArrowRight, AlertCircle } from "lucide-react"
 import { useNavigate } from "react-router-dom"
+import { useMutation } from "@apollo/client";
+import { FORGOT_PASSWORD } from "../../components/Graphql/mutations/AuthGql";
+import toast from "react-hot-toast";
 
 export default function EmailVerificationPage() {
 
-  const navigate = useNavigate();  
-    
-  const [email, setEmail] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
-  const [isEmailSent, setIsEmailSent] = useState(false)
+  const navigate = useNavigate();
 
+  const [email, setEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [isEmailSent, setIsEmailSent] = useState(false);
+  const [passwordReset] = useMutation(FORGOT_PASSWORD);
+  
   const validateEmail = (email) => {
-    const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
-    return re.test(String(email).toLowerCase())
-  }
-
+    const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return re.test(String(email).trim().toLowerCase());
+  };
+  
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError("")
-
-    if (!validateEmail(email)) {
-      setError("Please enter a valid email address")
-      return
+    e.preventDefault();
+    setError("");
+  
+    const trimmedEmail = email.trim();
+  
+    if (!trimmedEmail) {
+      setError("Email is required.");
+      return;
     }
-
-    setIsLoading(true)
-
+  
+    if (!validateEmail(trimmedEmail)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+  
+    if (isLoading) return; // Prevent duplicate submissions
+    setIsLoading(true);
+  
     try {
-      // Here you would typically make an API call to your backend to send the OTP
-      // For this example, we'll simulate the API call with a timeout
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-
-      // Simulating a successful email send
-      setIsEmailSent(true)
-    } catch (error) {
-      setError("Failed to send verification email. Please try again.")
+      const response = await passwordReset({
+        variables: {
+          email: trimmedEmail,
+        },
+      });
+  
+      const success = response.data?.passwordReset?.success;
+      const message = response.data?.passwordReset?.message || "An unknown error occurred.";
+  
+      if (success) {
+        toast.success(message);
+        setIsEmailSent(true);
+      } else {
+        setError(message);
+      }
+    } catch (err) {
+      setError(err.message || "Failed to send verification email. Please try again.");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
+  
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Verify your email</h2>
-        <p className="mt-2 text-center text-sm text-gray-600">We'll send a verification code to your email address</p>
+        <p className="mt-2 text-center text-sm text-gray-600">We'll send a verification link to your email address</p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
@@ -55,18 +77,9 @@ export default function EmailVerificationPage() {
               <Mail className="mx-auto h-12 w-12 text-green-500" />
               <h3 className="mt-2 text-xl font-semibold text-gray-900">Verification Email Sent</h3>
               <p className="mt-2 text-gray-600">
-                We've sent a verification code to {email}. Please check your inbox and enter the code on the next page.
+                We've sent a verification code to {email}. Please check your inbox.
               </p>
-              <button
-                className="mt-6 w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                onClick={() => {
-                  /* Navigate to OTP verification page */
-                  navigate("/OTPVerification")
-                }}
-              >
-                Enter Verification Code
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </button>
+
             </div>
           ) : (
             <form className="space-y-6" onSubmit={handleSubmit}>

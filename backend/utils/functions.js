@@ -16,7 +16,6 @@ export const setUserCookie = async (token, context) => {
       sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax", // Adjust sameSite for production
     });
   } catch (err) {
-    console.error("Error setting cookie:", err.message);
     throw new Error("Failed to set authentication cookie");
   }
 };
@@ -75,9 +74,6 @@ export const uploadSignature = async (tags, upload_preset, uploadFolder) => {
     paramsToSign,
     cloudinary.config().api_secret
   );
-
-  console.log("Signature : " + signature)
-  console.log("timestamp : " + timestamp)
 
   return { timestamp: timestamp, signature: signature };
 };

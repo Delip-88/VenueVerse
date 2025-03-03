@@ -451,19 +451,19 @@ const resolvers = {
         if (!existingUser) {
           throw new Error("User doesn't exist");
         }
-    
+
         Object.assign(existingUser, input);
         await existingUser.save(); // ✅ Save changes to the database
-    
-        return { 
-          message: "User details updated successfully", 
+
+        return {
+          message: "User details updated successfully",
           success: true,
         };
       } catch (err) {
         throw new Error("Error updating user details: " + err.message);
       }
     },
-    
+
     // Login user and return a JWT
     login: async (_, { email, password }, context) => {
       const user = await User.findOne({ email }).select("+password"); // Ensure password is selected
@@ -588,7 +588,6 @@ const resolvers = {
         const user = await User.findOne({ email });
 
         if (!user) {
-          console.error("User doesn't exist");
           throw new Error("User doesn't exist");
         }
 
@@ -604,7 +603,7 @@ const resolvers = {
 
         await user.save();
 
-        // console.log("User after updating:", user);
+        console.log("User after updating:", user);
 
         // Send password reset email with the token link
         await sendEmail(
@@ -612,7 +611,7 @@ const resolvers = {
           user.email,
           "Password Reset Requested",
           "",
-          "",
+          user.name,
           `${process.env.CLIENT_URL}/reset-password/${passwordResetToken}` // Reset link
         );
 
@@ -760,8 +759,11 @@ const resolvers = {
 
     generateSignature: async (
       _,
-      { total_amount, transaction_uuid, product_code }
+      { total_amount, transaction_uuid, product_code },
     ) => {
+      if(!user){
+        throw new Error("Unauthorized!!")
+      }
       const signed_field_names = "total_amount,transaction_uuid,product_code";
 
       const data = {
@@ -770,8 +772,6 @@ const resolvers = {
         product_code,
         signed_field_names,
       };
-
-      console.log("gen sign : " + data.transaction_uuid);
 
       const signature = generateSignature(data);
 
@@ -807,7 +807,6 @@ const resolvers = {
         });
 
         const responseJson = await esewaResponse.json();
-        console.log("eSewa Response:", responseJson);
 
         // Check for the "status" field and verify if it's "COMPLETE"
         if (responseJson.status === "COMPLETE") {
@@ -840,8 +839,11 @@ const resolvers = {
     async getUploadSignature(
       _,
       { tags, upload_preset, uploadFolder },
-      context
+      { user }
     ) {
+      if (!user) {
+        throw new Error("Unauthorized!!");
+      }
       return uploadSignature(tags, upload_preset, uploadFolder);
     },
 

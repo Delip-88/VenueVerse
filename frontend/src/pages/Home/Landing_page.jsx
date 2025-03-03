@@ -40,7 +40,7 @@ export default function LandingPage() {
         <div className="container mx-auto px-6">
           <h2 className="text-3xl font-bold text-center mb-12">Featured Venues</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {venues.map((venue,index) => (
+          {venues.slice(0,3).map((venue,index) => (
               <VenueCard 
               key={index}
               id={venue.id}
