@@ -108,6 +108,9 @@ query MyVenues {
             user {
                 name
             }
+            venue{
+                id
+            }
         }
         location {
             street

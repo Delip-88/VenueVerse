@@ -121,7 +121,7 @@ if(loading) return <Loader/>
             className="text-xl font-semibold mb-4 flex items-center"
           >
             <Building className="mr-2" />
-            Become a Venue Owner
+            {user && user.role == "VenueOwner" ? "Go To " : "Become a Venue Owner"}
           </h2>
           {user && user.role == "VenueOwner" ? (
             <button

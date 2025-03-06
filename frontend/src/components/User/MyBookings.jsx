@@ -1,10 +1,11 @@
 import { useContext, useEffect, useRef, useState } from "react";
-import { AlertCircle, CheckCircle, XCircle, Star, X } from "lucide-react";
+import {  Star, X } from "lucide-react";
 import { AuthContext } from "../../middleware/AuthContext";
 import Loader from "../../pages/common/Loader";
 import { useMutation } from "@apollo/client";
 import toast from "react-hot-toast";
 import { CREATE_REVIEW } from "../Graphql/mutations/ReviewGql";
+import { useNavigate } from "react-router-dom";
 
 const getPaymentStatusColor = (status) => {
   switch (status) {
@@ -25,6 +26,7 @@ export default function MyBookingsPage() {
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [selectedVenue, setSelectedVenue] = useState(null);
   const commentRef = useRef(null);
+  const navigate = useNavigate()
   const [reviewForm, setReviewForm] = useState({
     rating: 0,
     comment: "",
@@ -39,36 +41,6 @@ export default function MyBookingsPage() {
   }, [user]);
 
   if (loading) return <Loader />;
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "APPROVED":
-        return "text-green-600";
-      case "PENDING":
-        return "text-yellow-600";
-      case "REJECTED":
-        return "text-red-600";
-      case "CANCELLED":
-        return "text-gray-600";
-      default:
-        return "text-gray-600";
-    }
-  };
-
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case "APPROVED":
-        return <CheckCircle className="h-5 w-5" />;
-      case "PENDING":
-        return <AlertCircle className="h-5 w-5" />;
-      case "REJECTED":
-        return <XCircle className="h-5 w-5" />;
-      case "CANCELLED":
-        return <XCircle className="h-5 w-5" />;
-      default:
-        return null;
-    }
-  };
 
   const handleReviewClick = (venue) => {
     setSelectedVenue(venue);
@@ -215,12 +187,7 @@ export default function MyBookingsPage() {
               >
                 Total Price
               </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Booking Status
-              </th>
+            
               <th
                 scope="col"
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -239,7 +206,7 @@ export default function MyBookingsPage() {
             {bookings.map((booking) => (
               <tr key={booking.id}>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">
+                  <div className="text-m font-semibold text-gray-900 cursor-pointer hover:underline" onClick={()=>navigate(`/venue/${booking.venue.id}`)}>
                     {booking.venue.name}
                   </div>
                 </td>
@@ -258,18 +225,7 @@ export default function MyBookingsPage() {
                     Rs. {booking.totalPrice}
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
-                      booking.bookingStatus
-                    )} bg-${
-                      getStatusColor(booking.bookingStatus).split("-")[1]
-                    }-100`}
-                  >
-                    {getStatusIcon(booking.bookingStatus)}
-                    <span className="ml-1">{booking.bookingStatus}</span>
-                  </span>
-                </td>
+
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span
                     className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPaymentStatusColor(

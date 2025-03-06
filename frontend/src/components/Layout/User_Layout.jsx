@@ -30,11 +30,15 @@ const User_Layout = () => {
         } md:translate-x-0`} 
       >
         <div className="p-4 flex flex-col h-full">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-center items-center">
             <h2 className="text-2xl font-semibold text-gray-800">
-              <a href={"/Home"}>VenueVerse</a>
+              <a href={"/Home"} ><img
+                className="h-9 w-auto rounded-full overflow-hidden"
+                src="https://res.cloudinary.com/dduky37gb/image/upload/v1741271326/VenueVerse/ffq6gdhll1xnbzjaqwnn.png"
+                alt="VenueVerse Logo"
+                /></a>
             </h2>
-            <button onClick={toggleSidebar} className="md:hidden text-gray-500 hover:text-gray-700">
+            <button onClick={toggleSidebar} className="md:hidden text-gray-500 hover:text-gray-700 ml-10">
               <X size={24} />
             </button>
           </div>

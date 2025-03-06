@@ -5,7 +5,7 @@ import { Check, X, Calendar, Clock, User, DollarSign, AlertCircle, ChevronDown, 
 import { AuthContext } from "../../middleware/AuthContext"
 import Loader from "../../pages/common/Loader"
 import { useMutation, useQuery } from "@apollo/client"
-import { APPROVE_BOOKING, REJECT_BOOKING } from "../Graphql/mutations/bookVenueGql"
+// import { APPROVE_BOOKING, REJECT_BOOKING } from "../Graphql/mutations/bookVenueGql"
 import toast from "react-hot-toast"
 import { MY_VENUES } from "../Graphql/query/meGql"
 
@@ -14,8 +14,6 @@ const ManageBookings = () => {
   const [venues, setVenues] = useState([])
   const [expandedVenues, setExpandedVenues] = useState({})
   const [expandedStatuses, setExpandedStatuses] = useState({})
-  const [approveBooking] = useMutation(APPROVE_BOOKING)
-  const [rejectBooking] = useMutation(REJECT_BOOKING)
   const { data, loading: venueLoading, error } = useQuery(MY_VENUES)
 
   useEffect(() => {
@@ -39,60 +37,6 @@ const ManageBookings = () => {
 
   if (loading || venueLoading) return <Loader />
   if (error) return <div>Error : {error.message}</div>
-
-  const handleApprove = async (id) => {
-    try {
-      await toast.promise(approveBooking({ variables: { bookingId: id } }), {
-        loading: "Approving booking...",
-        success: (response) => {
-          const { success, message } = response.data?.approveBooking || {}
-          if (success) {
-            setVenues((prevVenues) =>
-              prevVenues.map((venue) => ({
-                ...venue,
-                bookings: venue.bookings.map((booking) =>
-                  booking.id === id ? { ...booking, bookingStatus: "APPROVED" } : booking,
-                ),
-              })),
-            )
-            return message || "Booking approved successfully!"
-          } else {
-            throw new Error("Failed to approve booking")
-          }
-        },
-        error: (err) => err.message || "Failed to approve booking.",
-      })
-    } catch (err) {
-      console.error(err)
-    }
-  }
-
-  const handleReject = async (id) => {
-    try {
-      await toast.promise(rejectBooking({ variables: { bookingId: id } }), {
-        loading: "Rejecting booking...",
-        success: (response) => {
-          const { success, message } = response.data?.rejectBooking || {}
-          if (success) {
-            setVenues((prevVenues) =>
-              prevVenues.map((venue) => ({
-                ...venue,
-                bookings: venue.bookings.map((booking) =>
-                  booking.id === id ? { ...booking, bookingStatus: "REJECTED" } : booking,
-                ),
-              })),
-            )
-            return message || "Booking rejected successfully!"
-          } else {
-            throw new Error("Failed to reject booking")
-          }
-        },
-        error: (err) => err.message || "Failed to reject booking.",
-      })
-    } catch (err) {
-      console.error(err)
-    }
-  }
 
   const toggleVenue = (venueId) => {
     setExpandedVenues((prev) => ({
@@ -170,24 +114,7 @@ const ManageBookings = () => {
             <span>Payment: {booking.paymentStatus}</span>
           </div>
         </div>
-        {booking.bookingStatus === "PENDING" && (
-          <div className="flex gap-2 w-full sm:w-auto">
-            <button
-              onClick={() => handleApprove(booking.id)}
-              className="flex-1 sm:flex-none bg-green-500 hover:bg-green-600 text-white font-medium py-1.5 px-3 rounded flex items-center justify-center cursor-pointer"
-            >
-              <Check className="w-4 h-4 mr-2" />
-              Approve
-            </button>
-            <button
-              onClick={() => handleReject(booking.id)}
-              className="flex-1 sm:flex-none bg-red-500 hover:bg-red-600 text-white font-medium py-1.5 px-3 rounded flex items-center justify-center cursor-pointer"
-            >
-              <X className="w-4 h-4 mr-2" />
-              Reject
-            </button>
-          </div>
-        )}
+
       </div>
     </div>
   )

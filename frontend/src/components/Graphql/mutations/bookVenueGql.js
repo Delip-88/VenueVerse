@@ -22,21 +22,21 @@ export const BOOK_VENUE = gql`
   }
 `;
 
-export const APPROVE_BOOKING = gql `
+// export const APPROVE_BOOKING = gql `
 
-mutation ApproveBooking($bookingId: ID!) {
-    approveBooking(bookingId: $bookingId) {
-        success
-        message
-    }
-}
-`
-export const REJECT_BOOKING = gql `
+// mutation ApproveBooking($bookingId: ID!) {
+//     approveBooking(bookingId: $bookingId) {
+//         success
+//         message
+//     }
+// }
+// `
+// export const REJECT_BOOKING = gql `
 
-mutation RejectBooking($bookingId: ID!) {
-    rejectBooking(bookingId: $bookingId) {
-        success
-        message
-    }
-}
-`
+// mutation RejectBooking($bookingId: ID!) {
+//     rejectBooking(bookingId: $bookingId) {
+//         success
+//         message
+//     }
+// }
+// `

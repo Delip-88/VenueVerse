@@ -67,13 +67,6 @@ const EsewaPaymentForm = ({ venue, date, start, end }) => {
           };
   
           setFormData(newFormData);
-          console.log("Signed Field Names:", signed_field_names);
-          console.log("Signature:", signature);
-          console.log("Total Amount:", totalPrice);
-          console.log("Transaction UUID:", transactionId);
-          console.log("Product Code:", import.meta.env.VITE_PAYMENT_PRODUCT_CODE);
-          console.log("Success URL:", import.meta.env.VITE_PAYMENT_SUCCESS_URL);
-          console.log("Failure URL:", import.meta.env.VITE_PAYMENT_FAILURE_URL);
   
           // Wait for state update before submitting
           setTimeout(() => {
@@ -85,7 +78,7 @@ const EsewaPaymentForm = ({ venue, date, start, end }) => {
       })(),
       {
         loading: "Processing your booking...",
-        success: "Booking successful! Redirecting to payment...",
+        success: "Redirecting to payment...",
         error: (err) => err.message, // Show backend error message
       }
     );
