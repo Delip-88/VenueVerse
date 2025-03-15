@@ -1,113 +1,176 @@
-import React, { useContext, useEffect, useState } from "react"
-import { Search, SlidersHorizontal, X } from 'lucide-react'
+import {  useEffect, useState } from "react"
+import { Search, SlidersHorizontal, X } from "lucide-react"
 import VenueCard from "../pages/common/VenueCard"
-import { AuthContext } from "../middleware/AuthContext"
 import { useQuery } from "@apollo/client"
-import {VENUES} from "./Graphql/query/venuesGql"
+import { VENUES } from "./Graphql/query/venuesGql"
 import Loader from "../pages/common/Loader"
+import { useNavigate } from "react-router-dom"
 
 const HomePage = () => {
-  const { user, isAuthenticated } = useContext(AuthContext)
+  const navigate = useNavigate()
   const [searchTerm, setSearchTerm] = useState("")
   const [isFilterVisible, setIsFilterVisible] = useState(false)
+  const [sortBy, setSortBy] = useState("price")
   const [filters, setFilters] = useState({
     minPrice: "",
     maxPrice: "",
-    location: "",
-    minCapacity: "",
-    maxCapacity: "",
-    facilities: [],
+    capacity: "",
+    category: "",
     province: "",
+    services: [],
   })
 
   const [venues, setVenues] = useState([])
   const { data, error, loading } = useQuery(VENUES)
-
-  // Get unique provinces and facilities from venues
-  const provinces = [...new Set(venues.map(venue => venue.location.province))].sort()
-  const allFacilities = [...new Set(venues.flatMap(venue => venue.facilities))].sort()
+  const [allServices, setAllServices] = useState([])
+  const [allProvinces, setAllProvinces] = useState([])
+  const [allCategories, setAllCategories] = useState([])
+  const [filteredVenues, setFilteredVenues] = useState([])
 
   useEffect(() => {
     if (data?.venues) {
+      // Extract unique services, provinces, and categories
+      const services = new Set()
+      const provinces = new Set()
+      const categories = new Set()
+
+      data.venues.forEach((venue) => {
+        if (venue.category) categories.add(venue.category)
+        if (venue.location?.province) provinces.add(venue.location.province)
+        venue.services?.forEach((service) => {
+          if (service.serviceId?.name) services.add(service.serviceId.name)
+        })
+      })
+
+      setAllServices(Array.from(services).sort())
+      setAllProvinces(Array.from(provinces).sort())
+      setAllCategories(Array.from(categories).sort())
       setVenues(data.venues)
+      applyFiltersAndSort(data.venues)
     }
   }, [data])
 
-  if (loading) return <Loader />
-  if (error) return <div>Error: {error.message}</div>
+  useEffect(() => {
+    if (venues.length > 0) {
+      applyFiltersAndSort(venues)
+    }
+  }, [searchTerm, sortBy, filters])
+
+  const applyFiltersAndSort = (venueList) => {
+    let filtered = venueList.filter(
+      (venue) =>
+        venue.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        venue.location?.city?.toLowerCase().includes(searchTerm.toLowerCase()),
+    )
+
+    // Apply category filter
+    if (filters.category) {
+      filtered = filtered.filter((venue) => venue.category === filters.category)
+    }
+
+    // Apply province filter
+    if (filters.province) {
+      filtered = filtered.filter((venue) => venue.location?.province === filters.province)
+    }
+
+    // Apply capacity filter
+    if (filters.capacity) {
+      filtered = filtered.filter((venue) => venue.capacity >= Number(filters.capacity))
+    }
+
+    // Apply price range filter
+    if (filters.minPrice) {
+      filtered = filtered.filter((venue) => venue.basePricePerHour >= Number(filters.minPrice))
+    }
+    if (filters.maxPrice) {
+      filtered = filtered.filter((venue) => venue.basePricePerHour <= Number(filters.maxPrice))
+    }
+
+    // Apply services filter
+    if (filters.services.length > 0) {
+      filtered = filtered.filter((venue) => {
+        if (!venue.services || venue.services.length === 0) return false
+        return filters.services.every((serviceName) =>
+          venue.services.some((service) => service.serviceId?.name === serviceName),
+        )
+      })
+    }
+
+    // Apply sorting
+    if (sortBy === "price") {
+      filtered.sort((a, b) => a.basePricePerHour - b.basePricePerHour)
+    } else if (sortBy === "priceDesc") {
+      filtered.sort((a, b) => b.basePricePerHour - a.basePricePerHour)
+    } else if (sortBy === "rating") {
+      filtered.sort((a, b) => getAverageRating(b.reviews) - getAverageRating(a.reviews))
+    } else if (sortBy === "capacity") {
+      filtered.sort((a, b) => b.capacity - a.capacity)
+    }
+
+    setFilteredVenues(filtered)
+  }
+
+  const getAverageRating = (reviews) => {
+    if (!reviews || reviews.length === 0) return 0
+    return reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
+  }
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target
-    setFilters((prevFilters) => ({
-      ...prevFilters,
+    setFilters((prev) => ({
+      ...prev,
       [name]: value,
     }))
   }
 
-  const handleFacilityToggle = (facility) => {
-    setFilters((prevFilters) => ({
-      ...prevFilters,
-      facilities: prevFilters.facilities.includes(facility)
-        ? prevFilters.facilities.filter((f) => f !== facility)
-        : [...prevFilters.facilities, facility],
-    }))
+  const toggleServiceFilter = (service) => {
+    setFilters((prev) => {
+      const services = [...prev.services]
+      if (services.includes(service)) {
+        return {
+          ...prev,
+          services: services.filter((s) => s !== service),
+        }
+      } else {
+        return {
+          ...prev,
+          services: [...services, service],
+        }
+      }
+    })
   }
 
   const clearFilters = () => {
     setFilters({
       minPrice: "",
       maxPrice: "",
-      location: "",
-      minCapacity: "",
-      maxCapacity: "",
-      facilities: [],
+      capacity: "",
+      category: "",
       province: "",
+      services: [],
     })
     setSearchTerm("")
   }
 
-  const filteredVenues = venues.filter((venue) => {
-    const matchesSearch =
-      venue.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      venue.location.city.toLowerCase().includes(searchTerm.toLowerCase())
-
-    const matchesPrice =
-      (!filters.minPrice || venue.pricePerHour >= Number(filters.minPrice)) &&
-      (!filters.maxPrice || venue.pricePerHour <= Number(filters.maxPrice))
-
-    const matchesLocation =
-      !filters.location ||
-      venue.location.city.toLowerCase().includes(filters.location.toLowerCase())
-
-    const matchesProvince =
-      !filters.province || venue.location.province === filters.province
-
-    const matchesCapacity =
-      (!filters.minCapacity || venue.capacity >= Number(filters.minCapacity)) &&
-      (!filters.maxCapacity || venue.capacity <= Number(filters.maxCapacity))
-
-    const matchesFacilities =
-      filters.facilities.length === 0 ||
-      filters.facilities.every((facility) => venue.facilities.includes(facility))
-
+  const hasActiveFilters = () => {
     return (
-      matchesSearch &&
-      matchesPrice &&
-      matchesLocation &&
-      matchesProvince &&
-      matchesCapacity &&
-      matchesFacilities
+      searchTerm ||
+      filters.minPrice ||
+      filters.maxPrice ||
+      filters.capacity ||
+      filters.category ||
+      filters.province ||
+      filters.services.length > 0
     )
-  })
+  }
 
-  const hasActiveFilters =
-    Object.values(filters).some((value) => 
-      Array.isArray(value) ? value.length > 0 : value !== ""
-    ) || searchTerm
+  if (loading) return <Loader />
+  if (error) return <div>Error: {error.message}</div>
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-100">
+
+      <main className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
         {/* Search and filter section */}
         <div className="mb-6 flex flex-col md:flex-row gap-4">
           <div className="relative flex-grow">
@@ -120,21 +183,40 @@ const HomePage = () => {
             />
             <Search className="absolute left-3 top-2.5 text-gray-400" size={20} />
           </div>
-          <button
-            className="flex items-center justify-center gap-2 bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-200"
-            onClick={() => setIsFilterVisible(!isFilterVisible)}
-          >
-            <SlidersHorizontal size={20} />
-            {isFilterVisible ? "Hide Filters" : "Show Filters"}
-          </button>
+          <div className="flex gap-2">
+            <select
+              className="appearance-none bg-white border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="price">Price: Low to High</option>
+              <option value="priceDesc">Price: High to Low</option>
+              <option value="rating">Highest Rated</option>
+              <option value="capacity">Largest Capacity</option>
+            </select>
+            <button
+              className="flex items-center justify-center gap-2 bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-200"
+              onClick={() => setIsFilterVisible(!isFilterVisible)}
+            >
+              <SlidersHorizontal
+                size={20}
+                className={`transition-transform duration-300 ${isFilterVisible ? "rotate-180" : "rotate-0"}`}
+              />
+              <span className="hidden sm:inline">{isFilterVisible ? "Hide Filters" : "Show Filters"}</span>
+            </button>
+          </div>
         </div>
 
-        {/* Filter options */}
-        {isFilterVisible && (
-          <div className="mb-6 p-4 bg-white rounded-lg shadow-md">
+        {/* Advanced Filters */}
+        <div
+          className={`overflow-hidden transition-all duration-300 ease-in-out ${
+            isFilterVisible ? "max-h-[1000px] opacity-100 mb-8" : "max-h-0 opacity-0 mb-0"
+          }`}
+        >
+          <div className="p-4 bg-white rounded-lg shadow-md">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold">Filters</h2>
-              {hasActiveFilters && (
+              {hasActiveFilters() && (
                 <button
                   onClick={clearFilters}
                   className="text-sm text-red-600 hover:text-red-700 flex items-center gap-1"
@@ -144,6 +226,7 @@ const HomePage = () => {
                 </button>
               )}
             </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Price Range */}
               <div className="space-y-2">
@@ -168,43 +251,42 @@ const HomePage = () => {
                 </div>
               </div>
 
-              {/* Capacity Range */}
+              {/* Capacity */}
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Capacity</label>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    name="minCapacity"
-                    placeholder="Min guests"
-                    className="w-full py-2 px-3 border rounded-lg"
-                    value={filters.minCapacity}
-                    onChange={handleFilterChange}
-                  />
-                  <input
-                    type="number"
-                    name="maxCapacity"
-                    placeholder="Max guests"
-                    className="w-full py-2 px-3 border rounded-lg"
-                    value={filters.maxCapacity}
-                    onChange={handleFilterChange}
-                  />
-                </div>
-              </div>
-
-              {/* Location */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">City</label>
-                <input
-                  type="text"
-                  name="location"
-                  placeholder="Enter city name"
+                <label className="block text-sm font-medium text-gray-700">Minimum Capacity</label>
+                <select
+                  name="capacity"
                   className="w-full py-2 px-3 border rounded-lg"
-                  value={filters.location}
+                  value={filters.capacity}
                   onChange={handleFilterChange}
-                />
+                >
+                  <option value="">Any Capacity</option>
+                  <option value="50">50+ guests</option>
+                  <option value="100">100+ guests</option>
+                  <option value="200">200+ guests</option>
+                  <option value="500">500+ guests</option>
+                </select>
               </div>
 
-              {/* Province Selection */}
+              {/* Category */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Event Category</label>
+                <select
+                  name="category"
+                  className="w-full py-2 px-3 border rounded-lg"
+                  value={filters.category}
+                  onChange={handleFilterChange}
+                >
+                  <option value="">All Categories</option>
+                  {allCategories.map((category) => (
+                    <option key={category} value={category}>
+                      {category.charAt(0) + category.slice(1).toLowerCase()}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Province */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">Province</label>
                 <select
@@ -214,7 +296,7 @@ const HomePage = () => {
                   onChange={handleFilterChange}
                 >
                   <option value="">All Provinces</option>
-                  {provinces.map((province) => (
+                  {allProvinces.map((province) => (
                     <option key={province} value={province}>
                       {province}
                     </option>
@@ -223,58 +305,76 @@ const HomePage = () => {
               </div>
             </div>
 
-            {/* Facilities */}
+            {/* Services */}
             <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Facilities</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Services</label>
               <div className="flex flex-wrap gap-2">
-                {allFacilities.map((facility) => (
+                {allServices.map((service) => (
                   <button
-                    key={facility}
-                    onClick={() => handleFacilityToggle(facility)}
-                    className={`px-3 py-1 rounded-full text-sm ${
-                      filters.facilities.includes(facility)
+                    key={service}
+                    onClick={() => toggleServiceFilter(service)}
+                    className={`px-3 py-1 rounded-full text-sm transition-colors duration-200 ${
+                      filters.services.includes(service)
                         ? "bg-blue-500 text-white"
                         : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                     }`}
                   >
-                    {facility}
+                    {service}
                   </button>
                 ))}
               </div>
             </div>
           </div>
-        )}
-
-        {/* Results count */}
-        <div className="mb-4 text-gray-600">
-          Found {filteredVenues.length} venue{filteredVenues.length !== 1 ? 's' : ''}
         </div>
 
-        {/* Venue grid */}
-        {filteredVenues.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500">No venues found matching your criteria.</p>
+        {/* Featured Venues Section */}
+        <section className="mb-12">
+          <h2 className="text-3xl font-bold mb-6">Featured Venues</h2>
+
+          {/* Results count */}
+          <div className="mb-4 text-gray-600">
+            Found {filteredVenues.length} venue{filteredVenues.length !== 1 ? "s" : ""}
           </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredVenues.map((venue) => (
-              <VenueCard
-                key={venue.id}
-                id={venue.id}
-                name={venue.name}
-                image={venue.image?.secure_url}
-                location={venue.location}
-                pricePerHour={venue.pricePerHour}
-                capacity={venue.capacity}
-                facilities={venue.facilities}
-                reviews={venue.reviews}
-              />
-            ))}
-          </div>
-        )}
+
+          {/* Venue grid */}
+          {filteredVenues.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-lg shadow">
+              <p className="text-gray-500">No venues found matching your criteria.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredVenues.slice(0, 6).map((venue) => (
+                <VenueCard
+                  key={venue.id}
+                  id={venue.id}
+                  name={venue.name}
+                  image={venue.image?.secure_url}
+                  location={venue.location}
+                  basePricePerHour={venue.basePricePerHour}
+                  capacity={venue.capacity}
+                  services={venue.services}
+                  reviews={venue.reviews}
+                />
+              ))}
+            </div>
+          )}
+
+          {filteredVenues.length > 6 && (
+            <div className="text-center mt-8">
+              <button
+                className="px-6 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+                onClick={() => navigate("/Venues")}
+              >
+                View All Venues
+              </button>
+            </div>
+          )}
+        </section>
       </main>
     </div>
   )
 }
 
+
 export default HomePage
+

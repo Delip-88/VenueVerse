@@ -13,3 +13,17 @@ export const calculateTotalPrice = (start, end, pricePerHour) => {
     // Calculate total price
     return totalHours * pricePerHour;
   };
+
+  // Format date to a more readable format
+export const formatDate = (dateString) => {
+  if (!dateString) return "N/A"
+
+  const options = {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }
+
+  return new Date(dateString).toLocaleDateString("en-US", options)
+}
+

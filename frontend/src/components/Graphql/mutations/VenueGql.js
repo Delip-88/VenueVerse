@@ -6,15 +6,9 @@ export const ADD_VENUE = gql`
       id
       name
       description
-      pricePerHour
+      basePricePerHour
       capacity
-      facilities
-      location {
-        street
-        province
-        zipCode
-        city
-      }
+      category
       image {
         public_id
         secure_url
@@ -32,13 +26,11 @@ export const UPDATE_VENUE = gql`
   }
 `;
 
-
 export const REMOVE_VENUE = gql`
-mutation RemoveVenue($venueId: ID!) {
+  mutation RemoveVenue($venueId: ID!) {
     removeVenue(venueId: $venueId) {
-        success
-        message
+      success
+      message
     }
-}
-
-`
+  }
+`;

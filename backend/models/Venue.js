@@ -1,5 +1,10 @@
 import mongoose from "mongoose";
-import { AvailabilitySchema, ImageSchema, LocationSchema } from "./Common.js";
+import {
+  AvailabilitySchema,
+  ImageSchema,
+  LocationSchema,
+  ServiceSchema,
+} from "./Common.js";
 
 const venueSchema = new mongoose.Schema(
   {
@@ -14,24 +19,56 @@ const venueSchema = new mongoose.Schema(
       type: LocationSchema,
       required: true,
     },
-    pricePerHour: { type: Number, required: true }, // Pricing per hour
+    basePricePerHour: { type: Number, required: true }, // Pricing per hour
     owner: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
-    facilities: {
-      type: [String],
-      required: true,
-    },
-    capacity:{
+    services: [
+      {
+        serviceId: { type: mongoose.Schema.Types.ObjectId, ref: "Service" },
+        customPricePerHour: { type: Number, default: 0 },
+      },
+    ],
+    capacity: {
       type: Number,
       required: true,
     },
-    image:{
+    category: {
+      type: String,
+      enum: [
+        "WEDDING",
+        "CONFERENCE_HALL",
+        "PARTY_HALL",
+        "BANQUET",
+        "OUTDOOR",
+        "MEETING_ROOM",
+        "SEMINAR_HALL",
+        "CONCERT_HALL",
+        "EXHIBITION_CENTER",
+        "THEATER",
+        "SPORTS_ARENA",
+        "RESORT",
+        "GARDEN",
+        "CLUBHOUSE",
+        "ROOFTOP",
+        "RESTAURANT",
+        "AUDITORIUM",
+        "BEACH_VENUE",
+        "CONVENTION_CENTER",
+        "TRAINING_CENTER",
+        "COWORKING_SPACE",
+        "PRIVATE_VILLA",
+        "CORPORATE_EVENT_SPACE",
+      ],
+      required: true,
+    },
+
+    image: {
       type: ImageSchema,
     },
- 
+
     availability: [AvailabilitySchema],
     reviews: [
       {

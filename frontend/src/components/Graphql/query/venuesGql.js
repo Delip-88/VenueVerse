@@ -1,41 +1,51 @@
 import { gql } from "@apollo/client";
 
 const VENUES = gql`
-  query Venues {
+ query Venues {
     venues {
-      id
-      name
-      description
-      pricePerHour
-      capacity
-      facilities
-      location {
-        street
-        province
-        city
-      }
-      reviews {
         id
-        rating
-        comment
-      }
-      image {
-        public_id
-        secure_url
-      }
+        name
+        description
+        basePricePerHour
+        capacity
+        category
+        location {
+            street
+            province
+            zipCode
+            city
+        }
+        reviews {
+            id
+            rating
+            comment
+        }
+        image {
+            public_id
+            secure_url
+        }
+        services {
+            serviceId {
+                id
+                name
+                basePricePerHour
+            }
+            customPricePerHour
+        }
     }
-  }
+}
+
 `;
 
 const VENUE_BY_ID = gql`
- query Venue($id: ID!){
+ query Venue($id: ID!) {
     venue(id: $id) {
         id
         name
         description
-        pricePerHour
+        basePricePerHour
         capacity
-        facilities
+        category
         location {
             street
             province
@@ -45,41 +55,51 @@ const VENUE_BY_ID = gql`
         owner {
             name
             email
+            phone
         }
-        availability {
-            date
-            slots {
-                start
-                end
+        reviews {
+            id
+            rating
+            comment
+            user {
+                name
+            }
+        }
+        services {
+            customPricePerHour
+            serviceId {
+                id
+                name
+                basePricePerHour
+                image {
+                    public_id
+                    secure_url
+                }
             }
         }
         image {
             public_id
             secure_url
         }
-        reviews {
-            id
-            rating
-            comment
-            user{
-              name
-            }
-        }
-        bookings {
-            id
-            totalPrice
-            date
-            timeslots {
-                start
-                end
-            }
-            bookingStatus
-            paymentStatus
-        }
     }
 }
 
 `;
 
+const GET_SERVICES = gql`
+query Services {
+    services {
+        id
+        name
+        basePricePerHour
+        image {
+            public_id
+            secure_url
+        }
+    }
+}
 
-export {VENUE_BY_ID, VENUES}
+`
+
+
+export {VENUE_BY_ID, VENUES, GET_SERVICES}

@@ -1,9 +1,11 @@
+"use client"
+
 import { useContext, useState } from "react"
-import { Heart, Star, Users, Clock, MapPin } from "lucide-react"
+import { Heart, Star, Users, Clock, MapPin, Music, Utensils, Camera } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { AuthContext } from "../../middleware/AuthContext"
 
-function VenueCard({ id, name, image, location, pricePerHour, capacity, facilities, reviews }) {
+function VenueCard({ id, name, image, location, basePricePerHour, capacity, services = [], reviews = [] }) {
   const [isFavorite, setIsFavorite] = useState(false)
   const navigate = useNavigate()
   const { isAuthenticated, user } = useContext(AuthContext)
@@ -13,6 +15,15 @@ function VenueCard({ id, name, image, location, pricePerHour, capacity, faciliti
   const averageRating = reviews.length
     ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
     : "No reviews"
+
+  // Get service icon based on service name
+  const getServiceIcon = (serviceName) => {
+    const name = serviceName.toLowerCase()
+    if (name.includes("dj") || name.includes("music")) return <Music className="w-3 h-3 mr-1" />
+    if (name.includes("catering") || name.includes("food")) return <Utensils className="w-3 h-3 mr-1" />
+    if (name.includes("photo") || name.includes("video")) return <Camera className="w-3 h-3 mr-1" />
+    return null
+  }
 
   const handleFavoriteClick = (e) => {
     e.stopPropagation()
@@ -46,7 +57,7 @@ function VenueCard({ id, name, image, location, pricePerHour, capacity, faciliti
         <div className="flex justify-between items-center mt-2">
           <div className="flex items-center text-blue-500 font-medium">
             <Clock className="w-4 h-4 mr-1" />
-            Rs. {pricePerHour}/hour
+            Rs. {basePricePerHour}/hour
           </div>
           <div className="flex items-center">
             <Star className="w-5 h-5 text-yellow-400 mr-1" />
@@ -59,13 +70,18 @@ function VenueCard({ id, name, image, location, pricePerHour, capacity, faciliti
           <p>Capacity: {capacity || "N/A"} guests</p>
         </div>
 
-        {facilities?.length > 0 && (
+        {services?.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-2">
-            {facilities.map((facility, index) => (
-              <span key={index} className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded">
-                {facility}
+            {services.slice(0, 3).map((service, index) => (
+              <span
+                key={index}
+                className="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded flex items-center"
+              >
+                {getServiceIcon(service.serviceId.name)}
+                {service.serviceId.name}
               </span>
             ))}
+            {services.length > 3 && <span className="text-xs text-gray-500">+{services.length - 3} more</span>}
           </div>
         )}
       </div>

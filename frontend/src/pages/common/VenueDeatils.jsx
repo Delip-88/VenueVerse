@@ -1,4 +1,6 @@
-import { Star, MapPin, Users, Clock, Phone, Mail, IndianRupee } from "lucide-react"
+"use client"
+
+import { Star, MapPin, Users, Clock, Phone, Mail, IndianRupee, Music, Utensils, Camera, Sparkles } from "lucide-react"
 import { useQuery } from "@apollo/client"
 import { VENUE_BY_ID } from "../../components/Graphql/query/venuesGql"
 import Loader from "./Loader"
@@ -13,7 +15,7 @@ const VenueDetailsPage = () => {
     variables: { id },
   })
 
-  const {isAuthenticated} = useContext(AuthContext)
+  const { isAuthenticated } = useContext(AuthContext)
   const navigate = useNavigate()
 
   if (loading) return <Loader />
@@ -26,6 +28,15 @@ const VenueDetailsPage = () => {
     venue.reviews.length > 0
       ? (venue.reviews.reduce((sum, review) => sum + review.rating, 0) / venue.reviews.length).toFixed(1)
       : "No ratings"
+
+  // Get service icon based on service name
+  const getServiceIcon = (serviceName) => {
+    const name = serviceName.toLowerCase()
+    if (name.includes("dj") || name.includes("music")) return <Music className="mr-2" size={20} />
+    if (name.includes("catering") || name.includes("food")) return <Utensils className="mr-2" size={20} />
+    if (name.includes("photo") || name.includes("video")) return <Camera className="mr-2" size={20} />
+    return <Sparkles className="mr-2" size={20} />
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -50,7 +61,7 @@ const VenueDetailsPage = () => {
             <p className="flex items-center text-gray-600 mb-2">
               <Clock className="mr-2" size={20} />
               <IndianRupee className="mr-1" size={16} />
-              {venue.pricePerHour} per hour
+              {venue.basePricePerHour} per hour
             </p>
             <div className="flex items-center mb-2">
               <Star className="text-yellow-400 mr-1" size={20} fill="currentColor" />
@@ -58,7 +69,10 @@ const VenueDetailsPage = () => {
               <span className="text-gray-600">({venue.reviews.length} reviews)</span>
             </div>
           </div>
-          <button className="bg-blue-500 text-white py-2 px-4 rounded cursor-pointer hover:bg-blue-600 transition duration-200" onClick={() => navigate(isAuthenticated ? `/Home/venue/${id}/book-now` : "/login")}>
+          <button
+            className="bg-blue-500 text-white py-2 px-4 rounded cursor-pointer hover:bg-blue-600 transition duration-200"
+            onClick={() => navigate(isAuthenticated ? `/Home/venue/${id}/book-now` : "/login")}
+          >
             Book Now
           </button>
         </div>
@@ -70,15 +84,37 @@ const VenueDetailsPage = () => {
       </div>
 
       <div className="mb-8">
-        <h2 className="text-2xl font-semibold mb-2">Facilities</h2>
-        <ul className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {venue.facilities.map((facility, index) => (
-            <li key={index} className="flex items-center">
-              <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-              {facility}
-            </li>
-          ))}
-        </ul>
+        <h2 className="text-2xl font-semibold mb-2">Available Services</h2>
+        {venue.services && venue.services.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {venue.services.map((service, index) => (
+              <div key={index} className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex">
+                <div className="mr-3 flex-shrink-0">
+                  {service.serviceId.image?.secure_url ? (
+                    <img
+                      src={service.serviceId.image.secure_url || "/placeholder.svg"}
+                      alt={service.serviceId.name}
+                      className="w-16 h-16 object-cover rounded-md"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 bg-gray-100 rounded-md flex items-center justify-center text-green-600">
+                      {getServiceIcon(service.serviceId.name)}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <h3 className="font-medium">{service.serviceId.name}</h3>
+                  <p className="text-gray-600 flex items-center mt-1">
+                    <IndianRupee className="mr-1" size={14} />
+                    {service.customPricePerHour} per hour
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-700">No additional services available</p>
+        )}
       </div>
 
       <div className="mb-8">

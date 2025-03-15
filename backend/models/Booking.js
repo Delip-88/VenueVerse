@@ -33,6 +33,10 @@ const bookingSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    selectedServices:[{
+      serviceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Service', required: true },
+      customPricePerHour: { type: Number, required: true },
+    }]
   },
   { timestamps: true }
 );

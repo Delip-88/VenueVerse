@@ -26,49 +26,6 @@ query Me {
                 name
             }
         }
-        venues {
-            id
-            name
-            description
-            pricePerHour
-            capacity
-            facilities
-            availability {
-                date
-                slots {
-                    start
-                    end
-                }
-            }
-            reviews {
-                id
-                rating
-                comment
-                user {
-                    name
-                }
-            }
-            image {
-                public_id
-                secure_url
-            }
-            location {
-                street
-                province
-                zipCode
-                city
-            }
-            bookings {
-                id
-                date
-                totalPrice
-                bookingStatus
-                paymentStatus
-                user {
-                    name
-                }
-            }
-        }
         profileImg {
             public_id
             secure_url
@@ -79,6 +36,17 @@ query Me {
         }
         address
         phone
+        reviews {
+            id
+            rating
+            comment
+        }
+        location {
+            street
+            province
+            zipCode
+            city
+        }
     }
 }
 
@@ -92,38 +60,59 @@ query MyVenues {
         id
         name
         description
-        pricePerHour
+        basePricePerHour
         capacity
-        facilities
-        bookings {
-            id
-            date
-            totalPrice
-            bookingStatus
-            paymentStatus
-            timeslots {
-                start
-                end
-            }
-            user {
-                name
-            }
-            venue{
-                id
-            }
-        }
+        category
         location {
             street
             province
             zipCode
             city
         }
+        reviews {
+            id
+            rating
+            comment
+        }
+        bookings {
+            id
+            date
+            totalPrice
+            bookingStatus
+            paymentStatus
+            user {
+                name
+            }
+            venue {
+                id
+            }
+            timeslots {
+                start
+                end
+            }
+        }
         image {
             public_id
             secure_url
         }
+        services {
+            customPricePerHour
+            serviceId {
+                id
+                name
+                basePricePerHour
+                image {
+                    secure_url
+                    public_id
+                }
+            }
+        }
+    }
+    services {
+        id
+        name
+        basePricePerHour
     }
 }
-
 
 `

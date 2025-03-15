@@ -33,7 +33,7 @@ export const generateToken = (user) => {
   );
 };
 
-export const calculateTotalPrice = (start, end, pricePerHour) => {
+export const calculateDurationHour = (start, end) => {
   // Convert time strings to hours and minutes
   let [startHour, startMinute] = start.split(":").map(Number);
   let [endHour, endMinute] = end.split(":").map(Number);
@@ -46,7 +46,7 @@ export const calculateTotalPrice = (start, end, pricePerHour) => {
   let totalHours = (endTotalMinutes - startTotalMinutes) / 60;
 
   // Calculate total price
-  return totalHours * pricePerHour;
+  return totalHours;
 };
 
 
@@ -93,4 +93,17 @@ export const deleteSignature = async (publicId) => {
   );
 
   return { timestamp: timestamp, signature: signature };
+};
+
+export const deleteImageFromCloudinary = async (publicId) => {
+  try {
+    const result = await cloudinary.uploader.destroy(publicId);
+    if (result.result === 'ok') {
+      console.log('Image deleted successfully');
+    } else {
+      console.error('Failed to delete image');
+    }
+  } catch (error) {
+    console.error('Error deleting image from Cloudinary:', error);
+  }
 };

@@ -1,12 +1,20 @@
-"use client"
 
 import { useContext, useEffect, useState } from "react"
-import { Check, X, Calendar, Clock, User, DollarSign, AlertCircle, ChevronDown, MapPin, Users } from "lucide-react"
+import {
+  Calendar,
+  Clock,
+  User,
+  DollarSign,
+  AlertCircle,
+  ChevronDown,
+  MapPin,
+  Users,
+  CheckCircle,
+  CreditCard,
+} from "lucide-react"
 import { AuthContext } from "../../middleware/AuthContext"
 import Loader from "../../pages/common/Loader"
-import { useMutation, useQuery } from "@apollo/client"
-// import { APPROVE_BOOKING, REJECT_BOOKING } from "../Graphql/mutations/bookVenueGql"
-import toast from "react-hot-toast"
+import { useQuery } from "@apollo/client"
 import { MY_VENUES } from "../Graphql/query/meGql"
 
 const ManageBookings = () => {
@@ -27,7 +35,6 @@ const ManageBookings = () => {
         statusStates[venue.id] = {
           PENDING: true,
           APPROVED: true,
-          REJECTED: true,
         }
       })
       setExpandedVenues(venueStates)
@@ -61,10 +68,19 @@ const ManageBookings = () => {
         return "text-green-600"
       case "PENDING":
         return "text-yellow-600"
-      case "REJECTED":
-        return "text-red-600"
       default:
         return "text-gray-600"
+    }
+  }
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case "APPROVED":
+        return <CheckCircle className="w-4 h-4 mr-2" />
+      case "PENDING":
+        return <AlertCircle className="w-4 h-4 mr-2" />
+      default:
+        return <AlertCircle className="w-4 h-4 mr-2" />
     }
   }
 
@@ -78,6 +94,19 @@ const ManageBookings = () => {
         return "text-blue-600"
       default:
         return "text-gray-600"
+    }
+  }
+
+  const getPaymentStatusIcon = (status) => {
+    switch (status) {
+      case "PAID":
+        return <CreditCard className="w-4 h-4 mr-2" />
+      case "PENDING":
+        return <CreditCard className="w-4 h-4 mr-2" />
+      case "REFUNDED":
+        return <CreditCard className="w-4 h-4 mr-2" />
+      default:
+        return <CreditCard className="w-4 h-4 mr-2" />
     }
   }
 
@@ -106,15 +135,17 @@ const ManageBookings = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
           <div className={`flex items-center ${getStatusColor(booking.bookingStatus)}`}>
-            <AlertCircle className="w-4 h-4 mr-2" />
+            {getStatusIcon(booking.bookingStatus)}
             <span>Booking: {booking.bookingStatus}</span>
           </div>
           <div className={`flex items-center ${getPaymentStatusColor(booking.paymentStatus)}`}>
-            <AlertCircle className="w-4 h-4 mr-2" />
+            {getPaymentStatusIcon(booking.paymentStatus)}
             <span>Payment: {booking.paymentStatus}</span>
           </div>
         </div>
-
+        {booking.paymentStatus === "PAID" && booking.bookingStatus === "PENDING" && (
+          <div className="text-sm text-gray-500 italic">Payment received - booking will be automatically approved</div>
+        )}
       </div>
     </div>
   )
@@ -122,7 +153,6 @@ const ManageBookings = () => {
   const VenueSection = ({ venue }) => {
     const pendingBookings = venue.bookings.filter((b) => b.bookingStatus === "PENDING")
     const approvedBookings = venue.bookings.filter((b) => b.bookingStatus === "APPROVED")
-    const rejectedBookings = venue.bookings.filter((b) => b.bookingStatus === "REJECTED")
 
     return (
       <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
@@ -158,9 +188,6 @@ const ManageBookings = () => {
             </span>
             <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded">
               {approvedBookings.length} Approved
-            </span>
-            <span className="px-2 py-1 bg-red-100 text-red-800 text-xs font-medium rounded">
-              {rejectedBookings.length} Rejected
             </span>
           </div>
         </div>
@@ -205,25 +232,6 @@ const ManageBookings = () => {
               </div>
             )}
 
-            {/* Rejected Bookings */}
-            {rejectedBookings.length > 0 && (
-              <div className="mb-6">
-                <div
-                  className="flex items-center justify-between mb-2 cursor-pointer"
-                  onClick={() => toggleStatus(venue.id, "REJECTED")}
-                >
-                  <h4 className="text-md font-medium text-red-600">Rejected Bookings</h4>
-                  <ChevronDown
-                    className={`w-4 h-4 transform transition-transform ${
-                      expandedStatuses[venue.id]?.REJECTED ? "rotate-180" : ""
-                    }`}
-                  />
-                </div>
-                {expandedStatuses[venue.id]?.REJECTED &&
-                  rejectedBookings.map((booking) => <BookingCard key={booking.id} booking={booking} />)}
-              </div>
-            )}
-
             {venue.bookings.length === 0 && <p className="text-gray-500">No bookings for this venue.</p>}
           </div>
         )}
@@ -238,6 +246,19 @@ const ManageBookings = () => {
         <div className="text-sm text-gray-600">
           Total Venues: {venues.length} | Total Bookings:{" "}
           {venues.reduce((acc, venue) => acc + venue.bookings.length, 0)}
+        </div>
+      </div>
+
+      <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded-r-md">
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <AlertCircle className="h-5 w-5 text-blue-500" />
+          </div>
+          <div className="ml-3">
+            <p className="text-sm text-blue-700">
+              Bookings are automatically approved when payment is received. No manual approval or rejection is needed.
+            </p>
+          </div>
         </div>
       </div>
 

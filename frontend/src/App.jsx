@@ -31,6 +31,7 @@ import MyVenues from "./components/VenueOwner/MyVenues";
 import EditVenue from "./components/VenueOwner/EditVenue";
 import VenueDetails from "./components/VenueOwner/VenueDetails";
 import ResetPassword from "./pages/Auth/ResetPassword";
+import VenueFinderWizard from "./components/VenueOwner/VenueFinderWizard";
 function App() {
 
 
@@ -46,6 +47,7 @@ function App() {
             <Route path="Contact" element={<ContactPage />} />
             <Route path="Login" element={<LoginPage />} />
             <Route path="SignUp" element={<SignUpPage />} />
+            <Route path="venuewizard" element={<VenueFinderWizard/>}/>
           </Route>
 
           <Route path="venue/:id" element={<VenueDetailsPage />} />

@@ -52,7 +52,7 @@ export default function VendorLayout() {
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center justify-center h-16 bg-blue-500">
+          <div className="flex items-center justify-center h-16">
             <NavLink to="/Dashboard" className="flex items-center">
               <img
                 className="h-9 w-auto rounded-full overflow-hidden"

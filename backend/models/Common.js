@@ -33,3 +33,8 @@ export const AvailabilitySchema = new mongoose.Schema({
   date: String, // "YYYY-MM-DD"
   slots: [TimeSchema], // Reserved slots on this date
 });
+
+export const ServiceSchema = new mongoose.Schema({
+  serviceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Service', required: true },
+  customPricePerHour: { type: Number, default: 0 },
+});

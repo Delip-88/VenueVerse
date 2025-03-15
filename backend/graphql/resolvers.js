@@ -7,7 +7,8 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { sendEmail } from "../config/mailtype.js";
 import {
-  calculateTotalPrice,
+  calculateDurationHour,
+  deleteImageFromCloudinary,
   deleteSignature,
   generateResetToken,
   generateSignature,
@@ -23,6 +24,9 @@ import {
 } from "../utils/Validation.js";
 import { v4 as uuidv4 } from "uuid";
 import Transaction from "../models/Transaction.js";
+import Service from "../models/Service.js";
+import mongoose from "mongoose";
+
 const resolvers = {
   Query: {
     me: async (_, __, { user }) => {
@@ -36,12 +40,18 @@ const resolvers = {
     },
     // Fetch all events
     venues: async () => {
-      return await Venue.find().populate("owner").populate("reviews");
+      return await Venue.find()
+        .populate("owner")
+        .populate("reviews")
+        .populate("services.serviceId");
     },
 
     // Fetch a single event by ID
     venue: async (_, { id }) => {
-      return await Venue.findById(id).populate("owner").populate("reviews");
+      return await Venue.findById(id)
+        .populate("owner")
+        .populate("reviews")
+        .populate("services.serviceId");
     },
 
     // Fetch all bookings
@@ -83,37 +93,63 @@ const resolvers = {
       }
       return Venue.find({ owner: user.id });
     },
+    services: async () => {
+      return await Service.find();
+    },
   },
 
   Mutation: {
-    // Create a new event
+    // Create a new venue
     addVenue: async (_, args, { user }) => {
       const {
         name,
         description,
         location,
-        pricePerHour,
-        facilities,
         capacity,
         image,
+        basePricePerHour,
+        services,
+        category,
       } = args.input;
 
       if (!user || user.role !== "VenueOwner") {
         throw new Error("Not authenticated");
       }
-      const newVenue = new Venue({
-        name,
-        description,
-        location,
-        facilities,
-        capacity,
-        pricePerHour,
-        image,
-        owner: user.id,
-      });
-      await newVenue.save();
-      return newVenue.populate("owner");
+
+      try {
+        const serviceReferences = [];
+
+        for (const service of services) {
+          const existingService = await Service.findById(service.serviceId);
+          if (!existingService) {
+            throw new Error(`Service not found: ${service.serviceId}`);
+          }
+
+          serviceReferences.push({
+            serviceId: existingService._id,
+            customPricePerHour: service.customPricePerHour,
+          });
+        }
+
+        const newVenue = new Venue({
+          name,
+          description,
+          location,
+          capacity,
+          image,
+          basePricePerHour,
+          services: serviceReferences, // Only storing selected services with custom prices
+          category,
+          owner: user.id,
+        });
+
+        await newVenue.save();
+        return newVenue;
+      } catch (err) {
+        throw new Error(`Error adding venue: ${err.message}`);
+      }
     },
+
     updateVenue: async (_, { id, input }, { user }) => {
       if (!user || user.role !== "VenueOwner") {
         throw new Error("Not authenticated");
@@ -128,12 +164,63 @@ const resolvers = {
         throw new Error("Not authorized to update this venue");
       }
 
-      Object.assign(venue, input);
-      await venue.save();
+      try {
+        // Handle Venue Image Update
+        if (
+          input.image &&
+          venue.image &&
+          input.image.public_id !== venue.image.public_id
+        ) {
+          try {
+            await deleteImageFromCloudinary(venue.image.public_id);
+          } catch (error) {
+            console.error(
+              "Error deleting old venue image from Cloudinary:",
+              error
+            );
+          }
+        }
 
-      return { success: true, message: "Updated sucessfully" };
+        // Handle Service Updates (Only Custom Price)
+        const updatedServiceReferences = [];
+
+        if (input.services) {
+          for (const service of input.services) {
+            if (!service.serviceId || !service.customPricePerHour) {
+              throw new Error(
+                "Each service must have a serviceId and customPricePerHour."
+              );
+            }
+
+            let existingService = await Service.findById(service.serviceId);
+
+            if (!existingService) {
+              throw new Error(`Service not found: ${service.serviceId}`);
+            }
+
+            // If the user tries to update the custom price, allow it
+            if (service.customPricePerHour) {
+              existingService.customPricePerHour = service.customPricePerHour;
+              await existingService.save();
+            }
+
+            // Store the service reference with the updated custom price
+            updatedServiceReferences.push({
+              serviceId: existingService._id,
+              customPricePerHour: existingService.customPricePerHour,
+            });
+          }
+        }
+
+        // Update the venue with new values
+        Object.assign(venue, { ...input, services: updatedServiceReferences });
+        await venue.save();
+
+        return { success: true, message: "Updated successfully" };
+      } catch (error) {
+        throw new Error(`Error updating venue: ${error.message}`);
+      }
     },
-
     removeVenue: async (_, args, { user }) => {
       if (!user || user.role !== "VenueOwner") {
         throw new Error("Not authenticated");
@@ -155,53 +242,103 @@ const resolvers = {
       if (!user) {
         throw new Error("Not Authenticated");
       }
-      const { venue, date, start, end } = args.input;
-    
+
+      const { venue, date, start, end, selectedServices } = args.input;
+      console.log("Received selectedServices:", selectedServices);
+
       try {
-        const venueData = await Venue.findById(venue);
+        const venueData = await Venue.findById(venue).populate(
+          "services.serviceId"
+        );
         if (!venueData) {
           throw new Error("Venue not found");
         }
-    
-        const totalAmount = calculateTotalPrice(start, end, venueData.pricePerHour);
-        const timeslot = { start, end };
-    
-        // Check if the requested time slot overlaps with any existing "PAID" booking for the same venue and date
+
+        // Calculate total hours
+        const durationHours = calculateDurationHour(start, end);
+        if (durationHours <= 0) {
+          throw new Error("Invalid time range selected.");
+        }
+
+        // Validate selected services
+        let serviceCost = 0;
+        const validServices = await Promise.all(
+          selectedServices.map(async (serviceId) => {
+            // Check if serviceId is valid
+            if (!mongoose.Types.ObjectId.isValid(serviceId)) {
+              throw new Error(`Invalid service ID: ${serviceId}`);
+            }
+
+            // Find the service in the venue
+            const venueService = venueData.services.find(
+              (s) => s.serviceId._id.toString() === serviceId
+            );
+
+            if (!venueService) {
+              throw new Error(`Service not found in venue: ${serviceId}`);
+            }
+
+            // Use the custom price from the venue's service or the default price
+            const pricePerHour =
+              venueService.customPricePerHour ??
+              venueService.serviceId.defaultPricePerHour;
+
+            serviceCost += pricePerHour * durationHours;
+
+            return {
+              serviceId: new mongoose.Types.ObjectId(serviceId),
+              customPricePerHour: pricePerHour,
+            };
+          })
+        );
+
+        // Calculate total price
+        const basePrice = venueData.basePricePerHour ?? 0;
+        const totalAmount = basePrice * durationHours + serviceCost;
+
+        if (isNaN(totalAmount)) {
+          throw new Error(
+            "Total price calculation failed: Invalid price values."
+          );
+        }
+
+        // Check for conflicting "PAID" bookings
         const existingBooking = await Booking.findOne({
           venue,
           date,
-          paymentStatus: "PAID", // Ensure only checking conflicts with PAID bookings
+          paymentStatus: "PAID",
           timeslots: {
             $elemMatch: {
-              $or: [
-                { start: { $lt: end }, end: { $gt: start } }, // Overlapping range check
-              ],
+              $or: [{ start: { $lt: end }, end: { $gt: start } }],
             },
           },
         });
-    
+
         if (existingBooking) {
-          throw new Error("Time slot already booked. Please choose a different time.");
+          throw new Error(
+            "Time slot already booked. Please choose a different time."
+          );
         }
-    
-        // Create a new booking if time slot is available
+
+        // Create a new booking
         const booking = new Booking({
           user: user.id,
           venue,
           date,
-          timeslots: [timeslot],
+          timeslots: [{ start, end }],
+          selectedServices: validServices,
           totalPrice: totalAmount,
           bookingStatus: "PENDING",
-          paymentStatus: "PENDING", // Ensure payment status is set
+          paymentStatus: "PENDING",
         });
-    
+
         await booking.save();
         return booking;
       } catch (err) {
         throw new Error(`Error booking venue: ${err.message}`);
       }
     },
-    
+
     initiatePayment: async (_, { bookingId, amount }, { user }) => {
       // Check if user is authenticated
       if (!user) throw new AuthenticationError("User not authenticated");
@@ -225,8 +362,7 @@ const resolvers = {
       };
     },
 
-    
-    async verifyPayment(_, { transactionId },{user}) {
+    async verifyPayment(_, { transactionId }, { user }) {
       if (!user) throw new AuthenticationError("User not authenticated");
       const transaction = await Transaction.findOne({ transactionId });
 
@@ -282,7 +418,6 @@ const resolvers = {
         };
       }
     },
-
 
     // approveBooking: async (parent, args, { user }) => {
     //   if (!user || user.role !== "VenueOwner") {
@@ -743,23 +878,56 @@ const resolvers = {
       }
     },
 
-    deleteVenue: async (_, args) => {
-      const { venueId } = args;
-      try {
-        const venue = await Venue.findOneAndDelete({ _id: venueId });
-        if (!venue) {
-          throw new Error("venue doesn't exist");
-        }
-        return {
-          response: {
-            message: "venue deleted sucessfully",
-            success: true,
-          },
-          venue,
-        };
-      } catch (err) {
-        throw new Error("Deletion Failed: " + err.message);
+    deleteVenue: async (_, { id }, { user }) => {
+      if (!user || user.role !== "VenueOwner") {
+        throw new Error("Not authenticated");
       }
+
+      // Find venue by ID
+      const venue = await Venue.findById(id);
+      if (!venue) {
+        throw new Error("Venue not found");
+      }
+
+      // Check if the user is the owner
+      if (venue.owner.toString() !== user.id) {
+        throw new Error("Not authorized to delete this venue");
+      }
+
+      // Delete the venue image from Cloudinary
+      if (venue.image && venue.image.public_id) {
+        try {
+          const publicId = venue.image.public_id;
+          await deleteImageFromCloudinary(publicId);
+        } catch (error) {
+          console.error("Error deleting venue image from Cloudinary:", error);
+        }
+      }
+
+      // Check if the services field exists and delete service images from Cloudinary
+      if (venue.services && venue.services.length > 0) {
+        for (const service of venue.services) {
+          if (service.image && service.image.public_id) {
+            try {
+              const servicePublicId = service.image.public_id;
+              await deleteImageFromCloudinary(servicePublicId);
+            } catch (error) {
+              console.error(
+                `Error deleting service image from Cloudinary: ${servicePublicId}`,
+                error
+              );
+            }
+          }
+        }
+      }
+
+      // Delete the venue from the database
+      await Venue.findByIdAndDelete(id);
+
+      return {
+        success: true,
+        message: "Venue and associated images deleted successfully",
+      };
     },
 
     updateToVenueOwner: async (_, { input }, { user }) => {
@@ -865,17 +1033,19 @@ const resolvers = {
 
   Booking: {
     async user(parent) {
-      // Changed 'users' to 'user'
-      return await User.findById(parent.user); // ✅ Fetch user who made this booking
+      return await User.findById(parent.user); // Fetch user who made this booking
     },
     async venue(parent) {
-      // Changed 'venues' to 'venue'
-      return await Venue.findById(parent.venue); // ✅ Booking relates to one venue
+      return await Venue.findById(parent.venue); // Booking relates to one venue
     },
   },
+
   Review: {
     async user(parent) {
       return await User.findById(parent.user);
+    },
+    async venue(parent) {
+      return await Venue.findById(parent.venue); // Review relates to one venue
     },
   },
 
@@ -891,7 +1061,19 @@ const resolvers = {
     async bookings(parent) {
       return await Booking.find({ venue: parent._id });
     },
+    async services(parent) {
+      return await Promise.all(
+        parent.services.map(async (service) => {
+          const serviceDetails = await Service.findById(service.serviceId);
+          return {
+            serviceId: serviceDetails, // Full service document
+            customPricePerHour: service.customPricePerHour, // Custom price set by venue owner
+          };
+        })
+      )
+    }
   },
+
   Transaction: {
     async user(parent) {
       return await User.findById(parent.userId); // Fetch user who initiated the transaction
@@ -902,6 +1084,34 @@ const resolvers = {
     async venue(parent) {
       const booking = await Booking.findById(parent.bookingId);
       return booking ? await Venue.findById(booking.venue) : null; // Fetch venue from booking
+    },
+  },
+  Services: {
+    async venues(parent) {
+      // Fetch the venues associated with the service
+      const venues = await Venue.find({
+        "services.serviceId": parent._id,
+      });
+      return venues;
+    },
+    async bookings(parent) {
+      // Fetch bookings that include this service
+      const bookings = await Booking.find({
+        selectedServices: {
+          $elemMatch: { serviceId: parent._id },
+        },
+      });
+      return bookings;
+    },
+    async users(parent) {
+      // Fetch users who have booked this service by looking for bookings containing the serviceId
+      const bookings = await Booking.find({
+        selectedServices: {
+          $elemMatch: { serviceId: parent._id },
+        },
+      });
+      const userIds = bookings.map((booking) => booking.user);
+      return await User.find({ _id: { $in: userIds } });
     },
   },
 };
