@@ -179,7 +179,7 @@ export default function VenueDetails() {
                 {venue.services.map((service) => (
                   <div key={service.serviceId.id} className="flex justify-between items-center border-b pb-2">
                     <span className="text-gray-700">{service.serviceId.name}</span>
-                    <span className="font-medium">Rs. {service.customPricePerHour}/hour</span>
+                    <span className="font-medium">Rs. {service.servicePrice}</span>
                   </div>
                 ))}
               </div>

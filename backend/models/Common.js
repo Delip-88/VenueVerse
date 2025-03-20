@@ -36,5 +36,5 @@ export const AvailabilitySchema = new mongoose.Schema({
 
 export const ServiceSchema = new mongoose.Schema({
   serviceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Service', required: true },
-  customPricePerHour: { type: Number, default: 0 },
+  servicePrice: { type: Number, default: 0 ,required: true},
 });

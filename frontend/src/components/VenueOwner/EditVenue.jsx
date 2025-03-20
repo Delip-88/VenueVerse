@@ -119,7 +119,7 @@ const EditVenue = () => {
         setSelectedServices(
           venueData.services.map((service) => ({
             serviceId: service.serviceId.id,
-            customPricePerHour: service.customPricePerHour?.toString() || "",
+            servicePrice: service.servicePrice?.toString() || "",
           })),
         )
       }
@@ -227,7 +227,7 @@ const EditVenue = () => {
         ...selectedServices,
         {
           serviceId,
-          customPricePerHour: "",
+          servicePrice: "",
         },
       ])
     }
@@ -236,7 +236,7 @@ const EditVenue = () => {
   const handleServicePriceChange = (serviceId, price) => {
     setSelectedServices(
       selectedServices.map((service) =>
-        service.serviceId === serviceId ? { ...service, customPricePerHour: price } : service,
+        service.serviceId === serviceId ? { ...service, servicePrice: price } : service,
       ),
     )
   }
@@ -266,7 +266,7 @@ const EditVenue = () => {
     // Validate service prices if any are selected
     const invalidServices = selectedServices.filter(
       (service) =>
-        !service.customPricePerHour || isNaN(service.customPricePerHour) || Number(service.customPricePerHour) <= 0,
+        !service.servicePrice || isNaN(service.servicePrice) || Number(service.servicePrice) <= 0,
     )
 
     if (invalidServices.length > 0) {
@@ -348,7 +348,7 @@ const EditVenue = () => {
         // Format services for the mutation
         const formattedServices = selectedServices.map((service) => ({
           serviceId: service.serviceId,
-          customPricePerHour: Number.parseInt(service.customPricePerHour, 10),
+          servicePrice: Number.parseInt(service.servicePrice, 10),
         }))
 
         const response = await updateVenue({
@@ -666,95 +666,79 @@ const EditVenue = () => {
 
           {/* Services Section */}
           <div>
-            <div className="flex items-center mb-4">
-              <div className="bg-blue-500 rounded-full p-2 text-white">
-                <DollarSign className="h-5 w-5" />
-              </div>
-              <h2 className="text-xl font-semibold ml-2">Services</h2>
-            </div>
+  <div className="flex items-center mb-3">
+    <div className="bg-blue-500 rounded-full p-2 text-white">
+      <DollarSign className="h-4 w-4" />
+    </div>
+    <h2 className="text-lg font-semibold ml-2">Services</h2>
+  </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Select Services (Optional)</label>
-              <p className="text-sm text-gray-500 mb-4">
-                Select the services you offer with this venue and set your custom price per hour for each service.
-              </p>
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-1">Select Services (Optional)</label>
+    <p className="text-xs text-gray-500 mb-3">
+      Select the services you offer with this venue and set your custom price per hour for each service.
+    </p>
 
-              {servicesLoading ? (
-                <div className="flex justify-center py-4">
-                  <Loader className="h-8 w-8 text-blue-500 animate-spin" />
-                </div>
-              ) : servicesData?.services?.length > 0 ? (
-                <div className="space-y-4">
-                  {servicesData.services.map((service) => {
-                    const isSelected = selectedServices.some((s) => s.serviceId === service.id)
-                    const selectedService = selectedServices.find((s) => s.serviceId === service.id)
+    {servicesLoading ? (
+      <div className="flex justify-center py-3">
+        <Loader className="h-6 w-6 text-blue-500 animate-spin" />
+      </div>
+    ) : servicesData?.services?.length > 0 ? (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {servicesData.services.map((service) => {
+          const isSelected = selectedServices.some((s) => s.serviceId === service.id)
+          const selectedService = selectedServices.find((s) => s.serviceId === service.id)
 
-                    return (
-                      <div
-                        key={service.id}
-                        className={`border rounded-lg p-4 ${isSelected ? "border-blue-500 bg-blue-50" : "border-gray-200"}`}
-                      >
-                        <div className="flex items-start">
-                          <div className="flex-shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => handleServiceToggle(service.id)}
-                              className={`h-5 w-5 rounded border ${isSelected ? "bg-blue-500 border-blue-500" : "border-gray-300"} flex items-center justify-center`}
-                            >
-                              {isSelected && <Check className="h-4 w-4 text-white" />}
-                            </button>
-                          </div>
+          return (
+            <div
+              key={service.id}
+              className={`border rounded-md p-3 ${isSelected ? "border-blue-500 bg-blue-50" : "border-gray-200"}`}
+            >
+              <div className="flex items-start gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleServiceToggle(service.id)}
+                  className={`h-4 w-4 rounded border ${isSelected ? "bg-blue-500 border-blue-500" : "border-gray-300"} flex items-center justify-center`}
+                >
+                  {isSelected && <Check className="h-3 w-3 text-white" />}
+                </button>
 
-                          <div className="ml-3 flex-grow">
-                            <div className="flex justify-between">
-                              <label
-                                htmlFor={`service-${service.id}`}
-                                className="font-medium text-gray-700 cursor-pointer"
-                              >
-                                {service.name}
-                              </label>
-                              <span className="text-sm text-gray-500">Base: Rs. {service.basePricePerHour}/hour</span>
-                            </div>
+                <div className="flex-grow">
+                  <label htmlFor={`service-${service.id}`} className="text-sm font-medium text-gray-700 cursor-pointer">
+                    {service.name}
+                  </label>
 
-                            {isSelected && (
-                              <div className="mt-3">
-                                <label
-                                  htmlFor={`price-${service.id}`}
-                                  className="block text-sm font-medium text-gray-700"
-                                >
-                                  Your Price per Hour (Rs.)
-                                </label>
-                                <div className="mt-1 relative rounded-md shadow-sm">
-                                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <span className="text-gray-500 sm:text-sm">Rs.</span>
-                                  </div>
-                                  <input
-                                    type="number"
-                                    id={`price-${service.id}`}
-                                    value={selectedService?.customPricePerHour || ""}
-                                    onChange={(e) => handleServicePriceChange(service.id, e.target.value)}
-                                    min="0"
-                                    className="block w-full pl-12 pr-12 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                                  />
-                                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                                    <span className="text-gray-500 sm:text-sm">/hour</span>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                  {isSelected && (
+                    <div className="mt-2">
+                      <label htmlFor={`price-${service.id}`} className="block text-xs font-medium text-gray-700">
+                        Service Price (Rs.)
+                      </label>
+                      <div className="relative mt-1">
+                        <input
+                          type="number"
+                          id={`price-${service.id}`}
+                          value={selectedService?.servicePrice || ""}
+                          onChange={(e) => handleServicePriceChange(service.id, e.target.value)}
+                          min="0"
+                          className="block w-full px-3 py-1 text-sm border rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                        />
                       </div>
-                    )
-                  })}
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <p className="text-center py-4 text-gray-500">No services available</p>
-              )}
-
-              {errors.services && <p className="mt-2 text-sm text-red-500">{errors.services}</p>}
+              </div>
             </div>
-          </div>
+          )
+        })}
+      </div>
+    ) : (
+      <p className="text-center py-3 text-gray-500 text-sm">No services available</p>
+    )}
+
+    {errors.services && <p className="mt-2 text-xs text-red-500">{errors.services}</p>}
+  </div>
+</div>
+
 
           {/* Image Section */}
           <div>

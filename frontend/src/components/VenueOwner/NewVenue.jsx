@@ -1,14 +1,13 @@
+"use client"
+
 import { useState, useEffect } from "react"
 import {
   Loader,
-  PlusCircle,
   Trash2,
   Upload,
-  X,
   ChevronRight,
   ChevronLeft,
   Check,
-  Building,
   MapPin,
   DollarSign,
   Users,
@@ -24,6 +23,7 @@ import { ADD_VENUE } from "../Graphql/mutations/VenueGql"
 import { GET_SERVICES } from "../Graphql/query/venuesGql"
 import { useNavigate } from "react-router-dom"
 import toast from "react-hot-toast"
+import { MY_VENUES } from "../Graphql/query/meGql"
 
 const VENUE_CATEGORIES = [
   "WEDDING",
@@ -66,7 +66,7 @@ const AddNewVenue = () => {
     basePricePerHour: "",
     capacity: "",
     facilities: [],
-    category: "",
+    categories: [], // Changed from category (string) to categories (array)
     image: null,
     services: [],
   })
@@ -80,7 +80,10 @@ const AddNewVenue = () => {
 
   const { uploadImage } = useUploadImage()
   const { deleteImage } = useDeleteImage()
-  const [addVenue] = useMutation(ADD_VENUE)
+  const [addVenue] = useMutation(ADD_VENUE,{
+    refetchQueries:[{query: MY_VENUES}],
+    awaitRefetchQueries: true
+  })
   const { data: servicesData, loading: servicesLoading } = useQuery(GET_SERVICES)
 
   // Format category for display
@@ -148,7 +151,6 @@ const AddNewVenue = () => {
     }
   }
 
-
   const handleImageUpload = (e) => {
     const file = e.target.files[0]
     if (file) {
@@ -175,7 +177,7 @@ const AddNewVenue = () => {
         ...selectedServices,
         {
           serviceId,
-          customPricePerHour: "",
+          servicePrice: "",
         },
       ])
     }
@@ -184,9 +186,34 @@ const AddNewVenue = () => {
   const handleServicePriceChange = (serviceId, price) => {
     setSelectedServices(
       selectedServices.map((service) =>
-        service.serviceId === serviceId ? { ...service, customPricePerHour: price } : service,
+        service.serviceId === serviceId ? { ...service, servicePrice: price } : service,
       ),
     )
+  }
+
+  const handleCategoryToggle = (category) => {
+    setVenue((prev) => {
+      const categories = [...prev.categories]
+
+      if (categories.includes(category)) {
+        // Remove category if already selected
+        return {
+          ...prev,
+          categories: categories.filter((c) => c !== category),
+        }
+      } else {
+        // Add category if not selected
+        return {
+          ...prev,
+          categories: [...categories, category],
+        }
+      }
+    })
+
+    // Clear error when categories are selected
+    if (errors.categories) {
+      setErrors((prev) => ({ ...prev, categories: null }))
+    }
   }
 
   const validateStep = (step) => {
@@ -196,7 +223,8 @@ const AddNewVenue = () => {
       case 1: // Basic Information
         if (!venue.name.trim()) newErrors.name = "Venue name is required"
         if (!venue.description.trim()) newErrors.description = "Description is required"
-        if (!venue.category) newErrors.category = "Category is required"
+        if (!venue.categories || venue.categories.length === 0)
+          newErrors.categories = "At least one category is required"
         break
 
       case 2: // Location
@@ -222,7 +250,7 @@ const AddNewVenue = () => {
       case 5: // Services
         const invalidServices = selectedServices.filter(
           (service) =>
-            !service.customPricePerHour || isNaN(service.customPricePerHour) || service.customPricePerHour <= 0,
+            !service.servicePrice || isNaN(service.servicePrice) || service.servicePrice <= 0,
         )
 
         if (invalidServices.length > 0) {
@@ -296,7 +324,7 @@ const AddNewVenue = () => {
         // Format services for the mutation
         const formattedServices = selectedServices.map((service) => ({
           serviceId: service.serviceId,
-          customPricePerHour: Number.parseInt(service.customPricePerHour, 10),
+          servicePrice: Number.parseInt(service.servicePrice, 10),
         }))
 
         const response = await addVenue({
@@ -310,7 +338,7 @@ const AddNewVenue = () => {
               },
               basePricePerHour: Number.parseInt(venue.basePricePerHour, 10),
               capacity: Number.parseInt(venue.capacity, 10),
-              category: venue.category,
+              categories: venue.categories, // Changed from category to categories
               image: requiredImageProps,
               services: formattedServices,
             },
@@ -390,24 +418,35 @@ const AddNewVenue = () => {
             </div>
 
             <div>
-              <label htmlFor="category" className="block text-sm font-medium text-gray-700">
-                Venue Category <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-700">
+                Venue Categories <span className="text-red-500">*</span>
               </label>
-              <select
-                id="category"
-                name="category"
-                value={venue.category}
-                onChange={handleChange}
-                className={`mt-1 block w-full rounded-md border ${errors.category ? "border-red-500" : "border-gray-300"} shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
-              >
-                <option value="">Select a category</option>
+              <p className="text-sm text-gray-500 mb-2">Select all categories that apply to your venue</p>
+              <div className="mt-2 grid grid-cols-2 md:grid-cols-3 gap-2">
                 {VENUE_CATEGORIES.map((category) => (
-                  <option key={category} value={category}>
-                    {formatCategory(category)}
-                  </option>
+                  <div
+                    key={category}
+                    className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
+                      venue.categories.includes(category)
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-200 hover:border-blue-300"
+                    }`}
+                    onClick={() => handleCategoryToggle(category)}
+                  >
+                    <div className="flex-shrink-0">
+                      <div
+                        className={`w-5 h-5 rounded border flex items-center justify-center ${
+                          venue.categories.includes(category) ? "bg-blue-500 border-blue-500" : "border-gray-300"
+                        }`}
+                      >
+                        {venue.categories.includes(category) && <Check className="h-3 w-3 text-white" />}
+                      </div>
+                    </div>
+                    <span className="ml-2 text-sm">{formatCategory(category)}</span>
+                  </div>
                 ))}
-              </select>
-              {errors.category && <p className="mt-1 text-sm text-red-500">{errors.category}</p>}
+              </div>
+              {errors.categories && <p className="mt-1 text-sm text-red-500">{errors.categories}</p>}
             </div>
           </div>
         )
@@ -598,6 +637,17 @@ const AddNewVenue = () => {
                             </button>
                           </div>
 
+                          {/* Service Image */}
+                          {service.image?.secure_url && (
+                            <div className="ml-3 mr-3 flex-shrink-0">
+                              <img
+                                src={service.image.secure_url || "/placeholder.svg"}
+                                alt={service.name}
+                                className="w-16 h-16 object-cover rounded-md"
+                              />
+                            </div>
+                          )}
+
                           <div className="ml-3 flex-grow">
                             <div className="flex justify-between">
                               <label
@@ -624,7 +674,7 @@ const AddNewVenue = () => {
                                   <input
                                     type="number"
                                     id={`price-${service.id}`}
-                                    value={selectedService?.customPricePerHour || ""}
+                                    value={selectedService?.servicePrice || ""}
                                     onChange={(e) => handleServicePriceChange(service.id, e.target.value)}
                                     min="0"
                                     className="block w-full pl-12 pr-12 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
@@ -738,8 +788,10 @@ const AddNewVenue = () => {
                       <span className="font-medium">Name:</span> {venue.name}
                     </p>
                     <p className="mt-1 text-sm text-gray-900">
-                      <span className="font-medium">Category:</span>{" "}
-                      {venue.category ? formatCategory(venue.category) : "Not specified"}
+                      <span className="font-medium">Categories:</span>{" "}
+                      {venue.categories.length > 0
+                        ? venue.categories.map((category) => formatCategory(category)).join(", ")
+                        : "Not specified"}
                     </p>
                     <p className="mt-1 text-sm text-gray-900">
                       <span className="font-medium">Description:</span> {venue.description}
@@ -766,7 +818,6 @@ const AddNewVenue = () => {
                       <span className="font-medium">Base Price:</span> Rs. {venue.basePricePerHour}/hour
                     </p>
                   </div>
-
                 </div>
 
                 {selectedServices.length > 0 && (
@@ -776,9 +827,18 @@ const AddNewVenue = () => {
                       {selectedServices.map((service) => {
                         const serviceDetails = servicesData?.services.find((s) => s.id === service.serviceId)
                         return (
-                          <div key={service.serviceId} className="flex justify-between text-sm">
-                            <span>{serviceDetails?.name || "Service"}</span>
-                            <span>Rs. {service.customPricePerHour}/hour</span>
+                          <div key={service.serviceId} className="flex items-center justify-between text-sm py-1">
+                            <div className="flex items-center">
+                              {serviceDetails?.image?.secure_url && (
+                                <img
+                                  src={serviceDetails.image.secure_url || "/placeholder.svg"}
+                                  alt={serviceDetails?.name || "Service"}
+                                  className="w-8 h-8 object-cover rounded-md mr-2"
+                                />
+                              )}
+                              <span>{serviceDetails?.name || "Service"}</span>
+                            </div>
+                            <span>Rs. {service.servicePrice}/hour</span>
                           </div>
                         )
                       })}

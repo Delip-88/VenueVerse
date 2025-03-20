@@ -28,14 +28,15 @@ const venueSchema = new mongoose.Schema(
     services: [
       {
         serviceId: { type: mongoose.Schema.Types.ObjectId, ref: "Service" },
-        customPricePerHour: { type: Number, default: 0 },
+        servicePrice: { type: Number, default: 0 ,required: true},
+
       },
     ],
     capacity: {
       type: Number,
       required: true,
     },
-    category: {
+    categories: [{
       type: String,
       enum: [
         "WEDDING",
@@ -63,7 +64,7 @@ const venueSchema = new mongoose.Schema(
         "CORPORATE_EVENT_SPACE",
       ],
       required: true,
-    },
+    }],
 
     image: {
       type: ImageSchema,

@@ -62,7 +62,7 @@ query MyVenues {
         description
         basePricePerHour
         capacity
-        category
+        categories
         location {
             street
             province
@@ -96,11 +96,10 @@ query MyVenues {
             secure_url
         }
         services {
-            customPricePerHour
+            servicePrice
             serviceId {
                 id
                 name
-                basePricePerHour
                 image {
                     secure_url
                     public_id
@@ -111,7 +110,6 @@ query MyVenues {
     services {
         id
         name
-        basePricePerHour
     }
 }
 

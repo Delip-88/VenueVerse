@@ -104,7 +104,7 @@ const typeDefs = gql`
     users: [User!]
     image: Image
     services: [VenueService!]!
-    category: VenueCategory!
+    categories: [VenueCategory!]!
   }
   type Services {
     id: ID!
@@ -118,12 +118,12 @@ const typeDefs = gql`
 
   type VenueService {
     serviceId: Services!
-    customPricePerHour: Float!
+    servicePrice: Float!
   }
 
   type BookingService {
     serviceId: ID!
-    customPricePerHour: Float!
+    servicePrice: Float!
   }
 
   type Availability {
@@ -147,13 +147,15 @@ const typeDefs = gql`
     paymentStatus: PaymentStatus!
     selectedServices: [BookingService!]!
   }
-
   enum BookingStatus {
-    PENDING
-    APPROVED
-    REJECTED
-    CANCELLED
-  }
+  PENDING      # Initial state when booking is created
+  APPROVED     # Booking has been confirmed by venue
+  REJECTED     # Booking was declined by venue
+  CANCELLED    # Booking was cancelled (by customer or venue) after being approved
+  COMPLETED    # Booking has successfully taken place (past events)
+  NO_SHOW      # Customer didn't show up for their booking
+  RESCHEDULED  # Booking was moved to a different date/time
+}
 
   type Review {
     id: ID!
@@ -190,7 +192,6 @@ const typeDefs = gql`
 
     addVenue(input: venueInput!): Venue!
     updateVenue(id: ID!, input: UpdateVenueInput!): Response!
-    removeVenue(venueId: ID!): Response!
     bookVenue(input: BookInput!): Booking!
     # approveBooking(bookingId: ID!): Response!
     # rejectBooking(bookingId: ID!): Response!
@@ -283,7 +284,7 @@ const typeDefs = gql`
     services: [ServiceInput!]
     capacity: Int!
     image: imageInput!
-    category: VenueCategory
+    categories: [VenueCategory!]!
   }
 
   input UserInput {
@@ -324,7 +325,7 @@ const typeDefs = gql`
     basePricePerHour: Float
     services: [ServiceInput]
     capacity: Int
-    category: String  
+    categories: [String]  
     image: imageInput
   }
   input imageInput {
@@ -347,7 +348,7 @@ const typeDefs = gql`
 
   input ServiceInput {
     serviceId: ID!
-    customPricePerHour: Float!
+    servicePrice: Float!
   }
 `;
 

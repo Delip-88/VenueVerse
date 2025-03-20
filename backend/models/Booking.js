@@ -21,7 +21,7 @@ const bookingSchema = new mongoose.Schema(
     timeslots: [TimeSchema], // Timeslots for booking
     bookingStatus: {  // Renamed to align with GraphQL
       type: String,
-      enum: ["PENDING", "APPROVED", "REJECTED", "CANCELLED"],
+      enum: ["PENDING", "APPROVED", "REJECTED", "CANCELLED","COMPLETED","RESCHEDULED","NO_SHOW"],
       default: "PENDING",
     },
     paymentStatus: {
@@ -35,7 +35,7 @@ const bookingSchema = new mongoose.Schema(
     },
     selectedServices:[{
       serviceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Service', required: true },
-      customPricePerHour: { type: Number, required: true },
+      servicePrice: { type: Number, required: true },
     }]
   },
   { timestamps: true }

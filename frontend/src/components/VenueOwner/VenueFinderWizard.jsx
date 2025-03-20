@@ -1,10 +1,10 @@
+"use client"
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   ChevronRight,
   ChevronLeft,
-  Calendar,
   Users,
   MapPin,
   Music,
@@ -21,12 +21,11 @@ import { VENUES } from "../Graphql/query/venuesGql"
 import VenueCard from "../../pages/common/VenueCard"
 import Loader from "../../pages/common/Loader"
 
-
 const VenueFinderWizard = () => {
   const navigate = useNavigate()
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState({
-    eventType: "",
+    categories: [],
     guestCount: "",
     location: {
       province: "",
@@ -47,10 +46,14 @@ const VenueFinderWizard = () => {
   const [provinces, setProvinces] = useState([])
   const [eventTypes, setEventTypes] = useState([
     { id: "WEDDING", label: "Wedding", icon: <PartyPopper /> },
-    { id: "CORPORATE", label: "Corporate Event", icon: <Users /> },
-    { id: "BIRTHDAY", label: "Birthday Party", icon: <Calendar /> },
-    { id: "CONFERENCE", label: "Conference", icon: <Users /> },
-    { id: "CONCERT", label: "Concert", icon: <Music /> },
+    { id: "CORPORATE_EVENT_SPACE", label: "Corporate Event", icon: <Users /> },
+    { id: "PARTY_HALL", label: "Party Hall", icon: <PartyPopper /> },
+    { id: "CONFERENCE_HALL", label: "Conference", icon: <Users /> },
+    { id: "CONCERT_HALL", label: "Concert", icon: <Music /> },
+    { id: "BANQUET", label: "Banquet", icon: <Utensils /> },
+    { id: "OUTDOOR", label: "Outdoor", icon: <MapPin /> },
+    { id: "MEETING_ROOM", label: "Meeting Room", icon: <Users /> },
+    { id: "SEMINAR_HALL", label: "Seminar Hall", icon: <Users /> },
     { id: "OTHER", label: "Other", icon: <PartyPopper /> },
   ])
 
@@ -147,6 +150,23 @@ const VenueFinderWizard = () => {
     })
   }
 
+  const handleCategoryToggle = (categoryId) => {
+    setFormData((prev) => {
+      const categories = [...prev.categories]
+      if (categories.includes(categoryId)) {
+        return {
+          ...prev,
+          categories: categories.filter((id) => id !== categoryId),
+        }
+      } else {
+        return {
+          ...prev,
+          categories: [...categories, categoryId],
+        }
+      }
+    })
+  }
+
   const findVenues = () => {
     setIsSearching(true)
 
@@ -154,14 +174,23 @@ const VenueFinderWizard = () => {
     setTimeout(() => {
       if (data?.venues) {
         const filtered = data.venues.filter((venue) => {
-          // Match event type
-          if (
-            formData.eventType &&
-            venue.category &&
-            formData.eventType !== venue.category &&
-            formData.eventType !== "OTHER"
-          ) {
-            return false
+          // Match categories
+          if (formData.categories.length > 0 && formData.categories[0] !== "OTHER") {
+            // If venue has categories array
+            if (Array.isArray(venue.categories) && venue.categories.length > 0) {
+              // Check if any selected category matches any venue category
+              const hasMatchingCategory = formData.categories.some((category) => venue.categories.includes(category))
+              if (!hasMatchingCategory) return false
+            }
+            // For backward compatibility with venues that have a single category
+            else if (venue.category) {
+              const hasMatchingCategory = formData.categories.includes(venue.category)
+              if (!hasMatchingCategory) return false
+            }
+            // If venue has no category information, filter it out
+            else {
+              return false
+            }
           }
 
           // Match guest count
@@ -245,28 +274,33 @@ const VenueFinderWizard = () => {
           <div className="space-y-6">
             <h2 className="text-2xl font-bold">What type of event are you planning?</h2>
             <p className="text-gray-600">
-              Select the type of event you're organizing to help us find the perfect venue.
+              Select the type(s) of venue you're looking for. You can select multiple options.
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
               {eventTypes.map((type) => (
                 <button
                   key={type.id}
-                  onClick={() => setFormData({ ...formData, eventType: type.id })}
+                  onClick={() => handleCategoryToggle(type.id)}
                   className={`p-6 rounded-lg border-2 flex flex-col items-center text-center transition-all ${
-                    formData.eventType === type.id
+                    formData.categories.includes(type.id)
                       ? "border-blue-500 bg-blue-50"
                       : "border-gray-200 hover:border-blue-300"
                   }`}
                 >
                   <div
                     className={`p-3 rounded-full mb-3 ${
-                      formData.eventType === type.id ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-600"
+                      formData.categories.includes(type.id) ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-600"
                     }`}
                   >
                     {type.icon}
                   </div>
                   <h3 className="font-medium">{type.label}</h3>
+                  {formData.categories.includes(type.id) && (
+                    <div className="mt-2">
+                      <CheckCircle2 className="h-5 w-5 text-blue-500 mx-auto" />
+                    </div>
+                  )}
                 </button>
               ))}
             </div>
@@ -493,9 +527,14 @@ const VenueFinderWizard = () => {
 
                 <div className="space-y-4">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Event Type:</span>
+                    <span className="text-gray-600">Venue Types:</span>
                     <span className="font-medium">
-                      {eventTypes.find((t) => t.id === formData.eventType)?.label || "Not specified"}
+                      {formData.categories.length > 0
+                        ? formData.categories
+                            .map((cat) => eventTypes.find((t) => t.id === cat)?.label)
+                            .filter(Boolean)
+                            .join(", ")
+                        : "Not specified"}
                     </span>
                   </div>
 
@@ -710,13 +749,13 @@ const VenueFinderWizard = () => {
               <button
                 onClick={nextStep}
                 disabled={
-                  (currentStep === 1 && !formData.eventType) ||
+                  (currentStep === 1 && formData.categories.length === 0) ||
                   (currentStep === 2 && !formData.guestCount) ||
                   (currentStep === 3 && !formData.location.province) ||
                   isSearching
                 }
                 className={`ml-auto flex items-center px-6 py-2 bg-blue-600 text-white rounded-lg transition-colors ${
-                  (currentStep === 1 && !formData.eventType) ||
+                  (currentStep === 1 && formData.categories.length === 0) ||
                   (currentStep === 2 && !formData.guestCount) ||
                   (currentStep === 3 && !formData.location.province) ||
                   isSearching

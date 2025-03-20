@@ -1,5 +1,7 @@
-import {  useEffect, useState } from "react"
-import { Search, SlidersHorizontal, X } from "lucide-react"
+"use client"
+
+import { useEffect, useState } from "react"
+import { Search, SlidersHorizontal, X, CheckCircle2 } from "lucide-react"
 import VenueCard from "../pages/common/VenueCard"
 import { useQuery } from "@apollo/client"
 import { VENUES } from "./Graphql/query/venuesGql"
@@ -15,7 +17,7 @@ const HomePage = () => {
     minPrice: "",
     maxPrice: "",
     capacity: "",
-    category: "",
+    categories: [], // Changed from category (string) to categories (array)
     province: "",
     services: [],
   })
@@ -35,7 +37,13 @@ const HomePage = () => {
       const categories = new Set()
 
       data.venues.forEach((venue) => {
-        if (venue.category) categories.add(venue.category)
+        // Handle both single category and categories array
+        if (Array.isArray(venue.categories) && venue.categories.length > 0) {
+          venue.categories.forEach((cat) => categories.add(cat))
+        } else if (venue.category) {
+          categories.add(venue.category)
+        }
+
         if (venue.location?.province) provinces.add(venue.location.province)
         venue.services?.forEach((service) => {
           if (service.serviceId?.name) services.add(service.serviceId.name)
@@ -63,9 +71,19 @@ const HomePage = () => {
         venue.location?.city?.toLowerCase().includes(searchTerm.toLowerCase()),
     )
 
-    // Apply category filter
-    if (filters.category) {
-      filtered = filtered.filter((venue) => venue.category === filters.category)
+    // Apply categories filter
+    if (filters.categories.length > 0) {
+      filtered = filtered.filter((venue) => {
+        // Handle venues with categories array
+        if (Array.isArray(venue.categories) && venue.categories.length > 0) {
+          return filters.categories.some((category) => venue.categories.includes(category))
+        }
+        // Handle venues with single category for backward compatibility
+        else if (venue.category) {
+          return filters.categories.includes(venue.category)
+        }
+        return false
+      })
     }
 
     // Apply province filter
@@ -140,12 +158,29 @@ const HomePage = () => {
     })
   }
 
+  const toggleCategoryFilter = (category) => {
+    setFilters((prev) => {
+      const categories = [...prev.categories]
+      if (categories.includes(category)) {
+        return {
+          ...prev,
+          categories: categories.filter((c) => c !== category),
+        }
+      } else {
+        return {
+          ...prev,
+          categories: [...categories, category],
+        }
+      }
+    })
+  }
+
   const clearFilters = () => {
     setFilters({
       minPrice: "",
       maxPrice: "",
       capacity: "",
-      category: "",
+      categories: [],
       province: "",
       services: [],
     })
@@ -158,10 +193,19 @@ const HomePage = () => {
       filters.minPrice ||
       filters.maxPrice ||
       filters.capacity ||
-      filters.category ||
+      filters.categories.length > 0 ||
       filters.province ||
       filters.services.length > 0
     )
+  }
+
+  // Format category for display
+  const formatCategory = (category) => {
+    if (!category) return ""
+    return category
+      .split("_")
+      .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
+      .join(" ")
   }
 
   if (loading) return <Loader />
@@ -169,7 +213,6 @@ const HomePage = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
-
       <main className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
         {/* Search and filter section */}
         <div className="mb-6 flex flex-col md:flex-row gap-4">
@@ -268,24 +311,6 @@ const HomePage = () => {
                 </select>
               </div>
 
-              {/* Category */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Event Category</label>
-                <select
-                  name="category"
-                  className="w-full py-2 px-3 border rounded-lg"
-                  value={filters.category}
-                  onChange={handleFilterChange}
-                >
-                  <option value="">All Categories</option>
-                  {allCategories.map((category) => (
-                    <option key={category} value={category}>
-                      {category.charAt(0) + category.slice(1).toLowerCase()}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
               {/* Province */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">Province</label>
@@ -305,6 +330,27 @@ const HomePage = () => {
               </div>
             </div>
 
+            {/* Categories */}
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Venue Categories</label>
+              <div className="flex flex-wrap gap-2">
+                {allCategories.map((category) => (
+                  <button
+                    key={category}
+                    onClick={() => toggleCategoryFilter(category)}
+                    className={`px-3 py-1 rounded-full text-sm transition-colors duration-200 flex items-center ${
+                      filters.categories.includes(category)
+                        ? "bg-blue-500 text-white"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    {formatCategory(category)}
+                    {filters.categories.includes(category) && <CheckCircle2 className="ml-1 h-3 w-3" />}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Services */}
             <div className="mt-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">Services</label>
@@ -313,13 +359,14 @@ const HomePage = () => {
                   <button
                     key={service}
                     onClick={() => toggleServiceFilter(service)}
-                    className={`px-3 py-1 rounded-full text-sm transition-colors duration-200 ${
+                    className={`px-3 py-1 rounded-full text-sm transition-colors duration-200 flex items-center ${
                       filters.services.includes(service)
                         ? "bg-blue-500 text-white"
                         : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                     }`}
                   >
                     {service}
+                    {filters.services.includes(service) && <CheckCircle2 className="ml-1 h-3 w-3" />}
                   </button>
                 ))}
               </div>
@@ -374,7 +421,6 @@ const HomePage = () => {
     </div>
   )
 }
-
 
 export default HomePage
 

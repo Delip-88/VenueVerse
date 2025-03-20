@@ -1,105 +1,106 @@
 import { gql } from "@apollo/client";
 
 const VENUES = gql`
- query Venues {
+  query Venues {
     venues {
+      id
+      name
+      description
+      basePricePerHour
+      capacity
+      categories
+      location {
+        street
+        province
+        zipCode
+        city
+      }
+      reviews {
         id
-        name
-        description
-        basePricePerHour
-        capacity
-        category
-        location {
-            street
-            province
-            zipCode
-            city
+        rating
+        comment
+      }
+      image {
+        public_id
+        secure_url
+      }
+      services {
+        serviceId {
+          id
+          name
         }
-        reviews {
-            id
-            rating
-            comment
-        }
-        image {
-            public_id
-            secure_url
-        }
-        services {
-            serviceId {
-                id
-                name
-                basePricePerHour
-            }
-            customPricePerHour
-        }
+        servicePrice
+      }
     }
-}
-
+  }
 `;
 
 const VENUE_BY_ID = gql`
- query Venue($id: ID!) {
+  query Venue($id: ID!) {
     venue(id: $id) {
-        id
+      id
+      name
+      description
+      basePricePerHour
+      capacity
+      categories
+      location {
+        street
+        province
+        zipCode
+        city
+      }
+      owner {
         name
-        description
-        basePricePerHour
-        capacity
-        category
-        location {
-            street
-            province
-            zipCode
-            city
+        email
+        phone
+      }
+      reviews {
+        id
+        rating
+        comment
+        user {
+          name
         }
-        owner {
-            name
-            email
-            phone
-        }
-        reviews {
-            id
-            rating
-            comment
-            user {
-                name
-            }
-        }
-        services {
-            customPricePerHour
-            serviceId {
-                id
-                name
-                basePricePerHour
-                image {
-                    public_id
-                    secure_url
-                }
-            }
-        }
-        image {
+      }
+      services {
+        servicePrice
+        serviceId {
+          id
+          name
+          image {
             public_id
             secure_url
+          }
         }
+      }
+      image {
+        public_id
+        secure_url
+      }
+      bookings {
+        id
+        date
+        timeslots {
+          start
+          end
+        }
+      }
     }
-}
-
+  }
 `;
 
 const GET_SERVICES = gql`
-query Services {
+  query Services {
     services {
-        id
-        name
-        basePricePerHour
-        image {
-            public_id
-            secure_url
-        }
+      id
+      name
+      image {
+        public_id
+        secure_url
+      }
     }
-}
+  }
+`;
 
-`
-
-
-export {VENUE_BY_ID, VENUES, GET_SERVICES}
+export { VENUE_BY_ID, VENUES, GET_SERVICES };

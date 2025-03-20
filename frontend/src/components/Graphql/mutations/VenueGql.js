@@ -8,7 +8,7 @@ export const ADD_VENUE = gql`
       description
       basePricePerHour
       capacity
-      category
+      categories
       image {
         public_id
         secure_url

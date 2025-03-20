@@ -106,7 +106,7 @@ const VenueDetailsPage = () => {
                   <h3 className="font-medium">{service.serviceId.name}</h3>
                   <p className="text-gray-600 flex items-center mt-1">
                     <IndianRupee className="mr-1" size={14} />
-                    {service.customPricePerHour} per hour
+                    Rs. {service.servicePrice} 
                   </p>
                 </div>
               </div>

@@ -108,159 +108,147 @@ const resolvers = {
         capacity,
         image,
         basePricePerHour,
-        services,
-        category,
+        services = [],  // Default to an empty array to prevent errors
+        categories,
       } = args.input;
-
+    
       if (!user || user.role !== "VenueOwner") {
         throw new Error("Not authenticated");
       }
-
+    
       try {
         const serviceReferences = [];
-
-        for (const service of services) {
-          const existingService = await Service.findById(service.serviceId);
-          if (!existingService) {
-            throw new Error(`Service not found: ${service.serviceId}`);
+    
+        if (services.length > 0) {  // Ensure services exist before looping
+          for (const service of services) {
+            const existingService = await Service.findById(service.serviceId);
+            if (!existingService) {
+              throw new Error(`Service not found: ${service.serviceId}`);
+            }
+    
+            serviceReferences.push({
+              serviceId: existingService._id,
+              servicePrice: service.servicePrice ?? 0,  // Default to 0 if undefined
+            });
           }
-
-          serviceReferences.push({
-            serviceId: existingService._id,
-            customPricePerHour: service.customPricePerHour,
-          });
         }
-
+    
+        // Ensure categories is an array
+        const categoriesArray = Array.isArray(categories) ? categories : [categories];
+    
         const newVenue = new Venue({
           name,
           description,
-          location,
+          location, // Ensure location has required fields
           capacity,
           image,
           basePricePerHour,
           services: serviceReferences, // Only storing selected services with custom prices
-          category,
+          categories: categoriesArray,
           owner: user.id,
         });
-
+    
         await newVenue.save();
         return newVenue;
       } catch (err) {
         throw new Error(`Error adding venue: ${err.message}`);
       }
     },
-
+    
     updateVenue: async (_, { id, input }, { user }) => {
       if (!user || user.role !== "VenueOwner") {
         throw new Error("Not authenticated");
       }
-
+    
       const venue = await Venue.findById(id);
       if (!venue) {
         throw new Error("Venue not found");
       }
-
+    
       if (venue.owner.toString() !== user.id) {
         throw new Error("Not authorized to update this venue");
       }
-
+    
       try {
         // Handle Venue Image Update
-        if (
-          input.image &&
-          venue.image &&
-          input.image.public_id !== venue.image.public_id
-        ) {
+        if (input.image?.public_id && venue.image?.public_id !== input.image.public_id) {
           try {
             await deleteImageFromCloudinary(venue.image.public_id);
           } catch (error) {
-            console.error(
-              "Error deleting old venue image from Cloudinary:",
-              error
-            );
+            console.error("Error deleting old venue image from Cloudinary:", error);
           }
         }
-
-        // Handle Service Updates (Only Custom Price)
-        const updatedServiceReferences = [];
-
+    
+        // Handle Service Updates (Venue-specific custom pricing)
+        let updatedServiceReferences = venue.services; // Keep existing services if no update is provided
+    
         if (input.services) {
+          updatedServiceReferences = [];
+    
           for (const service of input.services) {
-            if (!service.serviceId || !service.customPricePerHour) {
-              throw new Error(
-                "Each service must have a serviceId and customPricePerHour."
-              );
+            if (!service.serviceId || service.servicePrice == null) {
+              throw new Error("Each service must have a serviceId and servicePrice.");
             }
-
-            let existingService = await Service.findById(service.serviceId);
-
+    
+            const existingService = await Service.findById(service.serviceId);
             if (!existingService) {
               throw new Error(`Service not found: ${service.serviceId}`);
             }
-
-            // If the user tries to update the custom price, allow it
-            if (service.customPricePerHour) {
-              existingService.customPricePerHour = service.customPricePerHour;
-              await existingService.save();
-            }
-
-            // Store the service reference with the updated custom price
+    
+            // Store the service reference with the custom price in the Venue model
             updatedServiceReferences.push({
               serviceId: existingService._id,
-              customPricePerHour: existingService.customPricePerHour,
+              servicePrice: service.servicePrice,
             });
           }
         }
-
-        // Update the venue with new values
-        Object.assign(venue, { ...input, services: updatedServiceReferences });
+    
+        // Ensure categories is always stored as an array
+        const updatedcategories = input.categories 
+          ? Array.isArray(input.categories) 
+            ? input.categories 
+            : [input.categories]
+          : venue.categories; // Keep existing if not provided
+    
+        // Update venue fields selectively
+        if (input.name) venue.name = input.name;
+        if (input.description) venue.description = input.description;
+        if (input.location) venue.location = input.location;
+        if (input.capacity) venue.capacity = input.capacity;
+        if (input.image) venue.image = input.image;
+        if (input.basePricePerHour) venue.basePricePerHour = input.basePricePerHour;
+        if (updatedServiceReferences) venue.services = updatedServiceReferences;
+        if (updatedcategories) venue.categories = updatedcategories;
+    
         await venue.save();
-
+    
         return { success: true, message: "Updated successfully" };
       } catch (error) {
         throw new Error(`Error updating venue: ${error.message}`);
       }
     },
-    removeVenue: async (_, args, { user }) => {
-      if (!user || user.role !== "VenueOwner") {
-        throw new Error("Not authenticated");
-      }
-      const { venueId } = args;
-      try {
-        const venue = await Venue.findByIdAndDelete(venueId);
-        if (!venue) {
-          throw new Error("Venue Doesn't exist");
-        }
-
-        return { message: "Venue removed Successfully", success: true };
-      } catch (err) {
-        throw new Error(`Error removing venue: ${err.message}`);
-      }
-    },
-
+    
     bookVenue: async (_, args, { user }) => {
       if (!user) {
         throw new Error("Not Authenticated");
       }
-
+    
       const { venue, date, start, end, selectedServices } = args.input;
-      console.log("Received selectedServices:", selectedServices);
-
+      // console.log("Received selectedServices:", selectedServices);
+    
       try {
-        const venueData = await Venue.findById(venue).populate(
-          "services.serviceId"
-        );
+        const venueData = await Venue.findById(venue).populate("services.serviceId");
         if (!venueData) {
           throw new Error("Venue not found");
         }
-
+    
         // Calculate total hours
         const durationHours = calculateDurationHour(start, end);
         if (durationHours <= 0) {
           throw new Error("Invalid time range selected.");
         }
-
-        // Validate selected services
+    
+        // Validate selected services & calculate total service cost
         let serviceCost = 0;
         const validServices = await Promise.all(
           selectedServices.map(async (serviceId) => {
@@ -268,40 +256,39 @@ const resolvers = {
             if (!mongoose.Types.ObjectId.isValid(serviceId)) {
               throw new Error(`Invalid service ID: ${serviceId}`);
             }
-
-            // Find the service in the venue
+    
+            // Find the service in the venue's offerings
             const venueService = venueData.services.find(
               (s) => s.serviceId._id.toString() === serviceId
             );
-
+    
             if (!venueService) {
               throw new Error(`Service not found in venue: ${serviceId}`);
             }
-
-            // Use the custom price from the venue's service or the default price
-            const pricePerHour =
-              venueService.customPricePerHour ??
-              venueService.serviceId.defaultPricePerHour;
-
-            serviceCost += pricePerHour * durationHours;
-
+    
+            // Use only the venue-defined custom price
+            const servicePrice = venueService.servicePrice;
+            if (servicePrice == null) {
+              throw new Error(`Custom price not set for service: ${serviceId}`);
+            }
+    
+            serviceCost += servicePrice; // No per-hour calculation
+    
             return {
               serviceId: new mongoose.Types.ObjectId(serviceId),
-              customPricePerHour: pricePerHour,
+              servicePrice,
             };
           })
         );
-
-        // Calculate total price
+    
+        // Calculate total price (venue base price + selected services)
         const basePrice = venueData.basePricePerHour ?? 0;
         const totalAmount = basePrice * durationHours + serviceCost;
-
+    
         if (isNaN(totalAmount)) {
-          throw new Error(
-            "Total price calculation failed: Invalid price values."
-          );
+          throw new Error("Total price calculation failed: Invalid price values.");
         }
-
+    
         // Check for conflicting "PAID" bookings
         const existingBooking = await Booking.findOne({
           venue,
@@ -313,13 +300,11 @@ const resolvers = {
             },
           },
         });
-
+    
         if (existingBooking) {
-          throw new Error(
-            "Time slot already booked. Please choose a different time."
-          );
+          throw new Error("Time slot already booked. Please choose a different time.");
         }
-
+    
         // Create a new booking
         const booking = new Booking({
           user: user.id,
@@ -331,7 +316,7 @@ const resolvers = {
           bookingStatus: "PENDING",
           paymentStatus: "PENDING",
         });
-
+    
         await booking.save();
         return booking;
       } catch (err) {
@@ -882,53 +867,36 @@ const resolvers = {
       if (!user || user.role !== "VenueOwner") {
         throw new Error("Not authenticated");
       }
-
+    
       // Find venue by ID
       const venue = await Venue.findById(id);
       if (!venue) {
         throw new Error("Venue not found");
       }
-
+    
       // Check if the user is the owner
       if (venue.owner.toString() !== user.id) {
         throw new Error("Not authorized to delete this venue");
       }
-
+    
       // Delete the venue image from Cloudinary
       if (venue.image && venue.image.public_id) {
         try {
-          const publicId = venue.image.public_id;
-          await deleteImageFromCloudinary(publicId);
+          await deleteImageFromCloudinary(venue.image.public_id);
         } catch (error) {
           console.error("Error deleting venue image from Cloudinary:", error);
         }
       }
-
-      // Check if the services field exists and delete service images from Cloudinary
-      if (venue.services && venue.services.length > 0) {
-        for (const service of venue.services) {
-          if (service.image && service.image.public_id) {
-            try {
-              const servicePublicId = service.image.public_id;
-              await deleteImageFromCloudinary(servicePublicId);
-            } catch (error) {
-              console.error(
-                `Error deleting service image from Cloudinary: ${servicePublicId}`,
-                error
-              );
-            }
-          }
-        }
-      }
-
+    
+    
       // Delete the venue from the database
       await Venue.findByIdAndDelete(id);
-
+    
       return {
         success: true,
-        message: "Venue and associated images deleted successfully",
+        message: "Venue deleted successfully, services remain intact.",
       };
-    },
+    },    
 
     updateToVenueOwner: async (_, { input }, { user }) => {
       try {
@@ -1067,7 +1035,7 @@ const resolvers = {
           const serviceDetails = await Service.findById(service.serviceId);
           return {
             serviceId: serviceDetails, // Full service document
-            customPricePerHour: service.customPricePerHour, // Custom price set by venue owner
+            servicePrice: service.servicePrice, // Custom price set by venue owner
           };
         })
       )
