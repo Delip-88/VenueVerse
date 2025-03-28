@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   MapPin,
@@ -19,7 +19,6 @@ import {
   DollarSign,
   Eye,
 } from "lucide-react"
-import { AuthContext } from "../../middleware/AuthContext"
 import AnotherLoader from "../../pages/common/AnotherLoader"
 import { useMutation, useQuery } from "@apollo/client"
 import { REMOVE_VENUE } from "../Graphql/mutations/VenueGql"
@@ -44,10 +43,10 @@ export default function MyVenues() {
   const [sortBy, setSortBy] = useState("name")
   const [removeVenue] = useMutation(REMOVE_VENUE)
   const { deleteImage } = useDeleteImage()
-  const {data, loading} = useQuery(MY_VENUES)
+  const { data, loading } = useQuery(MY_VENUES)
 
   // Get unique categories from venues
-  
+
   useEffect(() => {
     if (data?.myVenues) {
       setVenues(data.myVenues || []) // Ensure it's an array
@@ -55,11 +54,11 @@ export default function MyVenues() {
       setIsDataLoading(false)
     }
   }, [data])
-  
 
-  const categories = (venues || []).length > 0 
-  ? [...new Set(venues.map((venue) => venue.category))].filter(Boolean).sort() 
-  : []
+  const categories =
+    (venues || []).length > 0
+      ? [...new Set(venues.flatMap((venue) => venue.categories || []))].filter(Boolean).sort()
+      : []
 
   // Filter and sort venues when search, filter, or sort criteria change
   useEffect(() => {
@@ -79,7 +78,7 @@ export default function MyVenues() {
 
       // Apply category filter
       if (filterCategory) {
-        result = result.filter((venue) => venue.category === filterCategory)
+        result = result.filter((venue) => venue.categories && venue.categories.includes(filterCategory))
       }
 
       // Apply sorting
@@ -112,7 +111,7 @@ export default function MyVenues() {
     if (!Array.isArray(reviews) || reviews.length === 0) return 0
     return reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
   }
-  
+
   const formatCategory = (category) => {
     if (!category) return "Uncategorized"
     return category
@@ -144,7 +143,7 @@ export default function MyVenues() {
 
         if (publicId) {
           try {
-            await deleteImage( publicId)
+            await deleteImage(publicId)
           } catch (error) {
             console.error("Failed to delete image:", error)
           }
@@ -375,9 +374,10 @@ export default function MyVenues() {
                   className="w-full h-48 object-cover cursor-pointer"
                   onClick={() => navigate(`/Dashboard/my-venues/${venue.id}`)}
                 />
-                {venue.category && (
+                {venue.categories && venue.categories.length > 0 && (
                   <span className="absolute top-2 right-2 px-2 py-1 bg-black bg-opacity-60 text-white text-xs font-medium rounded">
-                    {formatCategory(venue.category)}
+                    {formatCategory(venue.categories[0])}
+                    {venue.categories.length > 1 && ` +${venue.categories.length - 1}`}
                   </span>
                 )}
               </div>
@@ -403,8 +403,8 @@ export default function MyVenues() {
                     Capacity: {venue.capacity}
                   </p>
                   <p className="flex items-center text-gray-600">
-                    <Clock className="h-4 w-4 mr-2" />
-                    Rs. {venue.pricePerHour}/hour
+                    <Clock className="h-4 w-4 mr-2 " />
+                    Rs. {venue.basePricePerHour}/hour
                   </p>
                   {venue.facilities && venue.facilities.length > 0 && (
                     <div className="flex items-start">

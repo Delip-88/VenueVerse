@@ -74,6 +74,7 @@ query MyVenues {
             rating
             comment
         }
+        
         bookings {
             id
             date
@@ -82,6 +83,8 @@ query MyVenues {
             paymentStatus
             user {
                 name
+                email
+                phone
             }
             venue {
                 id

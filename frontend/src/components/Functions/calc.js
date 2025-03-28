@@ -27,3 +27,20 @@ export const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString("en-US", options)
 }
 
+
+export const convertToDate = (dateString)=>{
+
+  if(!dateString) return "N/A"
+
+  const createdAtDate = new Date(parseInt(dateString)).toLocaleString("en-US", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    // hour: "2-digit",
+    // minute: "2-digit",
+    // second: "2-digit",
+    timeZone: "UTC",
+  });
+  return createdAtDate;
+}
+

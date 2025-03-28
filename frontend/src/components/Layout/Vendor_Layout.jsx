@@ -13,8 +13,10 @@ export default function VendorLayout() {
   const handleLogout = async ()=>{
     if(window.confirm("Are you sure ?")){
       logout()
+      setTimeout(() => {
+        navigate('/')
+      }, 200);
     }
-    navigate('/')
   }
 
   useEffect(() => {

@@ -32,6 +32,10 @@ import EditVenue from "./components/VenueOwner/EditVenue";
 import VenueDetails from "./components/VenueOwner/VenueDetails";
 import ResetPassword from "./pages/Auth/ResetPassword";
 import VenueFinderWizard from "./components/VenueOwner/VenueFinderWizard";
+import AdminLogin from "./components/admin/Login";
+import SuperAdminDashboard from "./components/admin/Dashboard";
+import SuperAdminLayout from "./components/Layout/Admin_Layout";
+import ReportsPage from "./components/admin/Reports";
 function App() {
 
 
@@ -99,6 +103,12 @@ function App() {
             <Route path="my-venues/:id" element={<VenueDetails/>} />
 
           </Route>
+          {/* Admin Route */}
+          <Route path="/super-admin" element={<SuperAdminLayout/>}>
+            <Route index element={<SuperAdminDashboard/>} />
+            <Route path="reports" element={<ReportsPage/>}/>
+          </Route>
+
 
           {/* 404 Page */}
           <Route path="*" element={<NotFound />} />

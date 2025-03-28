@@ -1,3 +1,5 @@
+"use client"
+
 import { useState, useEffect } from "react"
 import {
   Loader,
@@ -11,6 +13,7 @@ import {
   ImageIcon,
   AlertCircle,
   Check,
+  Tag,
 } from "lucide-react"
 import { useUploadImage } from "../Functions/UploadImage"
 import { useDeleteImage } from "../Functions/deleteImage"
@@ -74,7 +77,7 @@ const EditVenue = () => {
     },
     basePricePerHour: "",
     capacity: "",
-    category: "",
+    categories: [], // Changed from category to categories (array)
     image: null,
     services: [],
   })
@@ -93,6 +96,9 @@ const EditVenue = () => {
     if (data?.venue) {
       const venueData = data.venue
 
+      // Convert single category to array if needed
+      const categories = venueData.categories || (venueData.category ? [venueData.category] : [])
+
       setVenue({
         name: venueData.name || "",
         description: venueData.description || "",
@@ -104,7 +110,7 @@ const EditVenue = () => {
         },
         basePricePerHour: venueData.basePricePerHour?.toString() || "",
         capacity: venueData.capacity?.toString() || "",
-        category: venueData.category || "",
+        categories: categories, // Use array of categories
         image: null,
         services: venueData.services || [],
       })
@@ -196,6 +202,32 @@ const EditVenue = () => {
     }
   }
 
+  // Handle category toggle
+  const handleCategoryToggle = (category) => {
+    setVenue((prev) => {
+      const isSelected = prev.categories.includes(category)
+
+      if (isSelected) {
+        // Remove category if already selected
+        return {
+          ...prev,
+          categories: prev.categories.filter((cat) => cat !== category),
+        }
+      } else {
+        // Add category if not selected
+        return {
+          ...prev,
+          categories: [...prev.categories, category],
+        }
+      }
+    })
+
+    // Clear category error if any
+    if (errors.categories) {
+      setErrors((prev) => ({ ...prev, categories: null }))
+    }
+  }
+
   // Handle image management
   const handleImageUpload = (e) => {
     const file = e.target.files[0]
@@ -259,14 +291,13 @@ const EditVenue = () => {
       newErrors.capacity = "Valid capacity is required"
     }
 
-    if (!venue.category) {
-      newErrors.category = "Category is required"
+    if (!venue.categories || venue.categories.length === 0) {
+      newErrors.categories = "At least one category is required"
     }
 
     // Validate service prices if any are selected
     const invalidServices = selectedServices.filter(
-      (service) =>
-        !service.servicePrice || isNaN(service.servicePrice) || Number(service.servicePrice) <= 0,
+      (service) => !service.servicePrice || isNaN(service.servicePrice) || Number(service.servicePrice) <= 0,
     )
 
     if (invalidServices.length > 0) {
@@ -362,7 +393,7 @@ const EditVenue = () => {
               },
               basePricePerHour: Number.parseInt(venue.basePricePerHour, 10),
               capacity: Number.parseInt(venue.capacity, 10),
-              category: venue.category,
+              categories: venue.categories, // Send array of categories
               image: cleanImageProps,
               services: formattedServices,
             },
@@ -483,27 +514,6 @@ const EditVenue = () => {
                 />
                 {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name}</p>}
               </div>
-
-              <div>
-                <label htmlFor="category" className="block text-sm font-medium text-gray-700">
-                  Venue Category <span className="text-red-500">*</span>
-                </label>
-                <select
-                  id="category"
-                  name="category"
-                  value={venue.category}
-                  onChange={handleChange}
-                  className={`mt-1 block w-full rounded-md border ${errors.category ? "border-red-500" : "border-gray-300"} shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
-                >
-                  <option value="">Select a category</option>
-                  {VENUE_CATEGORIES.map((category) => (
-                    <option key={category} value={category}>
-                      {formatCategory(category)}
-                    </option>
-                  ))}
-                </select>
-                {errors.category && <p className="mt-1 text-sm text-red-500">{errors.category}</p>}
-              </div>
             </div>
 
             <div className="mt-4">
@@ -519,6 +529,50 @@ const EditVenue = () => {
                 className={`mt-1 block w-full rounded-md border ${errors.description ? "border-red-500" : "border-gray-300"} shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
               ></textarea>
               {errors.description && <p className="mt-1 text-sm text-red-500">{errors.description}</p>}
+            </div>
+          </div>
+
+          {/* Categories Section - Updated to support multiple categories */}
+          <div>
+            <div className="flex items-center mb-4">
+              <div className="bg-blue-500 rounded-full p-2 text-white">
+                <Tag className="h-5 w-5" />
+              </div>
+              <h2 className="text-xl font-semibold ml-2">Venue Categories</h2>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select Categories <span className="text-red-500">*</span>
+              </label>
+              <p className="text-sm text-gray-500 mb-3">
+                Select all categories that apply to your venue. This helps customers find your venue more easily.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-2">
+                {VENUE_CATEGORIES.map((category) => (
+                  <div
+                    key={category}
+                    className={`flex items-center p-3 border rounded-md cursor-pointer transition-colors ${
+                      venue.categories.includes(category)
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-200 hover:border-blue-300"
+                    }`}
+                    onClick={() => handleCategoryToggle(category)}
+                  >
+                    <div
+                      className={`w-5 h-5 rounded flex items-center justify-center mr-2 ${
+                        venue.categories.includes(category) ? "bg-blue-500" : "border border-gray-300"
+                      }`}
+                    >
+                      {venue.categories.includes(category) && <Check className="h-3 w-3 text-white" />}
+                    </div>
+                    <span className="text-sm">{formatCategory(category)}</span>
+                  </div>
+                ))}
+              </div>
+
+              {errors.categories && <p className="mt-2 text-sm text-red-500">{errors.categories}</p>}
             </div>
           </div>
 
@@ -663,82 +717,86 @@ const EditVenue = () => {
             </div>
           </div>
 
-
           {/* Services Section */}
           <div>
-  <div className="flex items-center mb-3">
-    <div className="bg-blue-500 rounded-full p-2 text-white">
-      <DollarSign className="h-4 w-4" />
-    </div>
-    <h2 className="text-lg font-semibold ml-2">Services</h2>
-  </div>
-
-  <div>
-    <label className="block text-sm font-medium text-gray-700 mb-1">Select Services (Optional)</label>
-    <p className="text-xs text-gray-500 mb-3">
-      Select the services you offer with this venue and set your custom price per hour for each service.
-    </p>
-
-    {servicesLoading ? (
-      <div className="flex justify-center py-3">
-        <Loader className="h-6 w-6 text-blue-500 animate-spin" />
-      </div>
-    ) : servicesData?.services?.length > 0 ? (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {servicesData.services.map((service) => {
-          const isSelected = selectedServices.some((s) => s.serviceId === service.id)
-          const selectedService = selectedServices.find((s) => s.serviceId === service.id)
-
-          return (
-            <div
-              key={service.id}
-              className={`border rounded-md p-3 ${isSelected ? "border-blue-500 bg-blue-50" : "border-gray-200"}`}
-            >
-              <div className="flex items-start gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleServiceToggle(service.id)}
-                  className={`h-4 w-4 rounded border ${isSelected ? "bg-blue-500 border-blue-500" : "border-gray-300"} flex items-center justify-center`}
-                >
-                  {isSelected && <Check className="h-3 w-3 text-white" />}
-                </button>
-
-                <div className="flex-grow">
-                  <label htmlFor={`service-${service.id}`} className="text-sm font-medium text-gray-700 cursor-pointer">
-                    {service.name}
-                  </label>
-
-                  {isSelected && (
-                    <div className="mt-2">
-                      <label htmlFor={`price-${service.id}`} className="block text-xs font-medium text-gray-700">
-                        Service Price (Rs.)
-                      </label>
-                      <div className="relative mt-1">
-                        <input
-                          type="number"
-                          id={`price-${service.id}`}
-                          value={selectedService?.servicePrice || ""}
-                          onChange={(e) => handleServicePriceChange(service.id, e.target.value)}
-                          min="0"
-                          className="block w-full px-3 py-1 text-sm border rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
+            <div className="flex items-center mb-3">
+              <div className="bg-blue-500 rounded-full p-2 text-white">
+                <DollarSign className="h-4 w-4" />
               </div>
+              <h2 className="text-lg font-semibold ml-2">Services</h2>
             </div>
-          )
-        })}
-      </div>
-    ) : (
-      <p className="text-center py-3 text-gray-500 text-sm">No services available</p>
-    )}
 
-    {errors.services && <p className="mt-2 text-xs text-red-500">{errors.services}</p>}
-  </div>
-</div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Select Services (Optional)</label>
+              <p className="text-xs text-gray-500 mb-3">
+                Select the services you offer with this venue and set your custom price per hour for each service.
+              </p>
 
+              {servicesLoading ? (
+                <div className="flex justify-center py-3">
+                  <Loader className="h-6 w-6 text-blue-500 animate-spin" />
+                </div>
+              ) : servicesData?.services?.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {servicesData.services.map((service) => {
+                    const isSelected = selectedServices.some((s) => s.serviceId === service.id)
+                    const selectedService = selectedServices.find((s) => s.serviceId === service.id)
+
+                    return (
+                      <div
+                        key={service.id}
+                        className={`border rounded-md p-3 ${isSelected ? "border-blue-500 bg-blue-50" : "border-gray-200"}`}
+                      >
+                        <div className="flex items-start gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleServiceToggle(service.id)}
+                            className={`h-4 w-4 rounded border ${isSelected ? "bg-blue-500 border-blue-500" : "border-gray-300"} flex items-center justify-center`}
+                          >
+                            {isSelected && <Check className="h-3 w-3 text-white" />}
+                          </button>
+
+                          <div className="flex-grow">
+                            <label
+                              htmlFor={`service-${service.id}`}
+                              className="text-sm font-medium text-gray-700 cursor-pointer"
+                            >
+                              {service.name}
+                            </label>
+
+                            {isSelected && (
+                              <div className="mt-2">
+                                <label
+                                  htmlFor={`price-${service.id}`}
+                                  className="block text-xs font-medium text-gray-700"
+                                >
+                                  Service Price (Rs.)
+                                </label>
+                                <div className="relative mt-1">
+                                  <input
+                                    type="number"
+                                    id={`price-${service.id}`}
+                                    value={selectedService?.servicePrice || ""}
+                                    onChange={(e) => handleServicePriceChange(service.id, e.target.value)}
+                                    min="0"
+                                    className="block w-full px-3 py-1 text-sm border rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <p className="text-center py-3 text-gray-500 text-sm">No services available</p>
+              )}
+
+              {errors.services && <p className="mt-2 text-xs text-red-500">{errors.services}</p>}
+            </div>
+          </div>
 
           {/* Image Section */}
           <div>

@@ -63,6 +63,14 @@ const VENUE_BY_ID = gql`
           name
         }
       }
+      bookings{
+        bookingStatus
+        paymentStatus
+        user{
+          name
+        }
+        totalPrice
+      }
       services {
         servicePrice
         serviceId {

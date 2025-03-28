@@ -1,4 +1,4 @@
-"use client"
+
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
@@ -13,7 +13,6 @@ import {
   PartyPopper,
   Search,
   CheckCircle2,
-  Clock,
   DollarSign,
 } from "lucide-react"
 import { useQuery } from "@apollo/client"
@@ -236,7 +235,7 @@ const VenueFinderWizard = () => {
 
         // Use a small delay to ensure state is updated before changing step
         setTimeout(() => {
-          setCurrentStep(7)
+          setCurrentStep(6)
           window.scrollTo(0, 0)
         }, 50)
       }
@@ -245,8 +244,8 @@ const VenueFinderWizard = () => {
 
   const nextStep = () => {
     if (currentStep < totalSteps) {
-      // If we're on step 6 (review), automatically trigger the venue search
-      if (currentStep === 6) {
+      // If we're on step 5 (review), automatically trigger the venue search
+      if (currentStep === 5) {
         findVenues()
       } else {
         setCurrentStep(currentStep + 1)
@@ -262,7 +261,7 @@ const VenueFinderWizard = () => {
     }
   }
 
-  const totalSteps = 7
+  const totalSteps = 6
 
   if (loading) return <Loader />
   if (error) return <div className="text-center py-8 text-red-500">Error: {error.message}</div>
@@ -409,37 +408,6 @@ const VenueFinderWizard = () => {
       case 4:
         return (
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold">When is your event?</h2>
-            <p className="text-gray-600">Select a date for your event to check venue availability.</p>
-
-            <div className="mt-6">
-              <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-2">
-                Event Date
-              </label>
-              <input
-                type="date"
-                id="date"
-                name="date"
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                value={formData.date}
-                onChange={handleInputChange}
-                min={new Date().toISOString().split("T")[0]}
-              />
-            </div>
-
-            <div className="p-4 bg-yellow-50 rounded-lg flex items-start mt-4">
-              <Clock className="text-yellow-500 mt-1 flex-shrink-0" />
-              <p className="ml-3 text-sm text-yellow-700">
-                Popular dates get booked quickly. We recommend booking your venue at least 3-6 months in advance for
-                large events.
-              </p>
-            </div>
-          </div>
-        )
-
-      case 5:
-        return (
-          <div className="space-y-6">
             <h2 className="text-2xl font-bold">What's your budget?</h2>
             <p className="text-gray-600">Help us find venues that match your budget range.</p>
 
@@ -515,7 +483,7 @@ const VenueFinderWizard = () => {
           </div>
         )
 
-      case 6:
+      case 5:
         return (
           <div className="space-y-6">
             <h2 className="text-2xl font-bold">Review your preferences</h2>
@@ -549,19 +517,6 @@ const VenueFinderWizard = () => {
                       {formData.location.city
                         ? `${formData.location.city}, ${formData.location.province}`
                         : formData.location.province || "Not specified"}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Event Date:</span>
-                    <span className="font-medium">
-                      {formData.date
-                        ? new Date(formData.date).toLocaleDateString("en-US", {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          })
-                        : "Not specified"}
                     </span>
                   </div>
 
@@ -607,7 +562,7 @@ const VenueFinderWizard = () => {
           </div>
         )
 
-      case 7:
+      case 6:
         return (
           <div className="space-y-6">
             {isSearching ? (
@@ -725,7 +680,7 @@ const VenueFinderWizard = () => {
 
           {/* Navigation buttons */}
           <div className="flex justify-between mt-8">
-            {currentStep > 1 && currentStep !== 7 && (
+            {currentStep > 1 && currentStep !== 6 && (
               <button
                 onClick={prevStep}
                 className="flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
@@ -763,7 +718,7 @@ const VenueFinderWizard = () => {
                     : "hover:bg-blue-700"
                 }`}
               >
-                {currentStep === 6 && isSearching ? (
+                {currentStep === 5 && isSearching ? (
                   <>
                     <svg
                       className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
@@ -796,9 +751,9 @@ const VenueFinderWizard = () => {
               </button>
             ) : null}
 
-            {currentStep === 7 && (
+            {currentStep === 6 && (
               <button
-                onClick={() => setCurrentStep(6)}
+                onClick={() => setCurrentStep(5)}
                 className="flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 <ChevronLeft className="h-5 w-5 mr-1" />

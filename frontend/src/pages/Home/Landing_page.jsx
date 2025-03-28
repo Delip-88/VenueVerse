@@ -10,7 +10,7 @@ import { AuthContext } from "../../middleware/AuthContext"
 
 export default function LandingPage() {
   const navigate = useNavigate()
-  const { isAuthenticated } = useContext(AuthContext)
+  const { isAuthenticated, user } = useContext(AuthContext)
   const [venues, setVenues] = useState([]) // Initialize as an empty array
   const { data, error, loading } = useQuery(VENUES)
 
@@ -59,7 +59,7 @@ export default function LandingPage() {
           </div>
           <div className="text-center mt-8">
             <button
-              className="px-6 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+              className="px-6 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer"
               onClick={() => navigate("/Venues")}
             >
               View All Venues
