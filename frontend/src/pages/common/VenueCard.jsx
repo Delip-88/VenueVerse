@@ -4,6 +4,7 @@ import { useContext, useState } from "react"
 import { Heart, Star, Users, Clock, MapPin, Music, Utensils, Camera } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { AuthContext } from "../../middleware/AuthContext"
+import getOptimizedCloudinaryUrl from "../../components/Functions/OptimizedImageUrl"
 
 function VenueCard({ id, name, image, location, basePricePerHour, capacity, services = [], reviews = [] }) {
   const [isFavorite, setIsFavorite] = useState(false)
@@ -36,7 +37,7 @@ function VenueCard({ id, name, image, location, basePricePerHour, capacity, serv
       className="bg-white rounded-lg shadow-md overflow-hidden cursor-pointer hover:shadow-lg transition-shadow relative group"
       onClick={() => navigate(`/venue/${id}`)}
     >
-      <img src={image || "/placeholder.svg"} alt={name} className="w-full h-48 object-cover rounded-t-lg" />
+      <img src={getOptimizedCloudinaryUrl(image) || "/placeholder.svg"} alt={name} className="w-full h-48 object-cover rounded-t-lg" />
       {isAuthenticated && user && (
         <button
           onClick={handleFavoriteClick}

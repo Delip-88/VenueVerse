@@ -17,6 +17,7 @@ import Loader from "./Loader";
 import { useNavigate, useParams } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContext } from "../../middleware/AuthContext";
+import getOptimizedCloudinaryUrl from "../../components/Functions/OptimizedImageUrl";
 
 const VenueDetailsPage = () => {
   const { id } = useParams();
@@ -63,13 +64,20 @@ const VenueDetailsPage = () => {
       .join(" ");
   };
 
+  const handleNavigate = (id) => {
+    localStorage.setItem("searchedVenueId", id);
+    navigate(
+      isAuthenticated ? `/Home/venue/${id}/book-now` : "/login"
+    )
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <h1 className="text-3xl font-bold mb-6">{venue.name}</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
         <img
-          src={venue.image?.secure_url || "/placeholder.svg"}
+          src={getOptimizedCloudinaryUrl(venue.image?.secure_url) || "/placeholder.svg"}
           alt={venue.name}
           className="w-full h-64 object-cover rounded-lg"
         />
@@ -104,9 +112,7 @@ const VenueDetailsPage = () => {
           <button
             className="bg-blue-500 text-white py-2 px-4 rounded cursor-pointer hover:bg-blue-600 transition duration-200"
             onClick={() =>
-              navigate(
-                isAuthenticated ? `/Home/venue/${id}/book-now` : "/login"
-              )
+              handleNavigate(venue.id)
             }
           >
             Book Now
@@ -149,7 +155,7 @@ const VenueDetailsPage = () => {
                   {service.serviceId.image?.secure_url ? (
                     <img
                       src={
-                        service.serviceId.image.secure_url || "/placeholder.svg"
+                        getOptimizedCloudinaryUrl(service.serviceId.image.secure_url) || "/placeholder.svg"
                       }
                       alt={service.serviceId.name}
                       className="w-16 h-16 object-cover rounded-md"

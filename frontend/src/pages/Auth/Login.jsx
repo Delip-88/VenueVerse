@@ -28,7 +28,13 @@ const LoginPage = () => {
       const token = data?.login;
       if (token) {
         await login(token);
-        window.location.href= "/Home"
+        if(localStorage.getItem("searchedVenueId")){
+          const searchedVenueId = localStorage.getItem("searchedVenueId");
+          localStorage.removeItem("searchedVenueId");
+          window.location.href= `/venue/${searchedVenueId}/`
+        }else{
+          window.location.href= "/Home"
+        }
       }
     },
     onError: (error) => {

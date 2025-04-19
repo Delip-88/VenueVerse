@@ -12,7 +12,7 @@ const userSchema = new mongoose.Schema(
 
     role: {
       type: String,
-      enum: ["VenueOwner", "Customer"],
+      enum: ["VenueOwner", "Customer","Admin"],
       default: "Customer",
       required: true,
     },
@@ -26,7 +26,6 @@ const userSchema = new mongoose.Schema(
     description: {type: String},
 
     esewaId: { type: String }, // Changed from Number to String for safety
-    companyName: { type: String },
 
     bookedVenue: [{ type: mongoose.Schema.Types.ObjectId, ref: "Venue" }],
 
@@ -37,6 +36,8 @@ const userSchema = new mongoose.Schema(
 
     resetToken: String,
     resetTokenExpiresAt: Date,
+    roleApprovalStatus: { type: String, enum: ["PENDING", "APPROVED", "REJECTED"], default: "PENDING" }
+
   },
   { timestamps: true }
 );

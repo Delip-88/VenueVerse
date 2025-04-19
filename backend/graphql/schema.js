@@ -24,8 +24,16 @@ const typeDefs = gql`
     verified: Boolean! # Non-nullable verified field
     verificationToken: String
     verificationTokenExpiresAt: String
-  }
 
+    roleApprovalStatus: RoleApprovalStatus!
+    createdAt: String!
+    updatedAt: String!
+  }
+  enum RoleApprovalStatus {
+    PENDING
+    APPROVED
+    REJECTED
+  }
   type Transaction {
     transactionId: ID!
     user: User!
@@ -105,6 +113,8 @@ const typeDefs = gql`
     image: Image
     services: [VenueService!]!
     categories: [VenueCategory!]!
+
+    approvalStatus: VenueApprovalStatus!
   }
   type Services {
     id: ID!
@@ -146,16 +156,17 @@ const typeDefs = gql`
     bookingStatus: BookingStatus!
     paymentStatus: PaymentStatus!
     selectedServices: [BookingService!]!
+    createdAt: String!
   }
   enum BookingStatus {
-  PENDING      # Initial state when booking is created
-  APPROVED     # Booking has been confirmed by venue
-  REJECTED     # Booking was declined by venue
-  CANCELLED    # Booking was cancelled (by customer or venue) after being approved
-  COMPLETED    # Booking has successfully taken place (past events)
-  NO_SHOW      # Customer didn't show up for their booking
-  RESCHEDULED  # Booking was moved to a different date/time
-}
+    PENDING # Initial state when booking is created
+    APPROVED # Booking has been confirmed by venue
+    REJECTED # Booking was declined by venue
+    CANCELLED # Booking was cancelled (by customer or venue) after being approved
+    COMPLETED # Booking has successfully taken place (past events)
+    NO_SHOW # Customer didn't show up for their booking
+    RESCHEDULED # Booking was moved to a different date/time
+  }
 
   type Review {
     id: ID!
@@ -179,6 +190,12 @@ const typeDefs = gql`
     transaction(id: ID!): Transaction
     myVenues: [Venue!]
     services: [Services!]
+
+    recentBookings(limit: Int): [Booking]
+    topVenues(limit: Int): [TopVenue!]!
+
+    pendingVenueOwners: [User!]!
+    pendingVenues: [Venue!]! # List of all venues awaiting approval
   }
 
   type Mutation {
@@ -216,6 +233,12 @@ const typeDefs = gql`
     deleteUser(userId: ID!): UserResponse!
     deleteVenue(venueId: ID!): Response!
 
+    approveVenueOwner(userId: ID!): Response!
+    rejectVenueOwner(userId: ID!): Response!
+
+    approveVenue(venueId: ID!): Response! # Admin approves a venue
+    rejectVenue(venueId: ID!): Response!
+
     getUploadSignature(
       tags: [String]
       upload_preset: String!
@@ -223,6 +246,22 @@ const typeDefs = gql`
     ): Signature!
     getDeleteSignature(publicId: String!): Signature!
   }
+
+  type TopVenue {
+    id: ID!
+    name: String!
+    totalBookings: Int!
+    avgRating: Float!
+    location: Location!
+    totalRevenue: Float!
+    categories: [VenueCategory!]!
+  }
+  enum VenueApprovalStatus {
+    PENDING
+    APPROVED
+    REJECTED
+  }
+
   type SignatureResponse {
     signature: String!
     signed_field_names: String!
@@ -309,7 +348,6 @@ const typeDefs = gql`
     phone: String!
     address: String!
     esewaId: String!
-    companyName: String!
   }
 
   input ReviewInput {
@@ -325,7 +363,7 @@ const typeDefs = gql`
     basePricePerHour: Float
     services: [ServiceInput]
     capacity: Int
-    categories: [String]  
+    categories: [String]
     image: imageInput
   }
   input imageInput {

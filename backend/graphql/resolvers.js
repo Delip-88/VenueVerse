@@ -96,6 +96,80 @@ const resolvers = {
     services: async () => {
       return await Service.find();
     },
+
+    recentBookings: async (_, { limit }) => {
+      return await Booking.find()
+        .sort({ createdAt: -1 })
+        .limit(limit || 5);
+    },
+
+    topVenues: async (_, { limit }) => {
+      const venues = await Booking.aggregate([
+        {
+          $group: {
+            _id: "$venue", // Group by venue ID
+            totalBookings: { $sum: 1 }, // Count total bookings
+            totalRevenue: { $sum: "$totalPrice" }, // Sum total revenue
+          },
+        },
+        {
+          $lookup: {
+            from: "reviews", // Join with reviews collection
+            localField: "_id",
+            foreignField: "venue",
+            as: "reviews",
+          },
+        },
+        {
+          $addFields: {
+            avgRating: { $avg: "$reviews.rating" }, // Calculate average rating
+          },
+        },
+        {
+          $lookup: {
+            from: "venues", // Join with venues collection
+            localField: "_id",
+            foreignField: "_id",
+            as: "venueDetails",
+          },
+        },
+        { $unwind: "$venueDetails" },
+        {
+          $project: {
+            _id: 1,
+            name: "$venueDetails.name",
+            location: "$venueDetails.location",
+            categories: "$venueDetails.categories", // ✅ Include categories
+            totalBookings: 1,
+            totalRevenue: 1,
+            avgRating: { $round: ["$avgRating", 2] }, // Round rating to 2 decimals
+          },
+        },
+        { $sort: { totalBookings: -1, avgRating: -1, totalRevenue: -1 } }, // Sort by highest bookings, rating & revenue
+        { $limit: limit || 5 },
+      ]);
+    
+      return venues.map((venue) => ({
+        id: venue._id,
+        name: venue.name,
+        location: venue.location,
+        categories: venue.categories || [], // ✅ Default to empty array if undefined
+        totalBookings: venue.totalBookings,
+        totalRevenue: venue.totalRevenue || 0, // Default to 0 if no revenue
+        avgRating: venue.avgRating || 0, // Default to 0 if no ratings
+      }));
+    },
+    
+    
+    pendingVenueOwners: async () => {
+      return await User.find({
+        role: "VenueOwner",
+        roleApprovalStatus: "PENDING",
+      });
+    },
+    pendingVenues: async () =>{
+      return await Venue.find({approvalStatus: "PENDING"}).populate("owner")
+    }
   },
 
   Mutation: {
@@ -108,34 +182,37 @@ const resolvers = {
         capacity,
         image,
         basePricePerHour,
-        services = [],  // Default to an empty array to prevent errors
+        services = [], // Default to an empty array to prevent errors
         categories,
       } = args.input;
-    
+
       if (!user || user.role !== "VenueOwner") {
         throw new Error("Not authenticated");
       }
-    
+
       try {
         const serviceReferences = [];
-    
-        if (services.length > 0) {  // Ensure services exist before looping
+
+        if (services.length > 0) {
+          // Ensure services exist before looping
           for (const service of services) {
             const existingService = await Service.findById(service.serviceId);
             if (!existingService) {
               throw new Error(`Service not found: ${service.serviceId}`);
             }
-    
+
             serviceReferences.push({
               serviceId: existingService._id,
-              servicePrice: service.servicePrice ?? 0,  // Default to 0 if undefined
+              servicePrice: service.servicePrice ?? 0, // Default to 0 if undefined
             });
           }
         }
-    
+
         // Ensure categories is an array
-        const categoriesArray = Array.isArray(categories) ? categories : [categories];
-    
+        const categoriesArray = Array.isArray(categories)
+          ? categories
+          : [categories];
+
         const newVenue = new Venue({
           name,
           description,
@@ -146,55 +223,64 @@ const resolvers = {
           services: serviceReferences, // Only storing selected services with custom prices
           categories: categoriesArray,
           owner: user.id,
+          approvalStatus: "PENDING",
         });
-    
+
         await newVenue.save();
         return newVenue;
       } catch (err) {
         throw new Error(`Error adding venue: ${err.message}`);
       }
     },
-    
+
     updateVenue: async (_, { id, input }, { user }) => {
       if (!user || user.role !== "VenueOwner") {
         throw new Error("Not authenticated");
       }
-    
+
       const venue = await Venue.findById(id);
       if (!venue) {
         throw new Error("Venue not found");
       }
-    
+
       if (venue.owner.toString() !== user.id) {
         throw new Error("Not authorized to update this venue");
       }
-    
+
       try {
         // Handle Venue Image Update
-        if (input.image?.public_id && venue.image?.public_id !== input.image.public_id) {
+        if (
+          input.image?.public_id &&
+          venue.image?.public_id !== input.image.public_id
+        ) {
           try {
             await deleteImageFromCloudinary(venue.image.public_id);
           } catch (error) {
-            console.error("Error deleting old venue image from Cloudinary:", error);
+            console.error(
+              "Error deleting old venue image from Cloudinary:",
+              error
+            );
           }
         }
-    
+
         // Handle Service Updates (Venue-specific custom pricing)
         let updatedServiceReferences = venue.services; // Keep existing services if no update is provided
-    
+
         if (input.services) {
           updatedServiceReferences = [];
-    
+
           for (const service of input.services) {
             if (!service.serviceId || service.servicePrice == null) {
-              throw new Error("Each service must have a serviceId and servicePrice.");
+              throw new Error(
+                "Each service must have a serviceId and servicePrice."
+              );
             }
-    
+
             const existingService = await Service.findById(service.serviceId);
             if (!existingService) {
               throw new Error(`Service not found: ${service.serviceId}`);
             }
-    
+
             // Store the service reference with the custom price in the Venue model
             updatedServiceReferences.push({
               serviceId: existingService._id,
@@ -202,52 +288,55 @@ const resolvers = {
             });
           }
         }
-    
+
         // Ensure categories is always stored as an array
-        const updatedcategories = input.categories 
-          ? Array.isArray(input.categories) 
-            ? input.categories 
+        const updatedcategories = input.categories
+          ? Array.isArray(input.categories)
+            ? input.categories
             : [input.categories]
           : venue.categories; // Keep existing if not provided
-    
+
         // Update venue fields selectively
         if (input.name) venue.name = input.name;
         if (input.description) venue.description = input.description;
         if (input.location) venue.location = input.location;
         if (input.capacity) venue.capacity = input.capacity;
         if (input.image) venue.image = input.image;
-        if (input.basePricePerHour) venue.basePricePerHour = input.basePricePerHour;
+        if (input.basePricePerHour)
+          venue.basePricePerHour = input.basePricePerHour;
         if (updatedServiceReferences) venue.services = updatedServiceReferences;
         if (updatedcategories) venue.categories = updatedcategories;
-    
+
         await venue.save();
-    
+
         return { success: true, message: "Updated successfully" };
       } catch (error) {
         throw new Error(`Error updating venue: ${error.message}`);
       }
     },
-    
+
     bookVenue: async (_, args, { user }) => {
       if (!user) {
         throw new Error("Not Authenticated");
       }
-    
+
       const { venue, date, start, end, selectedServices } = args.input;
       // console.log("Received selectedServices:", selectedServices);
-    
+
       try {
-        const venueData = await Venue.findById(venue).populate("services.serviceId");
+        const venueData = await Venue.findById(venue).populate(
+          "services.serviceId"
+        );
         if (!venueData) {
           throw new Error("Venue not found");
         }
-    
+
         // Calculate total hours
         const durationHours = calculateDurationHour(start, end);
         if (durationHours <= 0) {
           throw new Error("Invalid time range selected.");
         }
-    
+
         // Validate selected services & calculate total service cost
         let serviceCost = 0;
         const validServices = await Promise.all(
@@ -256,39 +345,41 @@ const resolvers = {
             if (!mongoose.Types.ObjectId.isValid(serviceId)) {
               throw new Error(`Invalid service ID: ${serviceId}`);
             }
-    
+
             // Find the service in the venue's offerings
             const venueService = venueData.services.find(
               (s) => s.serviceId._id.toString() === serviceId
             );
-    
+
             if (!venueService) {
               throw new Error(`Service not found in venue: ${serviceId}`);
             }
-    
+
             // Use only the venue-defined custom price
             const servicePrice = venueService.servicePrice;
             if (servicePrice == null) {
               throw new Error(`Custom price not set for service: ${serviceId}`);
             }
-    
+
             serviceCost += servicePrice; // No per-hour calculation
-    
+
             return {
               serviceId: new mongoose.Types.ObjectId(serviceId),
               servicePrice,
             };
           })
         );
-    
+
         // Calculate total price (venue base price + selected services)
         const basePrice = venueData.basePricePerHour ?? 0;
         const totalAmount = basePrice * durationHours + serviceCost;
-    
+
         if (isNaN(totalAmount)) {
-          throw new Error("Total price calculation failed: Invalid price values.");
+          throw new Error(
+            "Total price calculation failed: Invalid price values."
+          );
         }
-    
+
         // Check for conflicting "PAID" bookings
         const existingBooking = await Booking.findOne({
           venue,
@@ -300,11 +391,13 @@ const resolvers = {
             },
           },
         });
-    
+
         if (existingBooking) {
-          throw new Error("Time slot already booked. Please choose a different time.");
+          throw new Error(
+            "Time slot already booked. Please choose a different time."
+          );
         }
-    
+
         // Create a new booking
         const booking = new Booking({
           user: user.id,
@@ -316,7 +409,7 @@ const resolvers = {
           bookingStatus: "PENDING",
           paymentStatus: "PENDING",
         });
-    
+
         await booking.save();
         return booking;
       } catch (err) {
@@ -665,7 +758,7 @@ const resolvers = {
     // Login user and return a JWT
     login: async (_, { email, password }, context) => {
       const user = await User.findOne({ email }).select("+password"); // Ensure password is selected
-
+      // console.log(user)
       if (!user) {
         throw new Error("User not found");
       }
@@ -867,18 +960,18 @@ const resolvers = {
       if (!user || user.role !== "VenueOwner") {
         throw new Error("Not authenticated");
       }
-    
+
       // Find venue by ID
       const venue = await Venue.findById(id);
       if (!venue) {
         throw new Error("Venue not found");
       }
-    
+
       // Check if the user is the owner
       if (venue.owner.toString() !== user.id) {
         throw new Error("Not authorized to delete this venue");
       }
-    
+
       // Delete the venue image from Cloudinary
       if (venue.image && venue.image.public_id) {
         try {
@@ -887,16 +980,15 @@ const resolvers = {
           console.error("Error deleting venue image from Cloudinary:", error);
         }
       }
-    
-    
+
       // Delete the venue from the database
       await Venue.findByIdAndDelete(id);
-    
+
       return {
         success: true,
         message: "Venue deleted successfully, services remain intact.",
       };
-    },    
+    },
 
     updateToVenueOwner: async (_, { input }, { user }) => {
       try {
@@ -927,14 +1019,14 @@ const resolvers = {
         // Update user fields
         existingUser.name = input.name;
         existingUser.email = input.email;
-        existingUser.role = "VenueOwner";
         existingUser.phone = input.phone;
         existingUser.description = input.description;
         existingUser.profileImg = input.profileImg;
         existingUser.legalDocImg = input.legalDocImg;
         existingUser.address = input.address;
         existingUser.esewaId = input.esewaId;
-        existingUser.companyName = input.companyName;
+        existingUser.description = input.description;
+        existingUser.roleApprovalStatus = "PENDING";
 
         await existingUser.save();
 
@@ -986,6 +1078,60 @@ const resolvers = {
     async getDeleteSignature(_, { publicId }, context) {
       return deleteSignature(publicId);
     },
+
+    approveVenueOwner: async (_, { userId }, { user }) => {
+      if (!user || user.role !== "Admin")
+        return { success: false, message: "Unauthorized" };
+
+      await User.findByIdAndUpdate(userId, {
+        roleApprovalStatus: "APPROVED",
+        role: "VenueOwner",
+      });
+
+      return { success: true, message: "User approved as Venue Owner." };
+    },
+
+    rejectVenueOwner: async (_, { userId }, { user }) => {
+      if (!user || user.role !== "Admin")
+        return { success: false, message: "Unauthorized" };
+
+      await User.findByIdAndUpdate(userId, {
+        role: "Customer",
+        roleApprovalStatus: "REJECTED",
+      });
+
+      return { success: true, message: "User's venue owner request rejected." };
+    },
+    approveVenue: async (_, { venueId }, { user }) => {
+      if (!user || user.role !== "Admin")
+        return { success: false, message: "Unauthorized" };
+
+      const venue = await Venue.findByIdAndUpdate(
+        venueId,
+        { approvalStatus: "APPROVED" },
+        { new: true }
+      );
+
+      if (!venue) return { success: false, message: "Venue not found" };
+
+      return { success: true, message: "Venue approved successfully." };
+    },
+
+    rejectVenue: async (_, { venueId }, { user }) => {
+      if (!user || user.role !== "Admin")
+        return { success: false, message: "Unauthorized" };
+
+      const venue = await Venue.findByIdAndUpdate(
+        venueId,
+        { approvalStatus: "REJECTED" },
+        { new: true }
+      );
+
+      if (!venue) return { success: false, message: "Venue not found" };
+
+      return { success: true, message: "Venue rejected." };
+    }
+  
   },
   User: {
     async venues(parent) {
@@ -1038,8 +1184,8 @@ const resolvers = {
             servicePrice: service.servicePrice, // Custom price set by venue owner
           };
         })
-      )
-    }
+      );
+    },
   },
 
   Transaction: {

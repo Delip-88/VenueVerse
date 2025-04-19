@@ -7,6 +7,7 @@ import { VENUES } from "../../components/Graphql/query/venuesGql"
 import Loader from "../common/Loader"
 import { useQuery } from "@apollo/client"
 import { AuthContext } from "../../middleware/AuthContext"
+import getOptimizedCloudinaryUrl from "../../components/Functions/OptimizedImageUrl"
 
 export default function LandingPage() {
   const navigate = useNavigate()
@@ -179,7 +180,7 @@ function TestimonialCard({ quote, author, role, image }) {
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <div className="flex items-center mb-4">
-        <img src={image || "https://picsum.photos/200/300"} alt={author} className="w-12 h-12 rounded-full mr-4" />
+        <img src={getOptimizedCloudinaryUrl(image) || "https://picsum.photos/200/300"} alt={author} className="w-12 h-12 rounded-full mr-4" />
         <div>
           <p className="font-semibold">{author}</p>
           <p className="text-gray-600 text-sm">{role}</p>

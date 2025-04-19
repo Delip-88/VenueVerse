@@ -312,6 +312,13 @@ const BookNowPage = () => {
   const { venueId } = useParams() || {}
   const { user } = useContext(AuthContext)
 
+  useEffect(() => {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      window.location.href = '/login';
+    }
+  }, []);
+
   // Fetch venue details (which now includes bookings)
   const { data, loading, error } = useQuery(VENUE_BY_ID, {
     variables: { id: venueId },

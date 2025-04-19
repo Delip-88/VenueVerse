@@ -36,6 +36,8 @@ const venueSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    approvalStatus: { type: String, enum: ["PENDING", "APPROVED", "REJECTED"], default: "PENDING" }, // NEW FIELD
+
     categories: [{
       type: String,
       enum: [

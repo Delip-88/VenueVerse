@@ -24,3 +24,7 @@ dist-ssr
 *.sw?
 
 .env
+
+seedAdmin.js
+test.js
+seedServices.js
