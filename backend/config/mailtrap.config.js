@@ -55,3 +55,30 @@ export const sender = {
   address: "hello@example.com",
   name: "Mailtrap Test",
 };
+
+
+// //Using Nodemailer with SMTP
+// import nodemailer from "nodemailer"; // Use this instead of just createTransport
+
+// export const transport = nodemailer.createTransport({
+//   host: "live.smtp.mailtrap.io",     
+//   port: 587,
+//   auth: {
+//     user: process.env.MAILTRAP_USER, // "api" is correct when using token
+//     pass: process.env.MAILTRAP_TOKEN,   // Your Mailtrap sending token
+//   },
+// });
+
+// transport.verify((error, success) => {
+//   if (error) {
+//     console.log("Error verifying transport: ", error);
+//   } else {
+//     console.log("Mailtrap connection successful!", success);
+//   }
+// });
+
+
+// export const sender = {
+//   address: process.env.MY_DOMAIN, // Should be your verified domain email
+//   name: "VenueVerse",
+// };

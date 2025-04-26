@@ -3,6 +3,7 @@ import { LogOut, Home, Calendar, Star, Settings, Menu, X } from "lucide-react"
 import { NavLink, Outlet, useNavigate } from "react-router-dom"
 import { AuthContext } from "../../middleware/AuthContext"
 import Loader from "../../pages/common/Loader"
+import getOptimizedCloudinaryUrl from "../Functions/OptimizedImageUrl"
 
 const User_Layout = () => {
   const {user,logout,loading} = useContext(AuthContext)
@@ -14,12 +15,16 @@ const User_Layout = () => {
 
   if(loading) return <Loader/>
 
-  const handleLogout = async ()=>{
-    if(window.confirm("Are you sure ?")){
-      logout()
-    }
-    navigate('/')
-  }
+  const handleLogout = async () => {
+    const confirmed = window.confirm("Are you sure?");
+    if (!confirmed) return;
+  
+    logout();
+    setTimeout(() => {
+      window.location.href = "/";
+    }, 200);
+  };
+  
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -34,7 +39,7 @@ const User_Layout = () => {
             <h2 className="text-2xl font-semibold text-gray-800">
               <a href={"/Home"} ><img
                 className="h-9 w-auto rounded-full overflow-hidden"
-                src="https://res.cloudinary.com/dduky37gb/image/upload/v1741271326/VenueVerse/ffq6gdhll1xnbzjaqwnn.png"
+                src={getOptimizedCloudinaryUrl("https://res.cloudinary.com/dduky37gb/image/upload/v1741271326/VenueVerse/ffq6gdhll1xnbzjaqwnn.png")}
                 alt="VenueVerse Logo"
                 /></a>
             </h2>

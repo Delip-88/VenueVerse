@@ -194,19 +194,23 @@ const resolvers = {
         const serviceReferences = [];
 
         if (services.length > 0) {
-          // Ensure services exist before looping
           for (const service of services) {
             const existingService = await Service.findById(service.serviceId);
             if (!existingService) {
               throw new Error(`Service not found: ${service.serviceId}`);
             }
-
+        
+            if (!["hourly", "fixed"].includes(service.category)) {
+              throw new Error(`Invalid category for service ${service.serviceId}`);
+            }
+        
             serviceReferences.push({
               serviceId: existingService._id,
-              servicePrice: service.servicePrice ?? 0, // Default to 0 if undefined
+              servicePrice: service.servicePrice ?? 0,
+              category: service.category, 
             });
           }
-        }
+        }        
 
         // Ensure categories is an array
         const categoriesArray = Array.isArray(categories)
@@ -956,13 +960,13 @@ const resolvers = {
       }
     },
 
-    deleteVenue: async (_, { id }, { user }) => {
+    removeVenue: async (_, { venueId }, { user }) => {
       if (!user || user.role !== "VenueOwner") {
         throw new Error("Not authenticated");
       }
 
       // Find venue by ID
-      const venue = await Venue.findById(id);
+      const venue = await Venue.findById(venueId);
       if (!venue) {
         throw new Error("Venue not found");
       }
@@ -982,7 +986,7 @@ const resolvers = {
       }
 
       // Delete the venue from the database
-      await Venue.findByIdAndDelete(id);
+      await Venue.findByIdAndDelete(venueId);
 
       return {
         success: true,

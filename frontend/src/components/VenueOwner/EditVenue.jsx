@@ -14,6 +14,7 @@ import {
   AlertCircle,
   Check,
   Tag,
+  Clock,
 } from "lucide-react"
 import { useUploadImage } from "../Functions/UploadImage"
 import { useDeleteImage } from "../Functions/deleteImage"
@@ -126,6 +127,7 @@ const EditVenue = () => {
           venueData.services.map((service) => ({
             serviceId: service.serviceId.id,
             servicePrice: service.servicePrice?.toString() || "",
+            category: service.category || "hourly", // Default to hourly if not specified
           })),
         )
       }
@@ -155,7 +157,7 @@ const EditVenue = () => {
       Gandaki: ["Pokhara", "Baglung", "Damauli", "Beni", "Gorkha", "Waling", "Tansen"],
       Lumbini: ["Butwal", "Nepalgunj", "Dang", "Tulsipur", "Kapilvastu", "Bardiya", "Sandhikharka"],
       Karnali: ["Surkhet", "Jumla", "Dailekh", "Kalikot", "Mugu", "Jajarkot", "Dolpa"],
-      Sudurpashchim: ["Dhangadhi", "Mahendranagar", "Dadeldhura", "Baitadi", "Darchula", "Tikapur", "Amargadhi"],
+      Sudurpaschim: ["Dhangadhi", "Mahendranagar", "Dadeldhura", "Baitadi", "Darchula", "Tikapur", "Amargadhi"],
     })
   }, [])
 
@@ -231,10 +233,22 @@ const EditVenue = () => {
   // Handle image management
   const handleImageUpload = (e) => {
     const file = e.target.files[0]
+
+    // Validate file is an image
     if (file) {
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please select an image file (JPEG, PNG, GIF, etc.)")
+        return
+      }
+
       setVenue((prev) => ({ ...prev, image: file }))
       setImagePreview(URL.createObjectURL(file))
       setHasImageChanged(true)
+
+      // Clear image error if it exists
+      if (errors.image) {
+        setErrors((prev) => ({ ...prev, image: null }))
+      }
     }
   }
 
@@ -260,6 +274,7 @@ const EditVenue = () => {
         {
           serviceId,
           servicePrice: "",
+          category: "hourly", // Default to hourly pricing
         },
       ])
     }
@@ -270,6 +285,12 @@ const EditVenue = () => {
       selectedServices.map((service) =>
         service.serviceId === serviceId ? { ...service, servicePrice: price } : service,
       ),
+    )
+  }
+
+  const handleServiceCategoryChange = (serviceId, category) => {
+    setSelectedServices(
+      selectedServices.map((service) => (service.serviceId === serviceId ? { ...service, category } : service)),
     )
   }
 
@@ -304,6 +325,11 @@ const EditVenue = () => {
       newErrors.services = "All selected services must have a valid price"
     }
 
+    // If image was removed and no new image was uploaded
+    if (hasImageChanged && !venue.image && !currentImage) {
+      newErrors.image = "Venue image is required"
+    }
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -315,7 +341,9 @@ const EditVenue = () => {
     // Validate form
     if (!validateForm()) {
       // Display errors
-      toast.error("Please fix the errors in the form")
+      Object.values(errors).forEach((error) => {
+        if (error) toast.error(error)
+      })
       return
     }
 
@@ -380,6 +408,7 @@ const EditVenue = () => {
         const formattedServices = selectedServices.map((service) => ({
           serviceId: service.serviceId,
           servicePrice: Number.parseInt(service.servicePrice, 10),
+          category: service.category, // Include the pricing category (hourly/fixed)
         }))
 
         const response = await updateVenue({
@@ -489,7 +518,7 @@ const EditVenue = () => {
       <p className="text-gray-600 mb-6">Update your venue information below</p>
 
       <div className="bg-white rounded-lg shadow-md p-6">
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={(e) => e.preventDefault()} className="space-y-8">
           {/* Basic Information Section */}
           <div>
             <div className="flex items-center mb-4">
@@ -510,7 +539,9 @@ const EditVenue = () => {
                   name="name"
                   value={venue.name}
                   onChange={handleChange}
-                  className={`mt-1 block w-full rounded-md border ${errors.name ? "border-red-500" : "border-gray-300"} shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
+                  className={`mt-1 block w-full rounded-md border ${
+                    errors.name ? "border-red-500" : "border-gray-300"
+                  } shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
                 />
                 {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name}</p>}
               </div>
@@ -526,7 +557,9 @@ const EditVenue = () => {
                 value={venue.description}
                 onChange={handleChange}
                 rows="4"
-                className={`mt-1 block w-full rounded-md border ${errors.description ? "border-red-500" : "border-gray-300"} shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
+                className={`mt-1 block w-full rounded-md border ${
+                  errors.description ? "border-red-500" : "border-gray-300"
+                } shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
               ></textarea>
               {errors.description && <p className="mt-1 text-sm text-red-500">{errors.description}</p>}
             </div>
@@ -595,7 +628,9 @@ const EditVenue = () => {
                   name="location.province"
                   value={venue.location.province}
                   onChange={handleChange}
-                  className={`mt-1 block w-full rounded-md border ${errors.province ? "border-red-500" : "border-gray-300"} shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
+                  className={`mt-1 block w-full rounded-md border ${
+                    errors.province ? "border-red-500" : "border-gray-300"
+                  } shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
                 >
                   <option value="">Select a province</option>
                   {Object.keys(cityData).map((province) => (
@@ -617,7 +652,9 @@ const EditVenue = () => {
                   value={venue.location.city}
                   onChange={handleChange}
                   disabled={!venue.location.province}
-                  className={`mt-1 block w-full rounded-md border ${errors.city ? "border-red-500" : "border-gray-300"} shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
+                  className={`mt-1 block w-full rounded-md border ${
+                    errors.city ? "border-red-500" : "border-gray-300"
+                  } shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
                 >
                   <option value="">Select a city</option>
                   {cities.map((city) => (
@@ -639,7 +676,9 @@ const EditVenue = () => {
                   name="location.street"
                   value={venue.location.street}
                   onChange={handleChange}
-                  className={`mt-1 block w-full rounded-md border ${errors.street ? "border-red-500" : "border-gray-300"} shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
+                  className={`mt-1 block w-full rounded-md border ${
+                    errors.street ? "border-red-500" : "border-gray-300"
+                  } shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
                 />
                 {errors.street && <p className="mt-1 text-sm text-red-500">{errors.street}</p>}
               </div>
@@ -685,7 +724,9 @@ const EditVenue = () => {
                     value={venue.basePricePerHour}
                     onChange={handleChange}
                     min="0"
-                    className={`block w-full pl-12 pr-12 rounded-md border ${errors.basePricePerHour ? "border-red-500" : "border-gray-300"} shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
+                    className={`block w-full pl-12 pr-12 rounded-md border ${
+                      errors.basePricePerHour ? "border-red-500" : "border-gray-300"
+                    } shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
                   />
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                     <span className="text-gray-500 sm:text-sm">/hour</span>
@@ -709,7 +750,9 @@ const EditVenue = () => {
                     value={venue.capacity}
                     onChange={handleChange}
                     min="1"
-                    className={`block w-full pl-10 rounded-md border ${errors.capacity ? "border-red-500" : "border-gray-300"} shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
+                    className={`block w-full pl-10 rounded-md border ${
+                      errors.capacity ? "border-red-500" : "border-gray-300"
+                    } shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
                   />
                 </div>
                 {errors.capacity && <p className="mt-1 text-sm text-red-500">{errors.capacity}</p>}
@@ -719,22 +762,22 @@ const EditVenue = () => {
 
           {/* Services Section */}
           <div>
-            <div className="flex items-center mb-3">
+            <div className="flex items-center mb-4">
               <div className="bg-blue-500 rounded-full p-2 text-white">
-                <DollarSign className="h-4 w-4" />
+                <DollarSign className="h-5 w-5" />
               </div>
-              <h2 className="text-lg font-semibold ml-2">Services</h2>
+              <h2 className="text-xl font-semibold ml-2">Services</h2>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Select Services (Optional)</label>
-              <p className="text-xs text-gray-500 mb-3">
-                Select the services you offer with this venue and set your custom price per hour for each service.
+              <label className="block text-sm font-medium text-gray-700 mb-2">Select Services (Optional)</label>
+              <p className="text-sm text-gray-500 mb-4">
+                Select the services you offer with this venue and set your pricing for each service.
               </p>
 
               {servicesLoading ? (
-                <div className="flex justify-center py-3">
-                  <Loader className="h-6 w-6 text-blue-500 animate-spin" />
+                <div className="flex justify-center py-4">
+                  <Loader className="h-8 w-8 text-blue-500 animate-spin" />
                 </div>
               ) : servicesData?.services?.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -765,22 +808,78 @@ const EditVenue = () => {
                             </label>
 
                             {isSelected && (
-                              <div className="mt-2">
-                                <label
-                                  htmlFor={`price-${service.id}`}
-                                  className="block text-xs font-medium text-gray-700"
-                                >
-                                  Service Price (Rs.)
-                                </label>
-                                <div className="relative mt-1">
-                                  <input
-                                    type="number"
-                                    id={`price-${service.id}`}
-                                    value={selectedService?.servicePrice || ""}
-                                    onChange={(e) => handleServicePriceChange(service.id, e.target.value)}
-                                    min="0"
-                                    className="block w-full px-3 py-1 text-sm border rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                                  />
+                              <div className="mt-3 space-y-3">
+                                {/* Pricing Category Selection */}
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-700 mb-1">Pricing Type</label>
+                                  <div className="flex space-x-4">
+                                    <div className="flex items-center">
+                                      <input
+                                        type="radio"
+                                        id={`hourly-${service.id}`}
+                                        name={`pricing-type-${service.id}`}
+                                        checked={selectedService.category === "hourly"}
+                                        onChange={() => handleServiceCategoryChange(service.id, "hourly")}
+                                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                                      />
+                                      <label
+                                        htmlFor={`hourly-${service.id}`}
+                                        className="ml-2 block text-sm text-gray-700"
+                                      >
+                                        <div className="flex items-center">
+                                          <Clock className="h-4 w-4 mr-1" />
+                                          Hourly
+                                        </div>
+                                      </label>
+                                    </div>
+                                    <div className="flex items-center">
+                                      <input
+                                        type="radio"
+                                        id={`fixed-${service.id}`}
+                                        name={`pricing-type-${service.id}`}
+                                        checked={selectedService.category === "fixed"}
+                                        onChange={() => handleServiceCategoryChange(service.id, "fixed")}
+                                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                                      />
+                                      <label
+                                        htmlFor={`fixed-${service.id}`}
+                                        className="ml-2 block text-sm text-gray-700"
+                                      >
+                                        <div className="flex items-center">
+                                          <Tag className="h-4 w-4 mr-1" />
+                                          Fixed
+                                        </div>
+                                      </label>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Price Input */}
+                                <div>
+                                  <label
+                                    htmlFor={`price-${service.id}`}
+                                    className="block text-xs font-medium text-gray-700"
+                                  >
+                                    Your Price {selectedService.category === "hourly" ? "per Hour" : ""} (Rs.)
+                                  </label>
+                                  <div className="mt-1 relative rounded-md shadow-sm">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                      <span className="text-gray-500 sm:text-sm">Rs.</span>
+                                    </div>
+                                    <input
+                                      type="number"
+                                      id={`price-${service.id}`}
+                                      value={selectedService?.servicePrice || ""}
+                                      onChange={(e) => handleServicePriceChange(service.id, e.target.value)}
+                                      min="0"
+                                      className="block w-full pl-12 py-1 text-sm border rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                    />
+                                    {selectedService.category === "hourly" && (
+                                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <span className="text-gray-500 sm:text-sm">/hour</span>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             )}
@@ -794,7 +893,7 @@ const EditVenue = () => {
                 <p className="text-center py-3 text-gray-500 text-sm">No services available</p>
               )}
 
-              {errors.services && <p className="mt-2 text-xs text-red-500">{errors.services}</p>}
+              {errors.services && <p className="mt-2 text-sm text-red-500">{errors.services}</p>}
             </div>
           </div>
 
@@ -808,7 +907,9 @@ const EditVenue = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Upload Venue Image</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Upload Venue Image <span className="text-red-500">*</span>
+              </label>
               <p className="text-sm text-gray-500 mb-4">
                 Upload a high-quality image of your venue. This will be the main image displayed to potential customers.
               </p>
@@ -854,6 +955,8 @@ const EditVenue = () => {
                   </button>
                 </div>
               )}
+
+              {errors.image && <p className="mt-2 text-sm text-red-500">{errors.image}</p>}
             </div>
           </div>
 
@@ -869,7 +972,8 @@ const EditVenue = () => {
               </button>
 
               <button
-                type="submit"
+                type="button"
+                onClick={handleSubmit}
                 disabled={isSubmitting}
                 className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -891,4 +995,3 @@ const EditVenue = () => {
 }
 
 export default EditVenue
-

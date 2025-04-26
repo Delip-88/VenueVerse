@@ -1,10 +1,12 @@
-import { useState } from "react"
+import { useContext, useState } from "react"
 import { NavLink, useNavigate } from "react-router-dom"
-import { Menu, X } from "lucide-react"
+import { Menu, UserCircle, X } from "lucide-react"
+import { AuthContext } from "../../../middleware/AuthContext"
 
 const Header = () => {
   const navigate = useNavigate()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const {isAuthenticated, user} = useContext(AuthContext)
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen)
@@ -60,20 +62,35 @@ const Header = () => {
           </div>
 
           {/* Desktop Auth Buttons */}
-          <div className="hidden md:flex space-x-2">
+     {/* Desktop Auth */}
+     <div className="hidden md:flex space-x-2">
+          {isAuthenticated && user ? (
             <button
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 cursor-pointer"
-              onClick={() => navigate("/Login")}
+              className="px-4 py-2 bg-blue-50 hover:text-blue-600  rounded hover:bg-blue-100 cursor-pointer font-medium"
+              onClick={() => navigate("/Home")}
             >
-              Log In
+              <UserCircle className="inline-block mr-2" size={20} />
+
+              {user.name}
             </button>
-            <button
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer"
-              onClick={() => navigate("/Signup")}
-            >
-              Sign Up
-            </button>
-          </div>
+          ) : (
+            <>
+              <button
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 cursor-pointer"
+                onClick={() => navigate("/Login")}
+              >
+                Log In
+              </button>
+              <button
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer"
+                onClick={() => navigate("/Signup")}
+              >
+                Sign Up
+              </button>
+            </>
+          )}
+        </div>
+
 
           {/* Mobile Menu Button */}
           <button
@@ -146,25 +163,41 @@ const Header = () => {
             </NavLink>
 
             {/* Mobile Auth Buttons */}
-            <div className="grid grid-cols-2 gap-2 pt-2">
-              <button
-                className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
-                onClick={() => {
-                  navigate("/Login")
-                  closeMenu()
-                }}
-              >
-                Log In
-              </button>
-              <button
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                onClick={() => {
-                  navigate("/Signup")
-                  closeMenu()
-                }}
-              >
-                Sign Up
-              </button>
+   {/* Mobile Auth */}
+   <div className="grid grid-cols-2 gap-2 pt-2">
+              {isAuthenticated && user ? (
+                <button
+                  className="col-span-2 px-4 py-2 cursor-pointer bg-blue-50 hover:text-blue-600 rounded hover:bg-blue-100 transition-colors font-medium"
+                  onClick={() => {
+                    navigate("/Home")
+                    closeMenu()
+                  }}
+                >
+                  <UserCircle className="inline-block mr-2" size={20} />
+                  {user.name}
+                </button>
+              ) : (
+                <>
+                  <button
+                    className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+                    onClick={() => {
+                      navigate("/Login")
+                      closeMenu()
+                    }}
+                  >
+                    Log In
+                  </button>
+                  <button
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                    onClick={() => {
+                      navigate("/Signup")
+                      closeMenu()
+                    }}
+                  >
+                    Sign Up
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

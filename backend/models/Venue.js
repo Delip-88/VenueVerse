@@ -29,6 +29,11 @@ const venueSchema = new mongoose.Schema(
       {
         serviceId: { type: mongoose.Schema.Types.ObjectId, ref: "Service" },
         servicePrice: { type: Number, default: 0 ,required: true},
+        category: {
+          type: String,
+          enum: ["hourly", "fixed"],
+          required: true,
+        },
 
       },
     ],

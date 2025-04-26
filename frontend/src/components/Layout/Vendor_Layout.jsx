@@ -10,14 +10,16 @@ export default function VendorLayout() {
   const [isMobile, setIsMobile] = useState(false)
   const navigate= useNavigate()
   
-  const handleLogout = async ()=>{
-    if(window.confirm("Are you sure ?")){
-      logout()
-      setTimeout(() => {
-        navigate('/')
-      }, 200);
-    }
-  }
+  const handleLogout = async () => {
+    const confirmed = window.confirm("Are you sure?");
+    if (!confirmed) return;
+  
+    logout();
+    setTimeout(() => {
+      window.location.href = "/";
+    }, 200);
+  };
+  
 
   useEffect(() => {
     const handleResize = () => {

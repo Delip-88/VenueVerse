@@ -129,6 +129,7 @@ const typeDefs = gql`
   type VenueService {
     serviceId: Services!
     servicePrice: Float!
+    category: ServiceCategory # "hourly" or "fixed"
   }
 
   type BookingService {
@@ -231,7 +232,7 @@ const typeDefs = gql`
 
     # Admin Only
     deleteUser(userId: ID!): UserResponse!
-    deleteVenue(venueId: ID!): Response!
+    removeVenue(venueId: ID!): Response!
 
     approveVenueOwner(userId: ID!): Response!
     rejectVenueOwner(userId: ID!): Response!
@@ -387,6 +388,12 @@ const typeDefs = gql`
   input ServiceInput {
     serviceId: ID!
     servicePrice: Float!
+    category: ServiceCategory! # "hourly" or "fixed"
+  }
+
+  enum ServiceCategory {
+    hourly
+    fixed
   }
 `;
 
