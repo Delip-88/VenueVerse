@@ -20,9 +20,9 @@ function VenueCard({ id, name, image, location, basePricePerHour, capacity, serv
   // Get service icon based on service name
   const getServiceIcon = (serviceName) => {
     const name = serviceName.toLowerCase()
-    if (name.includes("dj") || name.includes("music")) return <Music className="w-3 h-3 mr-1" />
-    if (name.includes("catering") || name.includes("food")) return <Utensils className="w-3 h-3 mr-1" />
-    if (name.includes("photo") || name.includes("video")) return <Camera className="w-3 h-3 mr-1" />
+    if (name.includes("dj") || name.includes("music")) return <Music className="w-3 h-3 mr-1 text-teal-500" />
+    if (name.includes("catering") || name.includes("food")) return <Utensils className="w-3 h-3 mr-1 text-teal-500" />
+    if (name.includes("photo") || name.includes("video")) return <Camera className="w-3 h-3 mr-1 text-teal-500" />
     return null
   }
 
@@ -49,14 +49,14 @@ function VenueCard({ id, name, image, location, basePricePerHour, capacity, serv
       )}
 
       <div className="p-4">
-        <h3 className="text-xl font-semibold mb-2">{name}</h3>
+        <h3 className="text-xl font-semibold mb-2 text-lime-700">{name}</h3> {/* Green title */}
         <div className="flex items-center text-gray-600 mb-2">
-          <MapPin className="w-4 h-4 mr-1" />
+          <MapPin className="w-4 h-4 mr-1 text-teal-500" /> {/* Teal location icon */}
           <p>{locationText}</p>
         </div>
 
         <div className="flex justify-between items-center mt-2">
-          <div className="flex items-center text-blue-500 font-medium">
+          <div className="flex items-center text-teal-600 font-medium"> {/* Teal price */}
             <Clock className="w-4 h-4 mr-1" />
             Rs. {basePricePerHour}/hour
           </div>
@@ -67,7 +67,7 @@ function VenueCard({ id, name, image, location, basePricePerHour, capacity, serv
         </div>
 
         <div className="flex items-center text-gray-600 mt-2">
-          <Users className="w-4 h-4 mr-1" />
+          <Users className="w-4 h-4 mr-1 text-teal-500" /> {/* Teal capacity icon */}
           <p>Capacity: {capacity || "N/A"} guests</p>
         </div>
 
@@ -76,7 +76,7 @@ function VenueCard({ id, name, image, location, basePricePerHour, capacity, serv
             {services.slice(0, 3).map((service, index) => (
               <span
                 key={index}
-                className="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded flex items-center"
+                className="bg-lime-100 text-lime-800 text-xs font-semibold px-2.5 py-0.5 rounded flex items-center"
               >
                 {getServiceIcon(service.serviceId.name)}
                 {service.serviceId.name}
@@ -91,4 +91,3 @@ function VenueCard({ id, name, image, location, basePricePerHour, capacity, serv
 }
 
 export default VenueCard
-

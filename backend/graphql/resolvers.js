@@ -148,7 +148,7 @@ const resolvers = {
         { $sort: { totalBookings: -1, avgRating: -1, totalRevenue: -1 } }, // Sort by highest bookings, rating & revenue
         { $limit: limit || 5 },
       ]);
-    
+
       return venues.map((venue) => ({
         id: venue._id,
         name: venue.name,
@@ -159,17 +159,16 @@ const resolvers = {
         avgRating: venue.avgRating || 0, // Default to 0 if no ratings
       }));
     },
-    
-    
+
     pendingVenueOwners: async () => {
       return await User.find({
         role: "VenueOwner",
         roleApprovalStatus: "PENDING",
       });
     },
-    pendingVenues: async () =>{
-      return await Venue.find({approvalStatus: "PENDING"}).populate("owner")
-    }
+    pendingVenues: async () => {
+      return await Venue.find({ approvalStatus: "PENDING" }).populate("owner");
+    },
   },
 
   Mutation: {
@@ -199,18 +198,20 @@ const resolvers = {
             if (!existingService) {
               throw new Error(`Service not found: ${service.serviceId}`);
             }
-        
+
             if (!["hourly", "fixed"].includes(service.category)) {
-              throw new Error(`Invalid category for service ${service.serviceId}`);
+              throw new Error(
+                `Invalid category for service ${service.serviceId}`
+              );
             }
-        
+
             serviceReferences.push({
               serviceId: existingService._id,
               servicePrice: service.servicePrice ?? 0,
-              category: service.category, 
+              category: service.category,
             });
           }
-        }        
+        }
 
         // Ensure categories is an array
         const categoriesArray = Array.isArray(categories)
@@ -286,9 +287,11 @@ const resolvers = {
             }
 
             // Store the service reference with the custom price in the Venue model
+            // Store the service reference with the custom price and category in the Venue model
             updatedServiceReferences.push({
               serviceId: existingService._id,
               servicePrice: service.servicePrice,
+              category: service.category || "fixed", // Include category with a default fallback
             });
           }
         }
@@ -1134,8 +1137,7 @@ const resolvers = {
       if (!venue) return { success: false, message: "Venue not found" };
 
       return { success: true, message: "Venue rejected." };
-    }
-  
+    },
   },
   User: {
     async venues(parent) {
@@ -1186,6 +1188,7 @@ const resolvers = {
           return {
             serviceId: serviceDetails, // Full service document
             servicePrice: service.servicePrice, // Custom price set by venue owner
+            category: service.category, // Category of the service
           };
         })
       );

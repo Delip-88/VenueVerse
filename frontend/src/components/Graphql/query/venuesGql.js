@@ -30,6 +30,7 @@ const VENUES = gql`
           name
         }
         servicePrice
+        category
       }
     }
   }
@@ -73,6 +74,7 @@ const VENUE_BY_ID = gql`
       }
       services {
         servicePrice
+        category
         serviceId {
           id
           name

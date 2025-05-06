@@ -1,40 +1,61 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { Search, X, SlidersHorizontal, CheckCircle2 } from "lucide-react"
 import VenueCard from "../common/VenueCard"
 import { useQuery } from "@apollo/client"
 import { VENUES } from "../../components/Graphql/query/venuesGql"
 import Loader from "../common/Loader"
+import { Trie } from "../../components/Functions/trie"
 
 export default function VenuesPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [sortBy, setSortBy] = useState("price")
   const [isFilterVisible, setIsFilterVisible] = useState(false)
   const [filteredVenues, setFilteredVenues] = useState([])
+  const [suggestions, setSuggestions] = useState([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const searchRef = useRef(null)
   const [filters, setFilters] = useState({
     minPrice: "",
     maxPrice: "",
     capacity: "",
-    categories: [], // Changed from category (string) to categories (array)
+    categories: [],
     province: "",
     services: [],
   })
+
+  // Create a ref for the Trie to persist between renders
+  const trieRef = useRef(null)
 
   const { data, error, loading } = useQuery(VENUES)
   const [allServices, setAllServices] = useState([])
   const [allProvinces, setAllProvinces] = useState([])
   const [allCategories, setAllCategories] = useState([])
 
+  // Initialize Trie with venue data
   useEffect(() => {
     if (data?.venues) {
+      // Create a new Trie
+      const venueTrie = new Trie()
+
+      // Insert venue names and cities into the Trie
+      data.venues.forEach((venue) => {
+        venueTrie.insert(venue.name, venue)
+        if (venue.location?.city) {
+          venueTrie.insert(venue.location.city, venue)
+        }
+      })
+
+      // Store the Trie in the ref
+      trieRef.current = venueTrie
+
       // Extract unique services, provinces, and categories
       const services = new Set()
       const provinces = new Set()
       const categories = new Set()
 
       data.venues.forEach((venue) => {
-        // Handle both single category and categories array
         if (Array.isArray(venue.categories) && venue.categories.length > 0) {
           venue.categories.forEach((cat) => categories.add(cat))
         } else if (venue.category) {
@@ -51,22 +72,49 @@ export default function VenuesPage() {
       setAllProvinces(Array.from(provinces).sort())
       setAllCategories(Array.from(categories).sort())
 
+      // Initial filtering
       applyFiltersAndSort(data.venues)
     }
   }, [data])
 
+  // Handle search term changes with Trie
   useEffect(() => {
-    if (data?.venues) {
+    if (trieRef.current && searchTerm) {
+      const { venues, suggestions } = trieRef.current.search(searchTerm)
+      setSuggestions(suggestions)
+
+      // Only show suggestions if we have search term and suggestions
+      setShowSuggestions(searchTerm.length > 0 && suggestions.length > 0)
+
+      // Apply other filters to the Trie search results
+      applyFiltersAndSort(venues)
+    } else if (data?.venues) {
+      // If search term is empty, filter all venues
       applyFiltersAndSort(data.venues)
+      setSuggestions([])
+      setShowSuggestions(false)
     }
-  }, [searchTerm, sortBy, filters])
+  }, [searchTerm])
+
+  // Add a new useEffect that responds to filter and sort changes
+  // Add this after the search term useEffect
+
+  useEffect(() => {
+    // Apply filters when they change, but only if we have data
+    if (data?.venues) {
+      if (searchTerm && trieRef.current) {
+        // If there's a search term, apply filters to the search results
+        const { venues } = trieRef.current.search(searchTerm)
+        applyFiltersAndSort(venues)
+      } else {
+        // If no search term, apply filters to all venues
+        applyFiltersAndSort(data.venues)
+      }
+    }
+  }, [filters, sortBy, data?.venues])
 
   const applyFiltersAndSort = (venues) => {
-    let filtered = venues.filter(
-      (venue) =>
-        venue.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        venue.location?.city?.toLowerCase().includes(searchTerm.toLowerCase()),
-    )
+    let filtered = [...venues]
 
     // Apply categories filter
     if (filters.categories.length > 0) {
@@ -177,7 +225,7 @@ export default function VenuesPage() {
       minPrice: "",
       maxPrice: "",
       capacity: "",
-      categories: [], // Changed from category to categories
+      categories: [],
       province: "",
       services: [],
     })
@@ -190,10 +238,22 @@ export default function VenuesPage() {
       filters.minPrice ||
       filters.maxPrice ||
       filters.capacity ||
-      filters.categories.length > 0 || // Changed from category to categories
+      filters.categories.length > 0 ||
       filters.province ||
       filters.services.length > 0
     )
+  }
+
+  // Also, update the click handler for suggestions to ensure filters are applied
+  const handleSuggestionClick = (suggestion) => {
+    setSearchTerm(suggestion)
+    setShowSuggestions(false)
+
+    // Apply filters to the new search term results
+    if (trieRef.current && data?.venues) {
+      const { venues } = trieRef.current.search(suggestion)
+      applyFiltersAndSort(venues)
+    }
   }
 
   // Format category for display
@@ -209,25 +269,43 @@ export default function VenuesPage() {
   if (error) return <div className="text-center py-8 text-red-500">Error: {error.message}</div>
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <main className="container mx-auto px-4 sm:px-6 py-8">
-        <h1 className="text-3xl font-bold mb-8">Find Your Perfect Venue</h1>
+    <div className="min-h-screen bg-lime-50">
+      <main className="container mx-auto px-4 sm:px-6">
+        <h1 className="text-3xl font-bold mb-8 text-lime-700">Find Your Perfect Venue</h1>
 
         {/* Search and Filter Section */}
         <div className="mb-6 flex flex-col md:flex-row gap-4">
-          <div className="flex-grow relative">
+          <div className="flex-grow relative" ref={searchRef}>
             <input
               type="text"
               placeholder="Search venues by name or city..."
-              className="w-full pl-10 pr-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-teal-500"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              onFocus={() => searchTerm && suggestions.length > 0 && setShowSuggestions(true)}
             />
-            <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+            <Search className="absolute left-3 top-2.5 h-5 w-5 text-teal-500" />
+
+            {/* Suggestions dropdown */}
+            {showSuggestions && (
+              <div className="absolute z-10 w-full mt-1 bg-white rounded-md shadow-lg max-h-60 overflow-auto">
+                <ul className="py-1">
+                  {suggestions.map((suggestion, index) => (
+                    <li
+                      key={index}
+                      className="px-4 py-2 hover:bg-teal-50 cursor-pointer text-gray-700"
+                      onClick={() => handleSuggestionClick(suggestion)}
+                    >
+                      {suggestion}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
           <div className="flex gap-2">
             <select
-              className="appearance-none bg-white border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
             >
@@ -237,12 +315,12 @@ export default function VenuesPage() {
               <option value="capacity">Largest Capacity</option>
             </select>
             <button
-              className="flex items-center justify-center gap-2 bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-200"
+              className="flex items-center justify-center gap-2 bg-teal-500 text-white py-2 px-4 rounded-lg hover:bg-teal-600 transition duration-200"
               onClick={() => setIsFilterVisible(!isFilterVisible)}
             >
               <SlidersHorizontal
                 size={20}
-                className={`transition-transform duration-300 ${isFilterVisible ? "rotate-180" : "rotate-0"}`}
+                className={`transition-transform duration-300 text-white ${isFilterVisible ? "rotate-180" : "rotate-0"}`}
               />
               <span className="hidden sm:inline">{isFilterVisible ? "Hide Filters" : "Show Filters"}</span>
             </button>
@@ -257,7 +335,7 @@ export default function VenuesPage() {
         >
           <div className="p-4 bg-white rounded-lg shadow-md">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold">Filters</h2>
+              <h2 className="text-lg font-semibold text-teal-600">Filters</h2>
               {hasActiveFilters() && (
                 <button
                   onClick={clearFilters}
@@ -278,7 +356,7 @@ export default function VenuesPage() {
                     type="number"
                     name="minPrice"
                     placeholder="Min"
-                    className="w-full py-2 px-3 border rounded-lg"
+                    className="w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                     value={filters.minPrice}
                     onChange={handleFilterChange}
                   />
@@ -286,7 +364,7 @@ export default function VenuesPage() {
                     type="number"
                     name="maxPrice"
                     placeholder="Max"
-                    className="w-full py-2 px-3 border rounded-lg"
+                    className="w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                     value={filters.maxPrice}
                     onChange={handleFilterChange}
                   />
@@ -298,7 +376,7 @@ export default function VenuesPage() {
                 <label className="block text-sm font-medium text-gray-700">Minimum Capacity</label>
                 <select
                   name="capacity"
-                  className="w-full py-2 px-3 border rounded-lg"
+                  className="w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                   value={filters.capacity}
                   onChange={handleFilterChange}
                 >
@@ -315,7 +393,7 @@ export default function VenuesPage() {
                 <label className="block text-sm font-medium text-gray-700">Province</label>
                 <select
                   name="province"
-                  className="w-full py-2 px-3 border rounded-lg"
+                  className="w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                   value={filters.province}
                   onChange={handleFilterChange}
                 >
@@ -339,12 +417,12 @@ export default function VenuesPage() {
                     onClick={() => toggleCategoryFilter(category)}
                     className={`px-3 py-1 rounded-full text-sm transition-colors duration-200 flex items-center ${
                       filters.categories.includes(category)
-                        ? "bg-blue-500 text-white"
+                        ? "bg-teal-500 text-white"
                         : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                     }`}
                   >
                     {formatCategory(category)}
-                    {filters.categories.includes(category) && <CheckCircle2 className="ml-1 h-3 w-3" />}
+                    {filters.categories.includes(category) && <CheckCircle2 className="ml-1 h-3 w-3 text-white" />}
                   </button>
                 ))}
               </div>
@@ -360,12 +438,12 @@ export default function VenuesPage() {
                     onClick={() => toggleServiceFilter(service)}
                     className={`px-3 py-1 rounded-full text-sm transition-colors duration-200 flex items-center ${
                       filters.services.includes(service)
-                        ? "bg-blue-500 text-white"
+                        ? "bg-teal-500 text-white"
                         : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                     }`}
                   >
                     {service}
-                    {filters.services.includes(service) && <CheckCircle2 className="ml-1 h-3 w-3" />}
+                    {filters.services.includes(service) && <CheckCircle2 className="ml-1 h-3 w-3 text-white" />}
                   </button>
                 ))}
               </div>
@@ -404,4 +482,3 @@ export default function VenuesPage() {
     </div>
   )
 }
-

@@ -74,7 +74,7 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route index element={<HomePage />} />
+            <Route index element={<VenuesPage />} />
             <Route path="my-bookings" element={<MyBookingsPage />} />
             <Route path="favorites" element={<FavoritesPage />} />
             <Route path="settings" element={<UserSettingsPage />} />

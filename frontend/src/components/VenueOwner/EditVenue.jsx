@@ -408,8 +408,13 @@ const EditVenue = () => {
         const formattedServices = selectedServices.map((service) => ({
           serviceId: service.serviceId,
           servicePrice: Number.parseInt(service.servicePrice, 10),
-          category: service.category, // Include the pricing category (hourly/fixed)
+          category: service.category || "fixed", // Ensure category is always present, default to "fixed" if missing
         }))
+
+        // Also, add a check to ensure all services have a category
+        if (selectedServices.some((service) => !service.category)) {
+          console.warn("Some services were missing a category, defaulting to 'fixed'")
+        }
 
         const response = await updateVenue({
           variables: {

@@ -308,16 +308,24 @@ const isTimeConflicting = (time, bookings, date) => {
   return false // No conflict found
 }
 
+// Calculate duration in hours between start and end time
+const calculateDuration = (start, end) => {
+  if (!start || !end) return 0
+  const startTime = new Date(`2000-01-01T${start}`)
+  const endTime = new Date(`2000-01-01T${end}`)
+  return (endTime - startTime) / (1000 * 60 * 60)
+}
+
 const BookNowPage = () => {
   const { venueId } = useParams() || {}
   const { user } = useContext(AuthContext)
 
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem("authToken")
     if (!token) {
-      window.location.href = '/login';
+      window.location.href = "/login"
     }
-  }, []);
+  }, [])
 
   // Fetch venue details (which now includes bookings)
   const { data, loading, error } = useQuery(VENUE_BY_ID, {
@@ -386,18 +394,25 @@ const BookNowPage = () => {
     // Calculate total price whenever booking details change
     if (data?.venue && bookingDetails.startTime && bookingDetails.endTime) {
       // Calculate venue rental price based on hours
+      const duration = calculateDuration(bookingDetails.startTime, bookingDetails.endTime)
       const basePrice = calculateTotalPrice(
         bookingDetails.startTime,
         bookingDetails.endTime,
         data.venue.basePricePerHour,
       )
 
-      // Add service prices
+      // Add service prices based on their category (fixed or hourly)
       const servicePrice = bookingDetails.selectedServices.reduce((total, serviceId) => {
         const service = data.venue.services.find((s) => s.serviceId.id === serviceId)
         if (service) {
-          // Use the servicePrice as a fixed price
-          return total + service.servicePrice
+          // Check if the service is hourly or fixed
+          if (service.category === "hourly") {
+            // For hourly services, multiply by duration
+            return total + service.servicePrice * duration
+          } else {
+            // For fixed services, use the price as is
+            return total + service.servicePrice
+          }
         }
         return total
       }, 0)
@@ -477,16 +492,11 @@ const BookNowPage = () => {
     })
   }
 
-  // Calculate duration in hours between start and end time
-  const calculateDuration = (start, end) => {
-    if (!start || !end) return 0
-    const startTime = new Date(`2000-01-01T${start}`)
-    const endTime = new Date(`2000-01-01T${end}`)
-    return (endTime - startTime) / (1000 * 60 * 60)
-  }
-
   // Get today's date in YYYY-MM-DD format
   const today = new Date().toISOString().split("T")[0]
+
+  // Calculate duration for display and calculations
+  const duration = calculateDuration(bookingDetails.startTime, bookingDetails.endTime)
 
   return (
     <div className="container mx-auto p-4 md:p-1">
@@ -563,7 +573,10 @@ const BookNowPage = () => {
 
                     <div className="flex-1">
                       <p className="font-medium text-sm">{service.serviceId.name}</p>
-                      <p className="text-xs text-gray-600">Rs. {service.servicePrice}</p>
+                      <p className="text-xs text-gray-600">
+                        Rs. {service.servicePrice}
+                        {service.category === "hourly" ? "/hour" : " (fixed)"}
+                      </p>
                     </div>
 
                     <div
@@ -684,7 +697,7 @@ const BookNowPage = () => {
                     </div>
                     <div className="flex justify-between">
                       <span>Duration:</span>
-                      <span>{calculateDuration(bookingDetails.startTime, bookingDetails.endTime)} hours</span>
+                      <span>{duration} hours</span>
                     </div>
 
                     <div className="flex justify-between">
@@ -703,12 +716,21 @@ const BookNowPage = () => {
                             const service = venue.services.find((s) => s.serviceId.id === serviceId)
                             if (!service) return null
 
+                            // Calculate service price based on category
+                            const servicePrice =
+                              service.category === "hourly" ? service.servicePrice * duration : service.servicePrice
+
                             return (
                               <div key={serviceId} className="flex justify-between text-sm pl-2 items-center py-1">
                                 <div className="flex items-center">
                                   <span>{service.serviceId.name}</span>
+                                  {service.category === "hourly" && (
+                                    <span className="text-xs text-gray-500 ml-1">
+                                      (Rs. {service.servicePrice}/hr × {duration}hr)
+                                    </span>
+                                  )}
                                 </div>
-                                <span>Rs. {service.servicePrice}</span>
+                                <span>Rs. {servicePrice}</span>
                               </div>
                             )
                           })}
@@ -755,4 +777,3 @@ const BookNowPage = () => {
 }
 
 export default BookNowPage
-

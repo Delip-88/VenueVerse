@@ -1,179 +1,168 @@
-
-import { useContext, useEffect, useState } from "react"
-import { CalendarDaysIcon, PartyPopperIcon, UsersIcon, ClockIcon } from "lucide-react"
-import { useNavigate } from "react-router-dom"
-import VenueCard from "../common/VenueCard"
-import { VENUES } from "../../components/Graphql/query/venuesGql"
-import Loader from "../common/Loader"
-import { useQuery } from "@apollo/client"
-import { AuthContext } from "../../middleware/AuthContext"
-import getOptimizedCloudinaryUrl from "../../components/Functions/OptimizedImageUrl"
+import { useContext, useEffect, useState } from "react";
+import { CalendarDaysIcon, PartyPopperIcon, UsersIcon, ClockIcon, MapPinIcon, LightbulbIcon } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import VenueCard from "../common/VenueCard";
+import { VENUES } from "../../components/Graphql/query/venuesGql";
+import Loader from "../common/Loader";
+import { useQuery } from "@apollo/client";
+import { AuthContext } from "../../middleware/AuthContext";
+import getOptimizedCloudinaryUrl from "../../components/Functions/OptimizedImageUrl";
 
 export default function LandingPage() {
-  const navigate = useNavigate()
-  const { isAuthenticated, user } = useContext(AuthContext)
-  const [venues, setVenues] = useState([]) // Initialize as an empty array
-  const { data, error, loading } = useQuery(VENUES)
+  const navigate = useNavigate();
+  const { isAuthenticated, user } = useContext(AuthContext);
+  const [venues, setVenues] = useState([]);
+  const { data, error, loading } = useQuery(VENUES);
 
   useEffect(() => {
     if (data?.venues) {
-      setVenues(data.venues)
+      setVenues(data.venues);
     }
-  }, [data])
+  }, [data]);
 
-  if (loading) return <Loader />
+  if (loading) return <Loader />;
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Hero Section */}
-      <section className="bg-gray-100 pt-10">
-        <div className="container mx-auto px-6 text-center">
-          <h1 className="text-4xl md:text-6xl font-bold mb-4">Plan Your Perfect Event</h1>
-          <p className="text-xl mb-8">From venues to services, manage every aspect of your event in one place.</p>
-          <button
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 cursor-pointer transition-all ease-in"
-            onClick={() => navigate("/venuewizard")}
-          >
-            Start Planning
-          </button>
+    <div className="min-h-screen bg-lime-50">
+      {/* Hero Section - Left Aligned with Image */}
+      <section className="bg-lime-50 py-20">
+        <div className="container mx-auto px-6 flex flex-col md:flex-row items-center justify-between">
+          <div className="md:w-1/2 text-center md:text-left mb-8 md:mb-0">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 text-lime-800">Discover Unique Event Spaces</h1>
+            <p className="text-xl mb-6 text-gray-700">Find the perfect venue for your wedding, corporate event, or special occasion. Explore our curated selection and make your event memorable.</p>
+            <button
+              className="bg-teal-600 text-white px-6 py-3 rounded-full text-lg font-semibold hover:bg-teal-700 cursor-pointer transition-all ease-in"
+              onClick={() => navigate("/venuewizard")}
+            >
+              Find Your Venue
+            </button>
+          </div>
+          <div className="md:w-1/2">
+            <img src="https://cdn.pixabay.com/photo/2021/01/20/21/32/prague-5935651_1280.jpg" alt="Event Planning" className="rounded-lg shadow-lg" />
+          </div>
         </div>
       </section>
 
-      {/* Featured Venues Section */}
-      <section className="py-10">
+      {/* Featured Services Section - Grid Layout */}
+      <section className="py-16 bg-lime-100">
         <div className="container mx-auto px-6">
-          <h2 className="text-3xl font-bold text-center mb-12">Featured Venues & Services</h2>
+          <h2 className="text-3xl font-bold text-center mb-10 text-lime-700">Explore Event Services</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {venues.slice(0, 3).map((venue, index) => (
-              <VenueCard
-                key={index}
-                id={venue.id}
-                name={venue.name}
-                image={venue.image?.secure_url}
-                location={venue.location}
-                basePricePerHour={venue.basePricePerHour}
-                capacity={venue.capacity}
-                services={venue.services}
-                reviews={venue.reviews}
-              />
+            <ServiceCard
+              icon={<PartyPopperIcon className="w-10 h-10 text-teal-600 mb-2" />}
+              title="Catering & Beverages"
+              description="Delicious menus and beverage options to delight your guests."
+            />
+            <ServiceCard
+              icon={<MapPinIcon className="w-10 h-10 text-teal-600 mb-2" />}
+              title="Venue Decoration"
+              description="Transform your chosen space with stunning decor and themes."
+            />
+            <ServiceCard
+              icon={<UsersIcon className="w-10 h-10 text-teal-600 mb-2" />}
+              title="Entertainment & Music"
+              description="Book DJs, bands, and other entertainment for a lively event."
+            />
+            <ServiceCard
+              icon={<LightbulbIcon className="w-10 h-10 text-teal-600 mb-2" />}
+              title="Photography & Videography"
+              description="Capture every precious moment with professional services."
+            />
+            <ServiceCard
+              icon={<ClockIcon className="w-10 h-10 text-teal-600 mb-2" />}
+              title="Event Coordination"
+              description="Stress-free planning with our experienced event coordinators."
+            />
+            <ServiceCard
+              icon={<CalendarDaysIcon className="w-10 h-10 text-teal-600 mb-2" />}
+              title="Equipment Rental"
+              description="Chairs, tables, lighting, and all the essentials for your event."
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Venues Section - Carousel-like Layout */}
+      <section className="py-16">
+        <div className="container mx-auto px-6">
+          <h2 className="text-3xl font-bold text-center mb-10 text-lime-700">Popular Venues</h2>
+          <div className="overflow-x-auto whitespace-nowrap -mx-6 md:-mx-8">
+            {venues.slice(0, 5).map((venue, index) => (
+              <div key={index} className="inline-block w-80 md:w-96 mr-6 md:mr-8 shadow-md rounded-lg overflow-hidden">
+                <VenueCard
+                  id={venue.id}
+                  name={venue.name}
+                  image={venue.image?.secure_url}
+                  location={venue.location}
+                  basePricePerHour={venue.basePricePerHour}
+                  capacity={venue.capacity}
+                  services={venue.services}
+                  reviews={venue.reviews}
+                  isCompact={true} // Add a prop for a more compact display
+                />
+              </div>
             ))}
           </div>
           <div className="text-center mt-8">
             <button
-              className="px-6 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer"
+              className="px-6 py-2 border border-teal-600 text-teal-600 rounded-full hover:bg-teal-50 transition-colors cursor-pointer"
               onClick={() => navigate("/Venues")}
             >
-              View All Venues
+              See All Venues
             </button>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-20 bg-gray-200">
-        <div className="container mx-auto px-6">
-          <h2 className="text-3xl font-bold text-center mb-12">Why Choose Venue Verse for Your Events?</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <FeatureCard
-              icon={<CalendarDaysIcon className="w-12 h-12 text-blue-600" />}
-              title="All-in-One Planning"
-              description="Book venues and services in one seamless experience."
-            />
-            <FeatureCard
-              icon={<PartyPopperIcon className="w-12 h-12 text-blue-600" />}
-              title="Diverse Event Services"
-              description="From catering to photography, find all the services you need."
-            />
-            <FeatureCard
-              icon={<UsersIcon className="w-12 h-12 text-blue-600" />}
-              title="Vendor Management"
-              description="Easily coordinate with all your event service providers."
-            />
-            <FeatureCard
-              icon={<ClockIcon className="w-12 h-12 text-blue-600" />}
-              title="Real-time Updates"
-              description="Stay informed with instant notifications about your event."
+      {/* Call to Action Section - Full Width Banner */}
+      <section className="bg-gradient-to-r from-teal-600 to-emerald-500 text-white py-16 text-center">
+  <div className="container mx-auto px-6">
+    <h2 className="text-3xl font-bold mb-6">Ready to Plan Your Unforgettable Event?</h2>
+    <p className="text-xl mb-8">Join our community and discover the best venues and services for your needs.</p>
+    <button
+      className="bg-white text-teal-600 px-8 py-4 rounded-full text-lg font-semibold hover:bg-gray-100 transition-colors cursor-pointer"
+      onClick={() => navigate("/SignUp")}
+    >
+      Get Started Today
+    </button>
+  </div>
+</section>
+
+
+      {/* Testimonials Section - Two Column Layout */}
+      <section className="py-16 bg-lime-100">
+        <div className="container mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div>
+            <h2 className="text-2xl font-bold mb-6 text-lime-700">What Our Users Are Saying</h2>
+            <TestimonialCard
+              quote="Venue Verse made finding the perfect wedding venue so easy! The variety of options and the ability to book services all in one place was a game-changer."
+              author="Aisha Khan"
+              role="Bride-to-be"
+              image="https://picsum.photos/id/237/200/300"
             />
           </div>
-        </div>
-      </section>
-
-      {/* How It Works Section */}
-      <section className="py-20">
-        <div className="container mx-auto px-6">
-          <h2 className="text-3xl font-bold text-center mb-12">How It Works</h2>
-          <div className="flex flex-col md:flex-row justify-between items-center space-y-8 md:space-y-0 md:space-x-8">
-            <StepCard number={1} title="Plan" description="Select your venue and add event services you need." />
-            <StepCard number={2} title="Book" description="Secure your venue and services with easy booking." />
-            <StepCard number={3} title="Manage" description="Coordinate all aspects of your event in one dashboard." />
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section className="py-20 bg-gray-200">
-        <div className="container mx-auto px-6">
-          <h2 className="text-3xl font-bold text-center mb-12">What Our Event Planners Say</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div>
             <TestimonialCard
-              quote="Venue Verse simplified our corporate conference planning. Having all services in one place saved us countless hours!"
-              author="Priya Sharma"
-              role="Corporate Event Manager"
-              image="https://picsum.photos/200/300"
-            />
-            <TestimonialCard
-              quote="From venue selection to catering and photography, I planned my entire wedding through this platform. Absolutely seamless!"
-              author="Rahul Patel"
-              role="Wedding Planner"
-              image="https://picsum.photos/200/300"
-            />
-            <TestimonialCard
-              quote="The ability to coordinate multiple vendors through one platform made organizing our annual charity gala so much easier."
-              author="Ananya Gupta"
-              role="Non-profit Event Coordinator"
-              image="https://picsum.photos/200/300"
+              quote="As a corporate event planner, Venue Verse has streamlined my workflow significantly. The platform is intuitive and the vendor management features are excellent."
+              author="David Chen"
+              role="Event Coordinator"
+              image="https://picsum.photos/id/1005/200/300"
             />
           </div>
-        </div>
-      </section>
-
-      {/* Call to Action */}
-      <section className="bg-blue-600 text-white py-20">
-        <div className="container mx-auto px-6 text-center">
-          <h2 className="text-3xl font-bold mb-4">Ready to Create Your Perfect Event?</h2>
-          <p className="text-xl mb-8">Join thousands of event planners and make your next event unforgettable!</p>
-          <button
-            className="bg-white text-blue-600 px-6 py-3 rounded-lg text-lg font-semibold hover:bg-gray-100"
-            onClick={() => navigate("/SignUp")}
-          >
-            Start Planning Now
-          </button>
         </div>
       </section>
     </div>
-  )
+  );
 }
 
-function FeatureCard({ icon, title, description }) {
-  return (
-    <div className="flex flex-col items-center text-center">
-      {icon}
-      <h3 className="text-xl font-semibold mt-4 mb-2">{title}</h3>
-      <p className="text-gray-600">{description}</p>
-    </div>
-  )
-}
-
-function StepCard({ number, title, description }) {
+function ServiceCard({ icon, title, description }) {
   return (
     <div className="bg-white rounded-lg shadow-md p-6 text-center">
-      <div className="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center text-xl font-bold mb-4 mx-auto">
-        {number}
-      </div>
-      <h3 className="text-xl font-semibold mb-2">{title}</h3>
+      {icon}
+      <h3 className="text-xl font-semibold mt-2 mb-2 text-lime-700">{title}</h3>
       <p className="text-gray-600">{description}</p>
     </div>
-  )
+  );
 }
 
 function TestimonialCard({ quote, author, role, image }) {
@@ -182,12 +171,31 @@ function TestimonialCard({ quote, author, role, image }) {
       <div className="flex items-center mb-4">
         <img src={getOptimizedCloudinaryUrl(image) || "https://picsum.photos/200/300"} alt={author} className="w-12 h-12 rounded-full mr-4" />
         <div>
-          <p className="font-semibold">{author}</p>
+          <p className="font-semibold text-lime-700">{author}</p>
           <p className="text-gray-600 text-sm">{role}</p>
         </div>
       </div>
-      <p className="text-gray-600 italic mb-4">"{quote}"</p>
+      <p className="text-gray-600 italic">"{quote}"</p>
     </div>
-  )
+  );
 }
 
+function VenueCardCompact({ id, name, image, location, basePricePerHour, capacity, services, reviews }) {
+  const navigate = useNavigate();
+  return (
+    <div
+      className="bg-white rounded-lg shadow-md cursor-pointer hover:shadow-lg transition-shadow duration-300"
+      onClick={() => navigate(`/venue/${id}`)}
+    >
+      <img src={getOptimizedCloudinaryUrl(image) || "https://via.placeholder.com/400x300"} alt={name} className="w-full h-48 object-cover rounded-t-lg" />
+      <div className="p-4">
+        <h3 className="text-lg font-semibold text-lime-700 mb-1">{name}</h3>
+        <p className="text-gray-600 text-sm mb-2">{location}</p>
+        <p className="text-teal-600 font-semibold text-sm">From ${basePricePerHour}/hour</p>
+        <div className="flex items-center text-gray-500 text-sm mt-1">
+          <UsersIcon className="w-4 h-4 mr-1" /> {capacity}
+        </div>
+      </div>
+    </div>
+  );
+}

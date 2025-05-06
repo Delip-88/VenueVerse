@@ -1,71 +1,182 @@
-import { useContext, useState } from "react";
-import { Save, User, Lock, Bell, CreditCard, Building } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { AuthContext } from "../../middleware/AuthContext";
+"use client"
+
+import { useContext, useState } from "react"
+import { Save, User, Lock, Upload, AlertCircle } from "lucide-react"
+import { useNavigate } from "react-router-dom"
+import { AuthContext } from "../../middleware/AuthContext"
 
 const UserSettingsPage = () => {
-  const { user, loading } = useContext(AuthContext);
-  const navigate = useNavigate();
+  const { user, loading } = useContext(AuthContext)
+  const navigate = useNavigate()
 
   const [personalInfo, setPersonalInfo] = useState({
-    name: user?.name,
-    email: user?.email,
+    name: user?.name || "",
+    email: user?.email || "",
     phone: user?.phone || "",
-  });
+  })
 
-  const [showRoleChangeModal, setShowRoleChangeModal] = useState(false);
+  const [profileImage, setProfileImage] = useState(null)
+  const [profileImagePreview, setProfileImagePreview] = useState(user?.profileImage || null)
+  const [errors, setErrors] = useState({})
 
   const handlePersonalInfoChange = (e) => {
-    setPersonalInfo({ ...personalInfo, [e.target.name]: e.target.value });
-  };
+    const { name, value } = e.target
+    setPersonalInfo({ ...personalInfo, [name]: value })
+
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: null })
+    }
+  }
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0]
+
+    // Clear previous errors
+    setErrors({ ...errors, profileImage: null })
+
+    if (!file) return
+
+    // Validate file is an image
+    if (!file.type.match("image.*")) {
+      setErrors({ ...errors, profileImage: "Please select an image file (JPEG, PNG, etc.)" })
+      e.target.value = null // Reset the input
+      return
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setErrors({ ...errors, profileImage: "Image size should be less than 5MB" })
+      e.target.value = null // Reset the input
+      return
+    }
+
+    // If validation passes, set the image
+    setProfileImage(file)
+    setProfileImagePreview(URL.createObjectURL(file))
+  }
+
+  const validateForm = () => {
+    const newErrors = {}
+
+    // Validate name
+    if (!personalInfo.name || personalInfo.name.trim() === "") {
+      newErrors.name = "Name is required"
+    }
+
+    // Validate email
+    if (!personalInfo.email || personalInfo.email.trim() === "") {
+      newErrors.email = "Email is required"
+    } else if (!/^[a-zA-Z][a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(personalInfo.email)) {
+      newErrors.email = "Invalid email format. Email should not start with a number."
+    }
+
+    // Validate phone
+    if (!personalInfo.phone || personalInfo.phone.trim() === "") {
+      newErrors.phone = "Phone number is required"
+    } else if (!/^\d{10}$/.test(personalInfo.phone.replace(/\D/g, ""))) {
+      newErrors.phone = "Phone number should be 10 digits"
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
 
   const handleSubmit = (e) => {
-    e.preventDefault();
-    // Here you would typically send the updated data to your backend
-    console.log("Updated settings:", { personalInfo });
-    alert("Settings updated successfully!");
-  };
+    e.preventDefault()
 
-  const openRoleChangeModal = () => {
-    setShowRoleChangeModal(true);
-  };
-if(loading) return <Loader/>
+    if (validateForm()) {
+      // Here you would typically send the updated data to your backend
+      // Including the profile image
+      console.log("Updated settings:", { personalInfo, profileImage })
+      alert("Settings updated successfully!")
+    } else {
+      console.log("Form has validation errors")
+    }
+  }
+
+  if (loading) return <div>Loading...</div>
+
   return (
     <div className="max-w-4xl mx-auto">
       <h1 className="text-3xl font-bold mb-8">Account Settings</h1>
       <form onSubmit={handleSubmit} className="space-y-8">
+        {/* Profile Picture Upload */}
+        <section aria-labelledby="profile-picture-heading">
+          <h2 id="profile-picture-heading" className="text-xl font-semibold mb-4 flex items-center">
+            <User className="mr-2" />
+            Profile Picture
+          </h2>
+          <div className="flex flex-col items-center space-y-4">
+            <div className="relative h-32 w-32 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center border border-gray-300">
+              {profileImagePreview ? (
+                <img
+                  src={profileImagePreview || "/placeholder.svg"}
+                  alt={personalInfo.name}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <User className="h-16 w-16 text-gray-400" />
+              )}
+            </div>
+
+            <div className="flex flex-col items-center">
+              <label
+                htmlFor="profile-image"
+                className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+              >
+                <Upload className="h-4 w-4" />
+                Upload Photo
+                <input
+                  id="profile-image"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="hidden"
+                />
+              </label>
+              {errors.profileImage && (
+                <div className="mt-2 flex items-center text-sm text-red-600">
+                  <AlertCircle className="h-4 w-4 mr-1" />
+                  {errors.profileImage}
+                </div>
+              )}
+              <p className="mt-1 text-xs text-gray-500">Allowed formats: JPEG, PNG, GIF. Max size: 5MB</p>
+            </div>
+          </div>
+        </section>
+
         {/* Personal Information */}
         <section aria-labelledby="personal-info-heading">
-          <h2
-            id="personal-info-heading"
-            className="text-xl font-semibold mb-4 flex items-center"
-          >
+          <h2 id="personal-info-heading" className="text-xl font-semibold mb-4 flex items-center">
             <User className="mr-2" />
             Personal Information
           </h2>
           <div className="grid grid-cols-1 gap-y-6 sm:grid-cols-2 sm:gap-x-4">
             <div>
-              <label
-                htmlFor="firstName"
-                className="block text-sm font-medium text-gray-700"
-              >
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
                 Full name
               </label>
               <input
                 type="text"
-                name="firstName"
-                id="firstName"
+                name="name"
+                id="name"
                 value={personalInfo.name}
                 onChange={handlePersonalInfoChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className={`mt-1 block w-full rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
+                  errors.name ? "border-red-500" : "border-gray-300"
+                }`}
               />
+              {errors.name && (
+                <div className="mt-1 flex items-center text-sm text-red-600">
+                  <AlertCircle className="h-4 w-4 mr-1" />
+                  {errors.name}
+                </div>
+              )}
             </div>
 
             <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700"
-              >
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email address
               </label>
               <input
@@ -74,15 +185,21 @@ if(loading) return <Loader/>
                 id="email"
                 value={personalInfo.email}
                 onChange={handlePersonalInfoChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                readOnly
+                className={`mt-1 block w-full rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
+                  errors.email ? "border-red-500" : "border-gray-300"
+                }`}
               />
+              {errors.email && (
+                <div className="mt-1 flex items-center text-sm text-red-600">
+                  <AlertCircle className="h-4 w-4 mr-1" />
+                  {errors.email}
+                </div>
+              )}
+              <p className="mt-1 text-xs text-gray-500">Email should not start with a number</p>
             </div>
+
             <div>
-              <label
-                htmlFor="phone"
-                className="block text-sm font-medium text-gray-700"
-              >
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
                 Phone number
               </label>
               <input
@@ -91,18 +208,23 @@ if(loading) return <Loader/>
                 id="phone"
                 value={personalInfo.phone}
                 onChange={handlePersonalInfoChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className={`mt-1 block w-full rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
+                  errors.phone ? "border-red-500" : "border-gray-300"
+                }`}
               />
+              {errors.phone && (
+                <div className="mt-1 flex items-center text-sm text-red-600">
+                  <AlertCircle className="h-4 w-4 mr-1" />
+                  {errors.phone}
+                </div>
+              )}
             </div>
           </div>
         </section>
 
         {/* Password Change */}
         <section aria-labelledby="password-heading">
-          <h2
-            id="password-heading"
-            className="text-xl font-semibold mb-4 flex items-center"
-          >
+          <h2 id="password-heading" className="text-xl font-semibold mb-4 flex items-center">
             <Lock className="mr-2" />
             Password
           </h2>
@@ -112,34 +234,6 @@ if(loading) return <Loader/>
           >
             Change Password
           </button>
-        </section>
-
-        {/* Change to Venue Owner */}
-        <section aria-labelledby="role-change-heading">
-          <h2
-            id="role-change-heading"
-            className="text-xl font-semibold mb-4 flex items-center"
-          >
-            <Building className="mr-2" />
-            {user && user.role == "VenueOwner" ? "Go To " : "Become a Venue Owner"}
-          </h2>
-          {user && user.role == "VenueOwner" ? (
-            <button
-              type="button"
-              onClick={() => navigate("/dashboard")}
-              className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 cursor-pointer"
-            >
-              Go to Dashboard
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={openRoleChangeModal}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-            >
-              Change Role to Venue Owner
-            </button>
-          )}
         </section>
 
         {/* Submit Button */}
@@ -153,73 +247,8 @@ if(loading) return <Loader/>
           </button>
         </div>
       </form>
-
-      {/* Role Change Modal */}
-      {showRoleChangeModal && (
-        <div
-          className="fixed z-10 inset-0 overflow-y-auto"
-          aria-labelledby="modal-title"
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div
-              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
-              aria-hidden="true"
-            ></div>
-            <span
-              className="hidden sm:inline-block sm:align-middle sm:h-screen"
-              aria-hidden="true"
-            >
-              &#8203;
-            </span>
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <div className="sm:flex sm:items-start">
-                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                    <h3
-                      className="text-lg leading-6 font-medium text-gray-900"
-                      id="modal-title"
-                    >
-                      Change Role to Venue Owner
-                    </h3>
-                    <div className="mt-2">
-                      <p className="text-sm text-gray-500">
-                        Are you sure you want to change your role to Venue
-                        Owner? This will give you access to additional features
-                        for managing venues.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                <button
-                  type="button"
-                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
-                  onClick={() => {
-                    // Here you would typically handle the role change logic
-                    navigate("/Home/BecomeVenueOwner");
-                    console.log("Changing role to Venue Owner");
-                    setShowRoleChangeModal(false);
-                  }}
-                >
-                  Confirm
-                </button>
-                <button
-                  type="button"
-                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                  onClick={() => setShowRoleChangeModal(false)}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
-  );
-};
+  )
+}
 
-export default UserSettingsPage;
+export default UserSettingsPage

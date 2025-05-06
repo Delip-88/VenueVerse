@@ -1,27 +1,27 @@
-import { useContext, useState } from "react"
-import { NavLink, useNavigate } from "react-router-dom"
-import { Menu, UserCircle, X } from "lucide-react"
-import { AuthContext } from "../../../middleware/AuthContext"
+import { useContext, useState } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
+import { Menu, UserCircle, X } from "lucide-react";
+import { AuthContext } from "../../../middleware/AuthContext";
 
 const Header = () => {
-  const navigate = useNavigate()
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const {isAuthenticated, user} = useContext(AuthContext)
+  const navigate = useNavigate();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { isAuthenticated, user } = useContext(AuthContext);
 
   const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen)
-  }
+    setIsMenuOpen(!isMenuOpen);
+  };
 
   const closeMenu = () => {
-    setIsMenuOpen(false)
-  }
+    setIsMenuOpen(false);
+  };
 
   return (
-    <header className="bg-blue-100 shadow-sm sticky top-0 z-50">
+    <header className="bg-lime-100 shadow-md sticky top-0 z-50"> {/* Light lime background */}
       <nav className="container mx-auto px-6 py-3">
         <div className="flex justify-between items-center">
           {/* Logo */}
-          <div className="text-xl font-bold text-gray-800">
+          <div className="text-xl font-bold text-teal-800"> {/* Dark teal logo text */}
             <a href="/">VenueVerse</a>
           </div>
 
@@ -30,7 +30,7 @@ const Header = () => {
             <NavLink
               to="/"
               className={({ isActive }) =>
-                isActive ? "text-blue-600 font-semibold" : "text-gray-600 hover:text-gray-800"
+                isActive ? "text-teal-600 font-semibold" : "text-gray-700 hover:text-teal-800" /* Teal active, gray hover */
               }
             >
               Home
@@ -38,7 +38,7 @@ const Header = () => {
             <NavLink
               to="/Venues"
               className={({ isActive }) =>
-                isActive ? "text-blue-600 font-semibold" : "text-gray-600 hover:text-gray-800"
+                isActive ? "text-teal-600 font-semibold" : "text-gray-700 hover:text-teal-800" /* Teal active, gray hover */
               }
             >
               Venues
@@ -46,7 +46,7 @@ const Header = () => {
             <NavLink
               to="/How-it-works"
               className={({ isActive }) =>
-                isActive ? "text-blue-600 font-semibold" : "text-gray-600 hover:text-gray-800"
+                isActive ? "text-teal-600 font-semibold" : "text-gray-700 hover:text-teal-800" /* Teal active, gray hover */
               }
             >
               How It Works
@@ -54,7 +54,7 @@ const Header = () => {
             <NavLink
               to="/Contact"
               className={({ isActive }) =>
-                isActive ? "text-blue-600 font-semibold" : "text-gray-600 hover:text-gray-800"
+                isActive ? "text-teal-600 font-semibold" : "text-gray-700 hover:text-teal-800" /* Teal active, gray hover */
               }
             >
               Contact
@@ -62,39 +62,36 @@ const Header = () => {
           </div>
 
           {/* Desktop Auth Buttons */}
-     {/* Desktop Auth */}
-     <div className="hidden md:flex space-x-2">
-          {isAuthenticated && user ? (
-            <button
-              className="px-4 py-2 bg-blue-50 hover:text-blue-600  rounded hover:bg-blue-100 cursor-pointer font-medium"
-              onClick={() => navigate("/Home")}
-            >
-              <UserCircle className="inline-block mr-2" size={20} />
-
-              {user.name}
-            </button>
-          ) : (
-            <>
+          <div className="hidden md:flex space-x-2">
+            {isAuthenticated && user ? (
               <button
-                className="px-4 py-2 text-gray-600 hover:text-gray-800 cursor-pointer"
-                onClick={() => navigate("/Login")}
+                className="px-4 py-2 bg-lime-50 hover:text-teal-600 rounded hover:bg-lime-100 cursor-pointer font-medium" /* Lime background, teal hover */
+                onClick={() => navigate("/Home")}
               >
-                Log In
+                <UserCircle className="inline-block mr-2 text-teal-500" size={20} /> {/* Teal user icon */}
+                {user.name}
               </button>
-              <button
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer"
-                onClick={() => navigate("/Signup")}
-              >
-                Sign Up
-              </button>
-            </>
-          )}
-        </div>
-
+            ) : (
+              <>
+                <button
+                  className="px-4 py-2 text-gray-700 hover:text-teal-800 cursor-pointer" /* Gray text, teal hover */
+                  onClick={() => navigate("/Login")}
+                >
+                  Log In
+                </button>
+                <button
+                  className="px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 cursor-pointer" /* Teal button */
+                  onClick={() => navigate("/Signup")}
+                >
+                  Sign Up
+                </button>
+              </>
+            )}
+          </div>
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden p-2 rounded-lg hover:bg-blue-200 transition-colors"
+            className="md:hidden p-2 rounded-lg hover:bg-lime-200 transition-colors text-teal-600" /* Light lime hover, teal icon */
             onClick={toggleMenu}
             aria-label="Toggle menu"
           >
@@ -106,7 +103,7 @@ const Header = () => {
         <div
           className={`md:hidden ${
             isMenuOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
-          } overflow-hidden transition-all duration-300 ease-in-out`}
+          } overflow-hidden transition-all duration-300 ease-in-out bg-lime-100`} /* Light lime background */
         >
           <div className="pt-4 pb-3 space-y-3">
             <NavLink
@@ -114,8 +111,8 @@ const Header = () => {
               className={({ isActive }) =>
                 `block px-2 py-2 rounded-lg transition-colors ${
                   isActive
-                    ? "text-blue-600 font-semibold bg-blue-50"
-                    : "text-gray-600 hover:text-gray-800 hover:bg-blue-50"
+                    ? "text-teal-600 font-semibold bg-lime-50" /* Teal active, light lime bg */
+                    : "text-gray-700 hover:text-teal-800 hover:bg-lime-50" /* Gray text, teal hover, light lime bg */
                 }`
               }
               onClick={closeMenu}
@@ -127,8 +124,8 @@ const Header = () => {
               className={({ isActive }) =>
                 `block px-2 py-2 rounded-lg transition-colors ${
                   isActive
-                    ? "text-blue-600 font-semibold bg-blue-50"
-                    : "text-gray-600 hover:text-gray-800 hover:bg-blue-50"
+                    ? "text-teal-600 font-semibold bg-lime-50" /* Teal active, light lime bg */
+                    : "text-gray-700 hover:text-teal-800 hover:bg-lime-50" /* Gray text, teal hover, light lime bg */
                 }`
               }
               onClick={closeMenu}
@@ -140,8 +137,8 @@ const Header = () => {
               className={({ isActive }) =>
                 `block px-2 py-2 rounded-lg transition-colors ${
                   isActive
-                    ? "text-blue-600 font-semibold bg-blue-50"
-                    : "text-gray-600 hover:text-gray-800 hover:bg-blue-50"
+                    ? "text-teal-600 font-semibold bg-lime-50" /* Teal active, light lime bg */
+                    : "text-gray-700 hover:text-teal-800 hover:bg-lime-50" /* Gray text, teal hover, light lime bg */
                 }`
               }
               onClick={closeMenu}
@@ -153,8 +150,8 @@ const Header = () => {
               className={({ isActive }) =>
                 `block px-2 py-2 rounded-lg transition-colors ${
                   isActive
-                    ? "text-blue-600 font-semibold bg-blue-50"
-                    : "text-gray-600 hover:text-gray-800 hover:bg-blue-50"
+                    ? "text-teal-600 font-semibold bg-lime-50" /* Teal active, light lime bg */
+                    : "text-gray-700 hover:text-teal-800 hover:bg-lime-50" /* Gray text, teal hover, light lime bg */
                 }`
               }
               onClick={closeMenu}
@@ -163,35 +160,34 @@ const Header = () => {
             </NavLink>
 
             {/* Mobile Auth Buttons */}
-   {/* Mobile Auth */}
-   <div className="grid grid-cols-2 gap-2 pt-2">
+            <div className="grid grid-cols-2 gap-2 pt-2">
               {isAuthenticated && user ? (
                 <button
-                  className="col-span-2 px-4 py-2 cursor-pointer bg-blue-50 hover:text-blue-600 rounded hover:bg-blue-100 transition-colors font-medium"
+                  className="col-span-2 px-4 py-2 cursor-pointer bg-lime-50 hover:text-teal-600 rounded hover:bg-lime-100 transition-colors font-medium" /* Lime background, teal hover */
                   onClick={() => {
-                    navigate("/Home")
-                    closeMenu()
+                    navigate("/Home");
+                    closeMenu();
                   }}
                 >
-                  <UserCircle className="inline-block mr-2" size={20} />
+                  <UserCircle className="inline-block mr-2 text-teal-500" size={20} /> {/* Teal user icon */}
                   {user.name}
                 </button>
               ) : (
                 <>
                   <button
-                    className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+                    className="px-4 py-2 text-gray-700 hover:text-teal-800 border border-gray-300 rounded hover:bg-lime-50 transition-colors" /* Gray text, teal hover, light lime hover */
                     onClick={() => {
-                      navigate("/Login")
-                      closeMenu()
+                      navigate("/Login");
+                      closeMenu();
                     }}
                   >
                     Log In
                   </button>
                   <button
-                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                    className="px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 transition-colors" /* Teal button */
                     onClick={() => {
-                      navigate("/Signup")
-                      closeMenu()
+                      navigate("/Signup");
+                      closeMenu();
                     }}
                   >
                     Sign Up
@@ -203,8 +199,7 @@ const Header = () => {
         </div>
       </nav>
     </header>
-  )
-}
+  );
+};
 
-export default Header
-
+export default Header;

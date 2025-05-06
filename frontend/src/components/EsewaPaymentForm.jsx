@@ -134,7 +134,7 @@ const EsewaPaymentForm = ({ venue, date, start, end, selectedServices = [], tota
         <button
           type="submit"
           disabled={!isFormValid || disabled || bookingLoading || iLoading || sLoading}
-          className={`w-full py-3 px-4 rounded-lg font-medium flex items-center justify-center transition-colors ${
+          className={`w-full py-3 px-4 rounded-lg cursor-pointer font-medium flex items-center justify-center transition-colors ${
             isFormValid && !disabled && !bookingLoading && !iLoading && !sLoading
               ? "bg-blue-600 text-white hover:bg-blue-700"
               : "bg-gray-300 text-gray-500 cursor-not-allowed"

@@ -1,4 +1,3 @@
-"use client"
 
 import { useEffect, useState } from "react"
 import { Search, SlidersHorizontal, X, CheckCircle2 } from "lucide-react"
@@ -212,7 +211,7 @@ const HomePage = () => {
   if (error) return <div>Error: {error.message}</div>
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-lime-50">
       <main className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
         {/* Search and filter section */}
         <div className="mb-6 flex flex-col md:flex-row gap-4">
@@ -220,7 +219,7 @@ const HomePage = () => {
             <input
               type="text"
               placeholder="Search venues by name or city..."
-              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-teal-500"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -228,7 +227,7 @@ const HomePage = () => {
           </div>
           <div className="flex gap-2">
             <select
-              className="appearance-none bg-white border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="appearance-none bg-white border rounded-lg px-4 py-2 focus:outline-none focus:ring-teal-500"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
             >
@@ -238,7 +237,7 @@ const HomePage = () => {
               <option value="capacity">Largest Capacity</option>
             </select>
             <button
-              className="flex items-center justify-center gap-2 bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-200"
+              className="flex items-center justify-center gap-2 bg-lime-500 text-white py-2 px-4 rounded-lg hover:bg-teal-600 transition duration-200"
               onClick={() => setIsFilterVisible(!isFilterVisible)}
             >
               <SlidersHorizontal
@@ -262,7 +261,7 @@ const HomePage = () => {
               {hasActiveFilters() && (
                 <button
                   onClick={clearFilters}
-                  className="text-sm text-red-600 hover:text-red-700 flex items-center gap-1"
+                  className="text-sm text-teal-600 hover:text-teal-700 flex items-center gap-1"
                 >
                   <X size={16} />
                   Clear all filters
@@ -340,7 +339,7 @@ const HomePage = () => {
                     onClick={() => toggleCategoryFilter(category)}
                     className={`px-3 py-1 rounded-full text-sm transition-colors duration-200 flex items-center ${
                       filters.categories.includes(category)
-                        ? "bg-blue-500 text-white"
+                        ? "bg-teal-500 text-white"
                         : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                     }`}
                   >
@@ -361,7 +360,7 @@ const HomePage = () => {
                     onClick={() => toggleServiceFilter(service)}
                     className={`px-3 py-1 rounded-full text-sm transition-colors duration-200 flex items-center ${
                       filters.services.includes(service)
-                        ? "bg-blue-500 text-white"
+                        ? "bg-teal-500 text-white"
                         : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                     }`}
                   >
@@ -409,7 +408,7 @@ const HomePage = () => {
           {filteredVenues.length > 6 && (
             <div className="text-center mt-8">
               <button
-                className="px-6 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+                className="px-6 py-2 border-teal-600 text-teal-600 rounded-lg hover:bg-teal-50 transition-colors"
                 onClick={() => navigate("/Venues")}
               >
                 View All Venues
@@ -423,4 +422,3 @@ const HomePage = () => {
 }
 
 export default HomePage
-
