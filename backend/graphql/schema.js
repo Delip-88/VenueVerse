@@ -8,7 +8,6 @@ const typeDefs = gql`
     name: String!
     email: String!
     role: String! # "Customer" | "VenueOwner"
-    bookedVenue: [Venue] # Venues the user has booked
     venues: [Venue] # Only for VenueOwners - venues they own
     reviews: [Review] # Reviews the user has written
     bookings: [Booking] # Bookings the user has made
@@ -19,7 +18,6 @@ const typeDefs = gql`
     address: String
     esewaId: String
     phone: String
-    description: String
 
     verified: Boolean! # Non-nullable verified field
     verificationToken: String
@@ -33,6 +31,7 @@ const typeDefs = gql`
     PENDING
     APPROVED
     REJECTED
+    NONE
   }
   type Transaction {
     transactionId: ID!
@@ -157,6 +156,10 @@ const typeDefs = gql`
     bookingStatus: BookingStatus!
     paymentStatus: PaymentStatus!
     selectedServices: [BookingService!]!
+    eventType: String! # Type of event (e.g., "Wedding", "Conference")
+    phone: String
+    additionalNotes: String
+    attendees: Int
     createdAt: String!
   }
   enum BookingStatus {
@@ -313,6 +316,10 @@ const typeDefs = gql`
     date: String!
     start: String! # Start time (e.g., "14:00")
     end: String! # End time (e.g., "16:00")
+    additionalNotes: String!
+    attendees: Int!
+    eventType: String! # Type of event
+    phone: String
     selectedServices: [ID!]! # Allow selecting additional services
   }
 
@@ -329,9 +336,10 @@ const typeDefs = gql`
 
   input UserInput {
     name: String!
-    esewaId: String!
-    phone: String!
+    esewaId: String
+    phone: String
     email: String!
+    profileImg: imageInput
   }
 
   enum PaymentStatus {
@@ -343,12 +351,12 @@ const typeDefs = gql`
   input venueOwnerInput {
     name: String!
     email: String!
-    description: String!
     profileImg: imageInput!
     legalDocImg: imageInput!
     phone: String!
     address: String!
     esewaId: String!
+    companyName: String!
   }
 
   input ReviewInput {

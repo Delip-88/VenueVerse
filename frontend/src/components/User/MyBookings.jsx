@@ -51,7 +51,7 @@ export default function MyBookingsPage() {
 
   useEffect(() => {
     if (user?.bookings) {
-      // Sort bookings by date (most recent first)
+      // Sort bookings by date (newest first)
       const sortedBookings = [...user.bookings].sort((a, b) => {
         return new Date(b.date) - new Date(a.date)
       })
@@ -169,55 +169,11 @@ export default function MyBookingsPage() {
     </div>
   )
 
-  // Group bookings by month for better organization
-  // Months will already be in descending order since we sorted the bookings
-  const groupedBookings = bookings.reduce((groups, booking) => {
-    const date = new Date(booking.date)
-    const month = date.toLocaleString("default", { month: "long", year: "numeric" })
-
-    if (!groups[month]) {
-      groups[month] = []
-    }
-
-    groups[month].push(booking)
-    return groups
-  }, {})
-
-  // Convert the grouped bookings object to an array of [month, bookings] pairs
-  // and sort by date (most recent month first)
-  const sortedMonths = Object.entries(groupedBookings).sort((a, b) => {
-    // Extract month and year from the month string
-    const [monthA, yearA] = a[0].split(" ")
-    const [monthB, yearB] = b[0].split(" ")
-
-    // Compare years first
-    if (yearA !== yearB) {
-      return Number.parseInt(yearB) - Number.parseInt(yearA)
-    }
-
-    // If years are the same, compare months
-    const monthNames = [
-      "January",
-      "February",
-      "March",
-      "April",
-      "May",
-      "June",
-      "July",
-      "August",
-      "September",
-      "October",
-      "November",
-      "December",
-    ]
-    return monthNames.indexOf(monthB) - monthNames.indexOf(monthA)
-  })
-
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold text-gray-900 mb-6">My Bookings</h1>
 
-      {sortedMonths.length === 0 ? (
+      {bookings.length === 0 ? (
         <div className="bg-white shadow rounded-lg p-8 text-center">
           <Calendar className="mx-auto h-12 w-12 text-teal-500 mb-4" />
           <h3 className="text-xl font-medium text-gray-900 mb-2">No bookings yet</h3>
@@ -230,69 +186,64 @@ export default function MyBookingsPage() {
           </button>
         </div>
       ) : (
-        sortedMonths.map(([month, monthBookings]) => (
-          <div key={month} className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">{month}</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {monthBookings.map((booking) => (
-                <div key={booking.id} className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
-                  <div className="p-4">
-                    <div
-                      className="text-lg font-semibold text-teal-700 mb-2 cursor-pointer hover:underline flex items-center"
-                      onClick={() => navigate(`/venue/${booking.venue.id}`)}
-                    >
-                      {booking.venue.name}
-                      <ChevronRight className="h-4 w-4 ml-1" />
-                    </div>
+        bookings.map((booking) => (
+          <div key={booking.id} className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden mb-4">
+            <div className="p-4">
+              <div
+                className="text-lg font-semibold text-teal-700 mb-2 cursor-pointer hover:underline flex items-center"
+                onClick={() => navigate(`/venue/${booking.venue.id}`)}
+              >
+                {booking.venue.name}
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </div>
 
-                    <div className="flex items-center text-sm text-gray-600 mb-3">
-                      <Calendar className="h-4 w-4 mr-2" />
-                      <span>
-                        {new Date(booking.date).toLocaleDateString("en-US", {
-                          weekday: "short",
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </span>
-                    </div>
+              <div className="flex items-center text-sm text-gray-600 mb-3">
+                <Calendar className="h-4 w-4 mr-2" />
+                <span>
+                  {new Date(booking.date).toLocaleDateString("en-US", {
+                    weekday: "short",
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </span>
+              </div>
 
-                    <div className="text-sm text-gray-600 mb-3">
-                      <div className="font-medium mb-1">Time Slots:</div>
-                      {booking.timeslots.map((slot, index) => (
-                        <div key={index} className="ml-2 flex items-center">
-                          <Clock className="h-3 w-3 mr-1" />
-                          <span>
-                            {slot.start} - {slot.end}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="flex justify-between items-center mb-3">
-                      <div className="text-sm font-medium text-gray-900">Total: Rs. {booking.totalPrice}</div>
-                      <div
-                        className={`px-3 py-1 rounded-full text-xs font-medium flex items-center ${getPaymentStatusColor(booking.paymentStatus)}`}
-                      >
-                        {getPaymentStatusIcon(booking.paymentStatus)}
-                        {booking.paymentStatus}
-                      </div>
-                    </div>
-
-                    {booking.bookingStatus === "APPROVED" && booking.paymentStatus === "PAID" && (
-                      <div className="mt-4 pt-3 border-t border-gray-100">
-                        <button
-                          onClick={() => handleReviewClick(booking.venue)}
-                          className="w-full text-center text-teal-600 hover:text-teal-800 text-sm font-medium flex items-center justify-center"
-                        >
-                          <Star className="h-4 w-4 mr-1" />
-                          Leave Review
-                        </button>
-                      </div>
-                    )}
+              <div className="text-sm text-gray-600 mb-3">
+                <div className="font-medium mb-1">Time Slots:</div>
+                {booking.timeslots.map((slot, index) => (
+                  <div key={index} className="ml-2 flex items-center">
+                    <Clock className="h-3 w-3 mr-1" />
+                    <span>
+                      {slot.start} - {slot.end}
+                    </span>
                   </div>
+                ))}
+              </div>
+
+              <div className="flex justify-between items-center mb-3">
+                <div className="text-sm font-medium text-gray-900">Total: Rs. {booking.totalPrice}</div>
+                <div
+                  className={`px-3 py-1 rounded-full text-xs font-medium flex items-center ${getPaymentStatusColor(booking.paymentStatus)}`}
+                >
+                  {getPaymentStatusIcon(booking.paymentStatus)}
+                  {booking.paymentStatus}
                 </div>
-              ))}
+              </div>
+
+              {booking.bookingStatus === "APPROVED" &&
+                booking.paymentStatus === "PAID" &&
+                new Date(booking.date) < new Date() && (
+                  <div className="mt-4 pt-3 border-t border-gray-100">
+                    <button
+                      onClick={() => handleReviewClick(booking.venue)}
+                      className="w-full text-center text-teal-600 hover:text-teal-800 text-sm font-medium flex items-center justify-center"
+                    >
+                      <Star className="h-4 w-4 mr-1" />
+                      Leave Review
+                    </button>
+                  </div>
+                )}
             </div>
           </div>
         ))

@@ -1,4 +1,5 @@
 import {
+  BOOKING_SUCCESS_TEMPLATE,
   PASSWORD_RESET_REQUEST_TEMPLATE,
   PASSWORD_RESET_SUCCESS_TEMPLATE,
   VERIFICATION_EMAIL_TEMPLATE,
@@ -12,7 +13,8 @@ export const sendEmail = async (
   subjectOfEmail = "",
   code = "",
   username = "",
-  resetURL
+  resetURL,
+  bookingData = {}
 ) => {
   let htmlTemp;
 
@@ -38,6 +40,29 @@ export const sendEmail = async (
         username
       );
       break;
+      case "payment_success":
+        const serviceListHtml = bookingData.services
+          .map((s) => `<li>${s}</li>`)
+          .join("");
+      
+        const replacements = {
+          "{{userName}}": username,
+          "{{venueName}}": bookingData.venueName,
+          "{{address}}": bookingData.address,
+          "{{date}}": bookingData.date,
+          "{{start}}": bookingData.start,
+          "{{end}}": bookingData.end,
+          "{{totalPrice}}": bookingData.totalPrice,
+          "{{servicesList}}": serviceListHtml,
+        };
+      
+        htmlTemp = BOOKING_SUCCESS_TEMPLATE; // ✅ NO "let" here
+        for (const [key, value] of Object.entries(replacements)) {
+          htmlTemp = htmlTemp.replace(new RegExp(key, "g"), value);
+        }
+      
+        break;
+      
     default:
       htmlTemp = "default msg";
       break;
@@ -53,13 +78,13 @@ export const sendEmail = async (
     // });
 
     transport.sendMail({
-          from: sender,
-          to: [recipientEmail],
-          subject: subjectOfEmail,
-          html: htmlTemp,
-          category: "Integration Test",
-          sandbox: true,
-      });
+      from: sender,
+      to: [recipientEmail],
+      subject: subjectOfEmail,
+      html: htmlTemp,
+      category: "Integration Test",
+      sandbox: true,
+    });
     console.log(`Email sent to ${recipientEmail}`);
   } catch (err) {
     console.error("Email send failed: ", err.message);

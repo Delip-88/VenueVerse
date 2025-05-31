@@ -8,7 +8,7 @@ import Loader from "../pages/common/Loader"
 import { toast } from "react-hot-toast"
 import { CreditCard, AlertCircle } from "lucide-react"
 
-const EsewaPaymentForm = ({ venue, date, start, end, selectedServices = [], totalAmount, disabled = false }) => {
+const EsewaPaymentForm = ({ venue, date, start, end, eventType, phone ,additionalNotes, attendees, selectedServices = [], totalAmount, disabled = false }, ) => {
   const [formData, setFormData] = useState(null)
   const [errorMessage, setErrorMessage] = useState(null)
   const [isFormValid, setIsFormValid] = useState(false)
@@ -16,6 +16,13 @@ const EsewaPaymentForm = ({ venue, date, start, end, selectedServices = [], tota
   const [bookVenue, { loading: bookingLoading }] = useMutation(BOOK_VENUE)
   const [initiatePayment, { loading: iLoading }] = useMutation(INITIATE_PAYMENT)
   const [genSignature, { loading: sLoading }] = useMutation(GEN_SIGNATURE)
+
+  // Log formData whenever it changes
+  useEffect(() => {
+    if (formData) {
+      console.log("formData updated:", formData)
+    }
+  }, [formData])
 
   // Validate form whenever dependencies change
   useEffect(() => {
@@ -31,7 +38,7 @@ const EsewaPaymentForm = ({ venue, date, start, end, selectedServices = [], tota
     setErrorMessage(null)
 
     // Validate required fields
-    if (!venue || !date || !start || !end) {
+    if (!venue || !date || !start || !end || !attendees) {
       setErrorMessage("Please fill in all required booking details")
       return
     }
@@ -52,6 +59,10 @@ const EsewaPaymentForm = ({ venue, date, start, end, selectedServices = [], tota
                 date,
                 start,
                 end,
+                additionalNotes,
+                eventType,
+                phone,
+                attendees: parseInt(attendees, 10),
                 selectedServices, // Include selected services in the booking
               },
             },

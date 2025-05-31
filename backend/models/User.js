@@ -12,7 +12,7 @@ const userSchema = new mongoose.Schema(
 
     role: {
       type: String,
-      enum: ["VenueOwner", "Customer","Admin"],
+      enum: ["VenueOwner", "Customer", "Admin"],
       default: "Customer",
       required: true,
     },
@@ -21,13 +21,12 @@ const userSchema = new mongoose.Schema(
     legalDocImg: ImageSchema, // Reusing ImageSchema
 
     location: LocationSchema, // Reusing LocationSchema
-    address: {type: String},
-    phone: {type: String},
-    description: {type: String},
+    address: { type: String },
+    phone: { type: String },
+    description: { type: String },
+    companyName: { type: String },
 
     esewaId: { type: String }, // Changed from Number to String for safety
-
-    bookedVenue: [{ type: mongoose.Schema.Types.ObjectId, ref: "Venue" }],
 
     verified: { type: Boolean, default: false, required: true },
 
@@ -36,16 +35,23 @@ const userSchema = new mongoose.Schema(
 
     resetToken: String,
     resetTokenExpiresAt: Date,
-    roleApprovalStatus: { type: String, enum: ["PENDING", "APPROVED", "REJECTED"], default: "PENDING" }
 
+    roleApprovalStatus: {
+      type: String,
+      enum: ["NONE", "PENDING", "APPROVED", "REJECTED"],
+      default: "NONE",
+    },
   },
   { timestamps: true }
 );
 
+// Compound index on role and roleApprovalStatus
+userSchema.index({ role: 1, roleApprovalStatus: 1 });
+
 // Password hashing middleware
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) {
-    // This prevents double hashing
+    // Prevent double hashing
     return next();
   }
   try {

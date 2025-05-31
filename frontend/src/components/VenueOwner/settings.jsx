@@ -6,18 +6,19 @@ import { AuthContext } from "../../middleware/AuthContext"
 import { useMutation } from "@apollo/client"
 import { UPDATE_USER_DETAILS } from "../Graphql/mutations/updateUserGql"
 import toast from "react-hot-toast"
+import { useUploadImage } from "../Functions/UploadImage"
 
 export default function SettingsPage() {
-  const { user, refetch } = useContext(AuthContext)
+  const { user, refreshUser } = useContext(AuthContext)
   const [personalInfo, setPersonalInfo] = useState({
     fullName: user?.name || "",
     email: user?.email || "",
     phone: user?.phone || "",
     esewaId: user?.esewaId || "",
   })
-
+   const { uploadImage } = useUploadImage ();
   const [profileImage, setProfileImage] = useState(null)
-  const [profileImagePreview, setProfileImagePreview] = useState(user?.profileImage || null)
+  const [profileImagePreview, setProfileImagePreview] = useState(user?.profileImg?.secure_url || null)
   const [errors, setErrors] = useState({})
   const [updateDetails] = useMutation(UPDATE_USER_DETAILS)
 
@@ -90,23 +91,48 @@ export default function SettingsPage() {
     setErrors(formErrors)
     return Object.keys(formErrors).length === 0
   }
-
   const handleSubmit = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
 
     if (validateForm()) {
       try {
-        // In a real implementation, you would upload the profile image first
-        // and get back a URL to include in the mutation
-        let profileImageUrl = user?.profileImage
+        let profileImgData = null;
 
         if (profileImage) {
-          // This is a placeholder for image upload logic
-          // profileImageUrl = await uploadImage(profileImage)
-          profileImageUrl = profileImagePreview
+          profileImgData = await toast.promise(
+            uploadImage(
+              profileImage,
+              import.meta.env.VITE_SIGNED_UPLOAD_PRESET,
+              import.meta.env.VITE_UPLOAD_USER_IMAGE_FOLDER
+            ),
+            {
+              loading: "Uploading image...",
+              success: "Image uploaded successfully! 🎉",
+              error: "Failed to upload image. ❌",
+            }
+          );
+
+          if (!profileImgData) {
+            throw new Error("Failed to upload image");
+          }
         }
 
-        // Use toast.promise and await updatePromise
+        const extractImageData = (imageData) =>
+          imageData
+            ? {
+                public_id: imageData.public_id,
+                secure_url: imageData.secure_url,
+                asset_id: imageData.asset_id,
+                version: Number.parseInt(imageData.version, 10),
+                format: imageData.format,
+                width: Number.parseInt(imageData.width, 10),
+                height: Number.parseInt(imageData.height, 10),
+                created_at: imageData.created_at,
+              }
+            : null;
+
+        const pfpImageWithoutTypename = extractImageData(profileImgData);
+
         const response = await toast.promise(
           updateDetails({
             variables: {
@@ -115,7 +141,7 @@ export default function SettingsPage() {
                 email: personalInfo.email,
                 phone: personalInfo.phone,
                 esewaId: personalInfo.esewaId,
-                profileImage: profileImageUrl,
+                profileImg: pfpImageWithoutTypename,
               },
             },
           }),
@@ -123,24 +149,21 @@ export default function SettingsPage() {
             loading: "Updating details...",
             success: "Updated successfully! 🎉",
             error: "Failed to update details. ❌",
-          },
-        )
+          }
+        );
 
-        // Extract response data
-        const { success } = response.data?.updateUserDetails
+        const { success } = response.data?.updateUserDetails;
 
-        // If update failed, show toast error
         if (!success) {
-          return toast.error("Failed to update details")
+          return toast.error("Failed to update details");
         }
 
-        // Refetch the updated data
-        refetch()
+        refreshUser();
       } catch (err) {
-        console.error("Unexpected error:", err)
+        console.error("Unexpected error:", err);
       }
     } else {
-      toast.error("Please fix the errors in the form")
+      toast.error("Please fix the errors in the form");
     }
   }
 

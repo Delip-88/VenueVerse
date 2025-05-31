@@ -102,84 +102,107 @@ export const PASSWORD_RESET_REQUEST_TEMPLATE = `
 </html>
 `;
 
-
-export const BOOKING_REQUEST_APPLIED_TEMPLATE = `
+export const BOOKING_SUCCESS_TEMPLATE = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Venue Booking Applied</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Booking Confirmation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f7;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: 30px auto;
+      background-color: #ffffff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .header {
+      background-color: #4CAF50;
+      padding: 15px;
+      text-align: center;
+      color: white;
+      border-radius: 8px 8px 0 0;
+    }
+    .content {
+      padding: 20px;
+    }
+    .content h2 {
+      color: #333333;
+    }
+    .details {
+      margin-top: 20px;
+    }
+    .details p {
+      margin: 8px 0;
+      font-size: 16px;
+    }
+    .services {
+      background-color: #f9f9f9;
+      padding: 10px 15px;
+      margin-top: 15px;
+      border-left: 4px solid #4CAF50;
+      border-radius: 5px;
+    }
+    .services ul {
+      padding-left: 20px;
+      margin: 0;
+    }
+    .footer {
+      margin-top: 30px;
+      text-align: center;
+      font-size: 14px;
+      color: #888;
+    }
+    .btn {
+      display: inline-block;
+      padding: 10px 20px;
+      margin-top: 20px;
+      background-color: #4CAF50;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+    }
+  </style>
 </head>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background: linear-gradient(to right, #FFD700, #FFA500); padding: 20px; text-align: center;">
-    <h1 style="color: white; margin: 0;">🎉 Venue Booking Applied! 🏢</h1>
-  </div>
-  <div style="background-color: #f9f9f9; padding: 20px; border-radius: 0 0 5px 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-    <p>Hello <strong>{username}</strong>,</p>
-    <p>Thank you for applying to book the venue <strong>{venueName}</strong>! 🎊</p>
-    <p>Here are your booking details:</p>
-    <ul>
-      <li>📍 Venue: <strong>{venueName}</strong></li>
-      <li>📅 Date: <strong>{bookingDate}</strong></li>
-      <li>⏰ Time: <strong>{bookingTime}</strong></li>
-      <li>👥 Guests: <strong>{guestCount}</strong></li>
-    </ul>
-    <p>Your booking is now under review. We will notify you once it is approved. ✅</p>
-    <p>Best regards,<br>VenueVerse Team</p>
-  </div>
-</body>
-</html>
-`
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Booking Confirmed!</h1>
+    </div>
+    <div class="content">
+      <h2>Hi {{userName}},</h2>
+      <p>Your venue booking has been successfully confirmed. Here are the details:</p>
 
-export const BOOKING_REQUEST_REJECTED_TEMPLATE = `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Venue Booking Rejected</title>
-</head>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background: linear-gradient(to right, #FF5733, #C70039); padding: 20px; text-align: center;">
-    <h1 style="color: white; margin: 0;">❌ Booking Rejected</h1>
-  </div>
-  <div style="background-color: #f9f9f9; padding: 20px; border-radius: 0 0 5px 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-    <p>Hello <strong>{username}</strong>,</p>
-    <p>We regret to inform you that your venue booking request for <strong>{venueName}</strong> on <strong>{bookingDate}</strong> has been rejected. 😞</p>
-    <p>Reason: <strong>{rejectionReason}</strong></p>
-    <p>If you need assistance or would like to book an alternative venue, please feel free to contact us. 📩</p>
-    <p>Best regards,<br>VenueVerse Team</p>
-  </div>
-</body>
-</html>
-`
+      <div class="details">
+      <p>Your booking at <strong>{{venueName}}</strong> was successful!</p>
+      <p><strong>Address:</strong> {{address}}</p>
+      <p><strong>Date:</strong> {{date}}</p>
+      <p><strong>Time:</strong> {{start}} - {{end}}</p>
+      <p><strong>Total Paid:</strong> Rs. {{totalPrice}}</p>
+      </div>
 
-export const BOOKING_REQUEST_APPROVED_TEMPLATE = `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Venue Booking Approved</title>
-</head>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background: linear-gradient(to right, #4CAF50, #45a049); padding: 20px; text-align: center;">
-    <h1 style="color: white; margin: 0;">✅ Booking Approved! 🎉</h1>
-  </div>
-  <div style="background-color: #f9f9f9; padding: 20px; border-radius: 0 0 5px 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-    <p>Hello <strong>{username}</strong>,</p>
-    <p>Great news! Your booking for <strong>{venueName}</strong> on <strong>{bookingDate}</strong> has been approved! 🎊</p>
-    <p>Here are your booking details:</p>
-    <ul>
-      <li>📍 Venue: <strong>{venueName}</strong></li>
-      <li>📅 Date: <strong>{bookingDate}</strong></li>
-      <li>⏰ Time: <strong>{bookingTime}</strong></li>
-      <li>👥 Guests: <strong>{guestCount}</strong></li>
-    </ul>
-    <p>We look forward to hosting your event. Enjoy your time at VenueVerse! 🎶🏢</p>
-    <p>Best regards,<br>VenueVerse Team</p>
+      <div class="services">
+        <p><strong>Services Booked:</strong></p>
+      <ul>
+  {{servicesList}}
+</ul>
+      </div>
+
+      <a href="{{bookingLink}}" class="btn">View Booking</a>
+    </div>
+    <div class="footer">
+      <p>&copy; ${new Date().getFullYear()} VenueVerse. All rights reserved.</p>
+    </div>
   </div>
 </body>
 </html>
-`
+
+`;

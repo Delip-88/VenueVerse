@@ -67,6 +67,8 @@ const VENUE_BY_ID = gql`
       bookings{
         bookingStatus
         paymentStatus
+        additionalNotes
+        attendees
         user{
           name
         }

@@ -27,7 +27,7 @@ export const generateResetToken = () => {
 
 export const generateToken = (user) => {
   return jwt.sign(
-    { _id: user._id, email: user.email },
+    { _id: user._id, email: user.email,name : user.name || "username not set " },
     process.env.JWT_SECRET,
     { expiresIn: "1d" }
   );

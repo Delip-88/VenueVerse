@@ -7,6 +7,7 @@ query Me {
         name
         email
         role
+        roleApprovalStatus
         esewaId
         bookings {
             id
@@ -81,6 +82,8 @@ query MyVenues {
             totalPrice
             bookingStatus
             paymentStatus
+            additionalNotes
+            attendees
             user {
                 name
                 email

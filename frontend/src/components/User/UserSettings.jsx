@@ -4,10 +4,17 @@ import { useContext, useState } from "react"
 import { Save, User, Lock, Upload, AlertCircle } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { AuthContext } from "../../middleware/AuthContext"
+import toast from "react-hot-toast"
+import { useUploadImage } from "../Functions/UploadImage"
+import { useMutation } from "@apollo/client"
+import { UPDATE_USER_DETAILS } from "../Graphql/mutations/UserGql"
 
 const UserSettingsPage = () => {
-  const { user, loading } = useContext(AuthContext)
+  const { user, loading,refreshUser } = useContext(AuthContext)
+   const { uploadImage } = useUploadImage ();
   const navigate = useNavigate()
+
+  const [updateUserDetails]  = useMutation(UPDATE_USER_DETAILS)
 
   const [personalInfo, setPersonalInfo] = useState({
     name: user?.name || "",
@@ -15,8 +22,8 @@ const UserSettingsPage = () => {
     phone: user?.phone || "",
   })
 
-  const [profileImage, setProfileImage] = useState(null)
-  const [profileImagePreview, setProfileImagePreview] = useState(user?.profileImage || null)
+  const [profileImage, setProfileImage] = useState(user?.profileImg?.secure_url || null)
+  const [profileImagePreview, setProfileImagePreview] = useState(user?.profileImg?.secure_url || null)
   const [errors, setErrors] = useState({})
 
   const handlePersonalInfoChange = (e) => {
@@ -82,14 +89,73 @@ const UserSettingsPage = () => {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit =async (e) => {
     e.preventDefault()
 
     if (validateForm()) {
-      // Here you would typically send the updated data to your backend
-      // Including the profile image
-      console.log("Updated settings:", { personalInfo, profileImage })
-      alert("Settings updated successfully!")
+
+      toast.promise(
+        (async () => {
+          try {
+            let profileImgData = null;
+      
+            if (profileImage) {
+              profileImgData = await uploadImage(
+                profileImage,
+                import.meta.env.VITE_SIGNED_UPLOAD_PRESET,
+                import.meta.env.VITE_UPLOAD_USER_IMAGE_FOLDER
+              );
+              
+              if (!profileImgData ) {
+                throw new Error("Failed to upload image");
+              }
+            }
+      
+            const extractImageData = (imageData) =>
+              imageData
+                ? {
+                    public_id: imageData.public_id,
+                    secure_url: imageData.secure_url,
+                    asset_id: imageData.asset_id,
+                    version: Number.parseInt(imageData.version, 10),
+                    format: imageData.format,
+                    width: Number.parseInt(imageData.width, 10),
+                    height: Number.parseInt(imageData.height, 10),
+                    created_at: imageData.created_at,
+                  }
+                : null;
+      
+            const pfpImageWithoutTypename = extractImageData(profileImgData);
+      
+            const response = await updateUserDetails({
+              variables: {
+                input: {
+                  name: personalInfo.name,
+                  email: personalInfo.email,
+                  phone: personalInfo.phone,
+                  profileImg: pfpImageWithoutTypename,
+                },
+              },
+            });
+      
+            const { success, message } = response.data?.updateUserDetails;
+      
+            if (!success) throw new Error("Failed to update, try again later");
+            
+          } catch (error) {
+            console.error("Update error:", error);
+            throw error;
+          }
+        })(),
+        {
+          loading: "Updating...",
+          success: "Updated successfully!",
+          error: "Failed to update. Please try again.",
+        }
+      ).then(() => {
+        refreshUser();        
+      });
+      
     } else {
       console.log("Form has validation errors")
     }
@@ -100,6 +166,11 @@ const UserSettingsPage = () => {
   return (
     <div className="max-w-4xl mx-auto">
       <h1 className="text-3xl font-bold mb-8">Account Settings</h1>
+      {user?.roleApprovalStatus === "PENDING" && (
+        <div className="mb-4 p-4 bg-yellow-100 text-yellow-800 rounded-md">
+          Your form is in review.
+        </div>
+      )}
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Profile Picture Upload */}
         <section aria-labelledby="profile-picture-heading">
@@ -247,6 +318,16 @@ const UserSettingsPage = () => {
           </button>
         </div>
       </form>
+      <div className="mt-8 flex">
+        {user?.roleApprovalStatus !== "PENDING" && (
+          <button
+            onClick={() => navigate(user?.role === "VenueOwner" ? "/dashboard" : "/home/BecomeVenueOwner")}
+            className="px-6 py-2 text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+          >
+            {user?.role === "VenueOwner" ? "Go To Dashboard" : "Register as Venue Owner"}
+          </button>
+        )}
+      </div>
     </div>
   )
 }

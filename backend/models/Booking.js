@@ -29,6 +29,22 @@ const bookingSchema = new mongoose.Schema(
       enum: ["PENDING", "PAID", "FAILED"],
       default: "PENDING",  // Default added
     },
+    additionalNotes: {
+      type: String,
+      default: "",
+    },
+    attendees: {
+      type: Number,
+      default: 0,
+    },
+    eventType:{
+      type: String,
+      required: true,
+    },
+    phone: {
+      type: String,
+      required: true,
+    },
     totalPrice: {
       type: Number,
       required: true,

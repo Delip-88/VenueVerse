@@ -63,6 +63,11 @@ const VenueDetailsPage = () => {
     navigate(isAuthenticated ? `/Home/venue/${id}/book-now` : "/login")
   }
 
+  const handleHome = () => {
+    localStorage.removeItem("searchedVenueId")
+    navigate("/Home")
+  }
+
   return (
     <div className="bg-lime-50 min-h-screen py-8">
       {" "}
@@ -79,7 +84,7 @@ const VenueDetailsPage = () => {
             </div>
           </div>
           <button
-            onClick={() => navigate("/Home")}
+            onClick={handleHome}
             className="flex items-center gap-2 bg-white text-gray-700 border border-gray-300 hover:bg-teal-500 hover:text-white cursor-pointer py-2 px-4 rounded-md transition duration-200 mt-4 md:mt-0" /* Teal hover */
           >
             <Home className="h-5 w-5" />

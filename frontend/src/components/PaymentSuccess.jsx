@@ -1,11 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useContext, useEffect, useState } from "react"
 import { useLocation, Link } from "react-router-dom"
 import { useMutation } from "@apollo/client"
 import { VERIFY_PAYMENT } from "./Graphql/mutations/paymentGql"
 import { CheckCircle, AlertCircle, Loader, CreditCard, Calendar, Home } from "lucide-react"
 import AnotherLoader from "../pages/common/AnotherLoader"
+import { AuthContext } from "../middleware/AuthContext"
 
 const animationStyles = `
   @keyframes scaleUp {
@@ -31,6 +32,7 @@ const PaymentSuccess = () => {
   const [paymentDetails, setPaymentDetails] = useState(null)
   const [verificationError, setVerificationError] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
+  const {refreshUser} = useContext(AuthContext)
 
   const [verifyPayment] = useMutation(VERIFY_PAYMENT)
 
@@ -64,6 +66,8 @@ const PaymentSuccess = () => {
         console.error("Error decoding payment data:", error)
         setVerificationError("Invalid payment response.")
         setIsLoading(false)
+      }finally{
+        refreshUser() // Refresh user data after payment verification
       }
     } else {
       setVerificationError("No payment data received.")

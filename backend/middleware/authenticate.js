@@ -8,9 +8,8 @@ export const authenticate =async (req, res, next) => {
       try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         req.user = decoded; // Attach user to request
-        // console.log(req.user)
       } catch (err) {
-        console.log("Invalid Token")
+        // console.log("Invalid Token")
       }
     }
     next() // Continue even if there's no token

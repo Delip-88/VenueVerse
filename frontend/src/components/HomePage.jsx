@@ -16,7 +16,7 @@ const HomePage = () => {
     minPrice: "",
     maxPrice: "",
     capacity: "",
-    categories: [], // Changed from category (string) to categories (array)
+    categories: [],
     province: "",
     services: [],
   })

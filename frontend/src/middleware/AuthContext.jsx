@@ -59,8 +59,18 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const refreshUser = async () => {
+    const { data } = await refetch();
+    if (data?.me) setUser(data.me);
+    else {
+      setUser(null);
+      setIsAuthenticated(false);
+    }
+  };
+  
+
   return (
-    <AuthContext.Provider value={{ CID, isAuthenticated, user, loading, error, CLOUD_NAME, login, logout, refetch }}>
+    <AuthContext.Provider value={{ CID, isAuthenticated, user, loading, error, CLOUD_NAME, login, logout, refetch, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

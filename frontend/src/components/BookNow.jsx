@@ -316,6 +316,14 @@ const calculateDuration = (start, end) => {
   return (endTime - startTime) / (1000 * 60 * 60)
 }
 
+// Helper function to format category names for display
+const formatCategoryName = (category) => {
+  return category
+    .split("_")
+    .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
+    .join(" ")
+}
+
 const BookNowPage = () => {
   const { venueId } = useParams() || {}
   const { user } = useContext(AuthContext)
@@ -336,14 +344,20 @@ const BookNowPage = () => {
     date: "",
     startTime: "",
     endTime: "",
-    name: user?.name || "",
-    email: user?.email || "",
     phone: user?.phone || "",
     selectedServices: [],
+    eventType: "",
+    attendees: "",
+    additionalNotes: "", // Add this new field
   })
 
   const [errors, setErrors] = useState({})
   const [totalPrice, setTotalPrice] = useState(0)
+
+  const validateForm = () => {
+    // Only check if there are any existing errors
+    return Object.keys(errors).length === 0;
+  }
 
   // Process venue data to get available dates and time slots
   const { availableDates, availableTimeSlotsByDate } = useMemo(() => {
@@ -430,24 +444,29 @@ const BookNowPage = () => {
     }))
   }, [bookingDetails.date])
 
-  if (loading) return <Loader />
-  if (error) return <div className="text-red-500">Error: {error.message}</div>
-  if (!data?.venue) return <div className="text-gray-500">Venue not found</div>
-
-  const venue = data.venue
-
   const handleInputChange = (e) => {
-    const { name, value } = e.target
+    const { name, value } = e.target;
     setBookingDetails((prevDetails) => ({
       ...prevDetails,
       [name]: value,
-    }))
+    }));
 
-    // Clear errors when input changes
-    setErrors((prevErrors) => ({
-      ...prevErrors,
-      [name]: "",
-    }))
+    // Validate specific fields
+    const newErrors = { ...errors };
+    delete newErrors[name]; // Clear existing error for this field
+
+    // Validation for attendees
+    if (name === 'attendees') {
+      if (!value || value.trim() === "") {
+        newErrors.attendees = "Number of attendees is required.";
+      } else if (isNaN(value) || Number(value) <= 0) {
+        newErrors.attendees = "Attendees must be a positive number.";
+      } else if (parseInt(value, 10) > venue.capacity) {
+        newErrors.attendees = `Attendees cannot exceed the venue capacity of ${venue.capacity}.`;
+      }
+    }
+
+    setErrors(newErrors);
   }
 
   const handleDateChange = (date) => {
@@ -491,6 +510,28 @@ const BookNowPage = () => {
       }
     })
   }
+
+  // Prevent selecting today's date
+  const isDateSelectable = (date) => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    return new Date(date) > today
+  }
+
+  // Prevent selecting today's time
+  const isTimeSelectable = (time) => {
+    if (bookingDetails.date !== today) return true; // Only restrict for today
+    const now = new Date()
+    const currentMinutes = now.getHours() * 60 + now.getMinutes()
+    const timeMinutes = timeToMinutes(time)
+    return timeMinutes > currentMinutes
+  }
+
+  if (loading) return <Loader />
+  if (error) return <div className="text-red-500">Error: {error.message}</div>
+  if (!data?.venue) return <div className="text-gray-500">Venue not found</div>
+
+  const venue = data.venue
 
   // Get today's date in YYYY-MM-DD format
   const today = new Date().toISOString().split("T")[0]
@@ -601,7 +642,7 @@ const BookNowPage = () => {
           <div className="bg-white p-6 rounded-lg shadow-md mb-6">
             <h3 className="text-lg font-semibold mb-4">Select Date</h3>
             <DatePicker
-              availableDates={availableDates}
+              availableDates={availableDates.filter(isDateSelectable)}
               selectedDate={bookingDetails.date}
               onDateChange={handleDateChange}
               minDate={today}
@@ -613,7 +654,7 @@ const BookNowPage = () => {
             <h3 className="text-lg font-semibold mb-4">Select Time</h3>
             {bookingDetails.date ? (
               <TimeSlotSelector
-                availableTimeSlots={availableTimeSlotsForSelectedDate}
+                availableTimeSlots={availableTimeSlotsForSelectedDate.filter(isTimeSelectable)}
                 selectedStartTime={bookingDetails.startTime}
                 selectedEndTime={bookingDetails.endTime}
                 onStartTimeChange={handleStartTimeChange}
@@ -638,25 +679,40 @@ const BookNowPage = () => {
           {/* Customer Details */}
           <div className="bg-white p-6 rounded-lg shadow-md mb-6">
             <h3 className="text-lg font-semibold mb-4">Customer Details</h3>
+
+            {/* Event Type Selection */}
+            <div className="mb-4">
+              <label htmlFor="eventType" className="block text-sm font-medium text-gray-700 mb-1">
+                Event Type <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <select
+                  id="eventType"
+                  name="eventType"
+                  value={bookingDetails.eventType}
+                  onChange={handleInputChange}
+                  className="appearance-none pl-10 pr-4 py-2 w-full border rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                  required
+                >
+                  <option value="">Select event type</option>
+                  {venue.categories &&
+                    venue.categories.map((category) => (
+                      <option key={category} value={category}>
+                        {formatCategoryName(category)}
+                      </option>
+                    ))}
+                </select>
+                <Package className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+              </div>
+              {errors.eventType && (
+                <p className="text-red-500 text-sm mt-1 flex items-center">
+                  <AlertCircle size={16} className="mr-1" />
+                  {errors.eventType}
+                </p>
+              )}
+            </div>
+
             <div className="space-y-3">
-              <input
-                type="text"
-                name="name"
-                value={bookingDetails.name}
-                onChange={handleInputChange}
-                placeholder="Full Name"
-                className="border rounded px-3 py-2 w-full focus:ring-blue-500 focus:border-blue-500"
-                required
-              />
-              <input
-                type="email"
-                name="email"
-                value={bookingDetails.email}
-                onChange={handleInputChange}
-                placeholder="Email Address"
-                className="border rounded px-3 py-2 w-full focus:ring-blue-500 focus:border-blue-500"
-                required
-              />
               <input
                 type="tel"
                 name="phone"
@@ -666,6 +722,37 @@ const BookNowPage = () => {
                 className="border rounded px-3 py-2 w-full focus:ring-blue-500 focus:border-blue-500"
                 required
               />
+              <input
+                type="number"
+                name="attendees"
+                value={bookingDetails.attendees}
+                onChange={handleInputChange}
+                placeholder="Number of Attendees"
+                className="border rounded px-3 py-2 w-full focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+              {errors.attendees && (
+                <p className="text-red-500 text-sm mt-1 flex items-center">
+                  <AlertCircle size={16} className="mr-1" />
+                  {errors.attendees}
+                </p>
+              )}
+              
+              {/* Additional Notes Field */}
+              <div>
+                <label htmlFor="additionalNotes" className="block text-sm font-medium text-gray-700 mb-1">
+                  Additional Notes
+                </label>
+                <textarea
+                  id="additionalNotes"
+                  name="additionalNotes"
+                  value={bookingDetails.additionalNotes}
+                  onChange={handleInputChange}
+                  placeholder="Any special requirements or additional information for the venue owner..."
+                  rows={4}
+                  className="border rounded px-3 py-2 w-full focus:ring-blue-500 focus:border-blue-500 resize-none"
+                />
+              </div>
             </div>
           </div>
 
@@ -698,6 +785,12 @@ const BookNowPage = () => {
                     <div className="flex justify-between">
                       <span>Duration:</span>
                       <span>{duration} hours</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Event Type:</span>
+                      <span>
+                        {bookingDetails.eventType ? formatCategoryName(bookingDetails.eventType) : "Not selected"}
+                      </span>
                     </div>
 
                     <div className="flex justify-between">
@@ -753,13 +846,17 @@ const BookNowPage = () => {
                   date={bookingDetails.date}
                   selectedServices={bookingDetails.selectedServices}
                   totalAmount={totalPrice}
+                  additionalNotes={bookingDetails.additionalNotes}
+                  phone={bookingDetails.phone}
+                  eventType={bookingDetails.eventType}
+                  attendees={bookingDetails.attendees}
                   disabled={
                     !bookingDetails.date ||
                     !bookingDetails.startTime ||
                     !bookingDetails.endTime ||
-                    !bookingDetails.name ||
-                    !bookingDetails.email ||
-                    !bookingDetails.phone
+                    !bookingDetails.phone ||
+                    !bookingDetails.eventType ||
+                    !validateForm()
                   }
                 />
               </div>

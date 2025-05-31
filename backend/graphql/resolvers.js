@@ -71,7 +71,7 @@ const resolvers = {
 
     // Fetch a single user by ID
     user: async (_, { id }) => {
-      return await User.findById(id).populate("bookedVenue");
+      return await User.findById(id)
     },
     reviewsByVenue: async (_, { venueId }) => {
       return await Review.find({ venue: venueId }).populate("user");
@@ -327,7 +327,7 @@ const resolvers = {
         throw new Error("Not Authenticated");
       }
 
-      const { venue, date, start, end, selectedServices } = args.input;
+      const { venue, date, start, end, phone, eventType,selectedServices , additionalNotes, attendees} = args.input;
       // console.log("Received selectedServices:", selectedServices);
 
       try {
@@ -410,11 +410,15 @@ const resolvers = {
           user: user.id,
           venue,
           date,
+          phone,
+          eventType,
           timeslots: [{ start, end }],
           selectedServices: validServices,
           totalPrice: totalAmount,
           bookingStatus: "PENDING",
           paymentStatus: "PENDING",
+          additionalNotes: additionalNotes || "",
+          attendees: attendees || 0, // Default to 0 if not provided
         });
 
         await booking.save();
@@ -448,7 +452,9 @@ const resolvers = {
     },
 
     async verifyPayment(_, { transactionId }, { user }) {
+
       if (!user) throw new AuthenticationError("User not authenticated");
+
       const transaction = await Transaction.findOne({ transactionId });
 
       if (!transaction) {
@@ -481,12 +487,28 @@ const resolvers = {
           transaction.esewaReference = responseJson.ref_id;
           await transaction.save();
 
-          const booking = await Booking.findById(transaction.booking);
+          const booking = await Booking.findById(transaction.booking).populate('selectedServices.serviceId').populate('venue');
           if (booking) {
             booking.paymentStatus = "PAID";
             booking.bookingStatus = "APPROVED";
             await booking.save();
           }
+
+
+          const location = booking.venue.location;
+          const fullAddress = `${location.street}, ${location.city}, ${location.province} ${location.zipCode}`;
+          
+          const bookingData = {
+            venueName: booking.venue.name,
+            address: fullAddress,
+            date: booking.date,
+            start: booking.timeslots[0].start,
+            end: booking.timeslots[0].end,
+            totalPrice: booking.totalPrice,
+            services: booking.selectedServices.map(service => service.serviceId.name),
+          };
+          // console.log(bookingData)
+          sendEmail("payment_success", user.email, "Payment Success", "", user.name,"",bookingData);
 
           return {
             success: true,
@@ -781,7 +803,7 @@ const resolvers = {
       }
 
       const token = jwt.sign(
-        { id: user._id, email: user.email, role: user.role },
+        { id: user._id, email: user.email, role: user.role,name: user.name},
         process.env.JWT_SECRET,
         { expiresIn: "1d" }
       );
@@ -860,7 +882,7 @@ const resolvers = {
           user.email,
           "Welcome to the family",
           "",
-          user.username
+          user.name
         );
 
         const token = generateToken(user);
@@ -901,7 +923,7 @@ const resolvers = {
 
         await user.save();
 
-        console.log("User after updating:", user);
+        // console.log("User after updating:", user);
 
         // Send password reset email with the token link
         await sendEmail(
@@ -1027,13 +1049,13 @@ const resolvers = {
         existingUser.name = input.name;
         existingUser.email = input.email;
         existingUser.phone = input.phone;
-        existingUser.description = input.description;
         existingUser.profileImg = input.profileImg;
         existingUser.legalDocImg = input.legalDocImg;
         existingUser.address = input.address;
+        existingUser.companyName = input.companyName;
         existingUser.esewaId = input.esewaId;
-        existingUser.description = input.description;
         existingUser.roleApprovalStatus = "PENDING";
+
 
         await existingUser.save();
 
