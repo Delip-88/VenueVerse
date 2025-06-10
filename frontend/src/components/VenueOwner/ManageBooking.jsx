@@ -643,8 +643,14 @@ const ManageBookings = () => {
 
       {/* Booking Details Modal */}
       {isDetailsModalOpen && selectedBooking && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full p-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div
+            className="bg-white rounded-lg max-w-2xl w-full p-6 relative"
+            style={{
+              maxHeight: "90vh",
+              overflowY: "auto",
+            }}
+          >
             <div className="flex justify-between items-start mb-4">
               <h3 className="text-lg font-semibold">Booking Details</h3>
               <button
@@ -783,16 +789,35 @@ const ManageBookings = () => {
                   <p className="text-xl font-bold">Rs. {selectedBooking.totalPrice}</p>
                 </div>
 
+                {/* Additional Services */}
                 {selectedBooking.selectedServices && selectedBooking.selectedServices.length > 0 && (
                   <div className="mt-4">
                     <span className="text-gray-500 text-sm">Additional Services:</span>
                     <div className="mt-2 space-y-2">
                       {selectedBooking.selectedServices.map((service, index) => (
                         <div key={index} className="flex justify-between text-sm">
-                          <span>{service.name}</span>
-                          <span>Rs. {service.price}</span>
+                          <span>{service.name || service.serviceId?.name}</span>
+                          <span>Rs. {service.price || service.servicePrice}</span>
                         </div>
                       ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Attendees */}
+                {selectedBooking.attendees && (
+                  <div className="mt-4">
+                    <span className="text-gray-500 text-sm">Attendees:</span>
+                    <span className="ml-2 font-medium">{selectedBooking.attendees}</span>
+                  </div>
+                )}
+
+                {/* Additional Notes */}
+                {selectedBooking.additionalNotes && (
+                  <div className="mt-4">
+                    <span className="text-gray-500 text-sm">Additional Notes:</span>
+                    <div className="mt-1 bg-white border border-gray-200 rounded p-2 text-sm text-gray-700">
+                      {selectedBooking.additionalNotes}
                     </div>
                   </div>
                 )}

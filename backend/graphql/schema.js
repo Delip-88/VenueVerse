@@ -18,6 +18,7 @@ const typeDefs = gql`
     address: String
     esewaId: String
     phone: String
+    companyName: String
 
     verified: Boolean! # Non-nullable verified field
     verificationToken: String
@@ -155,7 +156,7 @@ const typeDefs = gql`
     totalPrice: Float! # Calculated based on hours booked
     bookingStatus: BookingStatus!
     paymentStatus: PaymentStatus!
-    selectedServices: [BookingService!]!
+    selectedServices: [VenueService!]
     eventType: String! # Type of event (e.g., "Wedding", "Conference")
     phone: String
     additionalNotes: String
@@ -193,12 +194,14 @@ const typeDefs = gql`
     transactions: [Transaction!]
     transaction(id: ID!): Transaction
     myVenues: [Venue!]
+
     services: [Services!]
+    service(id: ID!): Services
 
     recentBookings(limit: Int): [Booking]
     topVenues(limit: Int): [TopVenue!]!
 
-    pendingVenueOwners: [User!]!
+    pendingVenueOwners: [User!]
     pendingVenues: [Venue!]! # List of all venues awaiting approval
   }
 
@@ -234,7 +237,7 @@ const typeDefs = gql`
     removeReview(reviewId: ID!): DeleteResponse!
 
     # Admin Only
-    deleteUser(userId: ID!): UserResponse!
+    deleteUser(userId: ID!): Response!
     removeVenue(venueId: ID!): Response!
 
     approveVenueOwner(userId: ID!): Response!
@@ -249,6 +252,14 @@ const typeDefs = gql`
       uploadFolder: String!
     ): Signature!
     getDeleteSignature(publicId: String!): Signature!
+
+    approveRoleChangeRequest(userId: ID!): Response!
+    rejectRoleChangeRequest(userId: ID!, rejectionReason: String!): Response!
+
+    addService(name: String!, image: imageInput!): Response!
+    updateService(id: ID!, name: String, image: imageInput): Response!
+    deleteService(id: ID!): Response!
+
   }
 
   type TopVenue {

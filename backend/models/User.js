@@ -41,6 +41,13 @@ const userSchema = new mongoose.Schema(
       enum: ["NONE", "PENDING", "APPROVED", "REJECTED"],
       default: "NONE",
     },
+
+    submittedAt: {
+      type: Date,
+      default: Date.now,
+      
+    },
+    rejectionReason: { type: String, default: "" },
   },
   { timestamps: true }
 );

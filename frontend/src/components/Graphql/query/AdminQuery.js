@@ -47,6 +47,8 @@ const PENDING_VENUE_OWNER = gql`
       name
       email
       phone
+      companyName
+      address
       createdAt
       updatedAt
     }
@@ -81,9 +83,46 @@ const PENDING_VENUE_APPROVAL = gql`
   }
 `;
 
+
+ const GET_ALL_SERVICES = gql`
+  query GetAllServices {
+    services {
+        id
+        name
+        image {
+          public_id
+          secure_url
+        }
+    }
+  }
+`
+
+ const ADD_SERVICE = gql`
+  mutation addService($name: String!, $image: imageInput!) {
+    addService(name: $name, image: $image) {
+      success
+      message
+    }
+  }
+`
+
+ const DELETE_SERVICE = gql`
+  mutation DeleteService($id: ID!) {
+    deleteService(id: $id) {
+      success
+      message
+    }
+  }
+`
+
+
 export {
   RECENT_BOOKINGS,
   TOP_VENUES,
   PENDING_VENUE_OWNER,
   PENDING_VENUE_APPROVAL,
+  GET_ALL_SERVICES,
+  ADD_SERVICE,
+  DELETE_SERVICE
+
 };

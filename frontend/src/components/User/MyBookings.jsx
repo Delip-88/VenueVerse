@@ -1,7 +1,7 @@
 "use client"
 
 import { useContext, useEffect, useRef, useState } from "react"
-import { Calendar, Star, X, ChevronRight, Clock, CreditCard } from "lucide-react"
+import { Calendar, Star, X, ChevronRight, Clock, CreditCard, FileText } from "lucide-react"
 import { AuthContext } from "../../middleware/AuthContext"
 import Loader from "../../pages/common/Loader"
 import { useMutation } from "@apollo/client"
@@ -64,6 +64,12 @@ export default function MyBookingsPage() {
   const handleReviewClick = (venue) => {
     setSelectedVenue(venue)
     setIsReviewModalOpen(true)
+  }
+
+  const handleGenerateReport = (booking) => {
+    // Navigate to booking report page with booking data
+    // You can pass the booking data through state or URL params
+    navigate(`/booking-report/${booking.id}`)
   }
 
   const handleReviewSubmit = async (e) => {
@@ -231,19 +237,34 @@ export default function MyBookingsPage() {
                 </div>
               </div>
 
-              {booking.bookingStatus === "APPROVED" &&
-                booking.paymentStatus === "PAID" &&
-                new Date(booking.date) < new Date() && (
-                  <div className="mt-4 pt-3 border-t border-gray-100">
+              {/* Action Buttons */}
+              <div className="mt-4 pt-3 border-t border-gray-100">
+                <div className="flex gap-2">
+                  {/* Generate Report Button - Available for all confirmed bookings */}
+                  {(booking.bookingStatus === "APPROVED" || booking.bookingStatus === "COMPLETED") && (
                     <button
-                      onClick={() => handleReviewClick(booking.venue)}
-                      className="w-full text-center text-teal-600 hover:text-teal-800 text-sm font-medium flex items-center justify-center"
+                      onClick={() => handleGenerateReport(booking)}
+                      className="flex-1 text-center text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center justify-center py-2 px-3 border border-blue-200 rounded-md hover:bg-blue-50 transition-colors"
                     >
-                      <Star className="h-4 w-4 mr-1" />
-                      Leave Review
+                      <FileText className="h-4 w-4 mr-1" />
+                      Generate Report
                     </button>
-                  </div>
-                )}
+                  )}
+
+                  {/* Leave Review Button - Only for completed paid bookings */}
+                  {booking.bookingStatus === "APPROVED" &&
+                    booking.paymentStatus === "PAID" &&
+                    new Date(booking.date) < new Date() && (
+                      <button
+                        onClick={() => handleReviewClick(booking.venue)}
+                        className="flex-1 text-center text-teal-600 hover:text-teal-800 text-sm font-medium flex items-center justify-center py-2 px-3 border border-teal-200 rounded-md hover:bg-teal-50 transition-colors"
+                      >
+                        <Star className="h-4 w-4 mr-1" />
+                        Leave Review
+                      </button>
+                    )}
+                </div>
+              </div>
             </div>
           </div>
         ))

@@ -16,7 +16,7 @@ import {
   ChevronDown,
   Tag,
   BookOpen,
-  DollarSign,
+  IndianRupee,
   Eye,
 } from "lucide-react"
 import AnotherLoader from "../../pages/common/AnotherLoader"
@@ -291,7 +291,7 @@ export default function MyVenues() {
         <div className="bg-white p-4 rounded-lg shadow-md">
           <div className="flex items-center">
             <div className="p-3 rounded-full bg-yellow-100 text-yellow-600 mr-4">
-              <DollarSign className="h-6 w-6" />
+              <IndianRupee className="h-6 w-6" />
             </div>
             <div>
               <p className="text-sm text-gray-500">Avg. Price/Hour</p>

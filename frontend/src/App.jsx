@@ -32,10 +32,14 @@ import EditVenue from "./components/VenueOwner/EditVenue";
 import VenueDetails from "./components/VenueOwner/VenueDetails";
 import ResetPassword from "./pages/Auth/ResetPassword";
 import VenueFinderWizard from "./components/VenueOwner/VenueFinderWizard";
-import AdminLogin from "./components/admin/Login";
 import SuperAdminDashboard from "./components/admin/Dashboard";
 import SuperAdminLayout from "./components/Layout/Admin_Layout";
 import ReportsPage from "./components/admin/Reports";
+import BookingReportDemo from "./pages/common/Demo";
+import BookingReport from "./pages/common/Report";
+import AdminRoleRequests from "./components/admin/RoleRequest";
+import AdminUsers from "./components/admin/Users";
+import AdminServices from "./components/admin/Services";
 function App() {
 
 
@@ -64,6 +68,7 @@ function App() {
             />
           <Route path="/reset-password/:token" element={<ResetPassword/>}/>
           <Route path="/OTPVerification" element={<OTPVerificationPage />} />
+          <Route path="/booking-report/:id" element = {<BookingReport />} />
 
           {/* Authenticated User Routes */}
           <Route
@@ -76,6 +81,7 @@ function App() {
           >
             <Route index element={<VenuesPage />} />
             <Route path="my-bookings" element={<MyBookingsPage />} />
+            <Route path="booking-report" element = {<BookingReportDemo />} />
             <Route path="favorites" element={<FavoritesPage />} />
             <Route path="settings" element={<UserSettingsPage />} />
             <Route path="venue/:venueId/book-now" element={<BookNowPage />} />
@@ -105,8 +111,11 @@ function App() {
           </Route>
           {/* Admin Route */}
           <Route path="/super-admin" element={<SuperAdminLayout/>}>
-            <Route index element={<SuperAdminDashboard/>} />
-            <Route path="reports" element={<ReportsPage/>}/>
+            <Route index element={<ReportsPage/>} />
+            <Route path="update-role" element={<AdminRoleRequests/>} />
+            <Route path="users" element = {<AdminUsers/>} />
+            <Route path="venues" element={<VenuesPage />} />
+            <Route path="addServices" element={<AdminServices />} />
           </Route>
 
 

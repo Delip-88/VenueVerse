@@ -1,993 +1,633 @@
 "use client"
 
-import { useState, useEffect, useContext, useMemo } from "react"
-import {
-  Clock,
-  MapPin,
-  Users,
-  DollarSign,
-  AlertCircle,
-  Check,
-  Package,
-  ChevronLeft,
-  ChevronRight,
-  Info,
-  Calendar,
-  X,
-} from "lucide-react"
-import { useParams } from "react-router-dom"
-import { VENUE_BY_ID } from "./Graphql/query/venuesGql"
-import Loader from "../pages/common/Loader"
-import { useQuery } from "@apollo/client"
+import { useContext, useState } from "react"
+import { User, Mail, Phone, Building, MapPin, Upload, AlertCircle } from "lucide-react"
+import { useUploadImage } from "./Functions/UploadImage"
 import { AuthContext } from "../middleware/AuthContext"
-import EsewaPaymentForm from "./EsewaPaymentForm"
+import toast from "react-hot-toast"
+import { useMutation } from "@apollo/client"
+import { UPDATE_TO_VENUE_OWNER } from "./Graphql/mutations/updateUserGql"
+import { useNavigate } from "react-router-dom"
 
-// Multi-day calendar component for date selection with availability indicators
-const MultiDayDatePicker = ({ availableDates, selectedDates, onDateChange, minDate }) => {
-  const [currentMonth, setCurrentMonth] = useState(new Date())
-
-  // Get days in month
-  const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate()
-
-  // Get first day of month (0 = Sunday, 1 = Monday, etc.)
-  const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay()
-
-  // Format date as YYYY-MM-DD for comparison
-  const formatDateString = (date) => {
-    return date.toISOString().split("T")[0]
-  }
-
-  // Check if a date is available
-  const isDateAvailable = (date) => {
-    const dateString = formatDateString(date)
-    return availableDates.includes(dateString)
-  }
-
-  // Check if a date is in the past or today (users can only book from tomorrow)
-  const isDateInPast = (date) => {
-    const today = new Date()
-    today.setHours(23, 59, 59, 999) // Set to end of today
-    return date <= today
-  }
-
-  // Check if a date is selected
-  const isDateSelected = (date) => {
-    const dateString = formatDateString(date)
-    return selectedDates.includes(dateString)
-  }
-
-  // Handle date selection/deselection
-  const handleDateClick = (date) => {
-    if (isDateInPast(date) || !isDateAvailable(date)) return
-
-    const dateString = formatDateString(date)
-    const newSelectedDates = [...selectedDates]
-
-    if (newSelectedDates.includes(dateString)) {
-      // Remove date if already selected
-      const index = newSelectedDates.indexOf(dateString)
-      newSelectedDates.splice(index, 1)
-    } else {
-      // Add date if not selected
-      newSelectedDates.push(dateString)
-      newSelectedDates.sort() // Keep dates sorted
-    }
-
-    onDateChange(newSelectedDates)
-  }
-
-  // Navigate to previous month
-  const prevMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))
-  }
-
-  // Navigate to next month
-  const nextMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))
-  }
-
-  // Get month name and year
-  const monthName = currentMonth.toLocaleString("default", { month: "long" })
-  const year = currentMonth.getFullYear()
-
-  // Days of week
-  const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-
-  // Generate calendar days
-  const calendarDays = []
-
-  // Add empty cells for days before the first day of the month
-  for (let i = 0; i < firstDayOfMonth; i++) {
-    calendarDays.push(<div key={`empty-${i}`} className="h-10"></div>)
-  }
-
-  // Add cells for each day of the month
-  for (let day = 1; day <= daysInMonth; day++) {
-    const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day)
-    const dateString = formatDateString(date)
-    const isPast = isDateInPast(date)
-    const isAvailable = isDateAvailable(date)
-    const isSelected = isDateSelected(date)
-
-    calendarDays.push(
-      <button
-        key={dateString}
-        onClick={() => handleDateClick(date)}
-        disabled={isPast || !isAvailable}
-        className={`h-10 w-10 rounded-full flex items-center justify-center text-sm transition-colors
-          ${isPast ? "text-gray-300 cursor-not-allowed" : ""}
-          ${isSelected ? "bg-blue-600 text-white" : ""}
-          ${!isPast && isAvailable && !isSelected ? "hover:bg-blue-100 text-gray-700" : ""}
-          ${!isPast && !isAvailable ? "text-gray-400 cursor-not-allowed" : ""}
-        `}
-      >
-        {day}
-      </button>,
-    )
-  }
-
-  return (
-    <div className="bg-white rounded-lg shadow p-4">
-      <div className="flex justify-between items-center mb-4">
-        <button onClick={prevMonth} className="p-1 rounded-full hover:bg-gray-100">
-          <ChevronLeft className="h-5 w-5" />
-        </button>
-        <h3 className="font-medium">
-          {monthName} {year}
-        </h3>
-        <button onClick={nextMonth} className="p-1 rounded-full hover:bg-gray-100">
-          <ChevronRight className="h-5 w-5" />
-        </button>
-      </div>
-
-      <div className="grid grid-cols-7 gap-1">
-        {weekdays.map((day) => (
-          <div key={day} className="h-8 flex items-center justify-center text-xs font-medium text-gray-500">
-            {day}
-          </div>
-        ))}
-        {calendarDays}
-      </div>
-
-      <div className="mt-4 flex items-center justify-between text-xs text-gray-500">
-        <div className="flex items-center">
-          <div className="w-3 h-3 rounded-full bg-blue-600 mr-1"></div>
-          <span>Selected</span>
-        </div>
-        <div className="flex items-center">
-          <div className="w-3 h-3 rounded-full bg-gray-300 mr-1"></div>
-          <span>Unavailable</span>
-        </div>
-      </div>
-
-      {/* Selected dates display */}
-      {selectedDates.length > 0 && (
-        <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-          <p className="text-sm font-medium text-blue-800 mb-2">Selected Dates ({selectedDates.length}):</p>
-          <div className="flex flex-wrap gap-1">
-            {selectedDates.map((dateString) => (
-              <span
-                key={dateString}
-                className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800"
-              >
-                {new Date(dateString).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                })}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    const newDates = selectedDates.filter((d) => d !== dateString)
-                    onDateChange(newDates)
-                  }}
-                  className="ml-1 text-blue-600 hover:text-blue-800"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// Add a helper function to convert time string to minutes for easier comparison
-const timeToMinutes = (timeString) => {
-  const [hours, minutes] = timeString.split(":").map(Number)
-  return hours * 60 + minutes
-}
-
-// Helper function to format time for display (e.g., 09:00 AM/PM)
-const formatTimeForDisplay = (timeString) => {
-  const [hours, minutes] = timeString.split(":").map(Number)
-  const period = hours < 12 ? "AM" : "PM"
-  const formattedHours = hours % 12 === 0 ? 12 : hours % 12 // Convert 0 and 12 to 12
-  return `${formattedHours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")} ${period}`
-}
-
-// Enhanced time slot selector component for multi-day bookings
-const MultiDayTimeSlotSelector = ({
-  availableTimeSlots,
-  selectedStartTime,
-  selectedEndTime,
-  onStartTimeChange,
-  onEndTimeChange,
-  bookings = [],
-  selectedDates,
-}) => {
-  // Generate extended time slots (can go beyond 24 hours for multi-day events)
-  const generateExtendedTimeSlots = () => {
-    const slots = []
-    // Generate slots from 00:00 to 23:00 for the first day
-    for (let hour = 0; hour < 24; hour++) {
-      slots.push(`${hour.toString().padStart(2, "0")}:00`)
-    }
-
-    // If multiple days are selected, add slots for subsequent days
-    if (selectedDates.length > 1) {
-      for (let day = 1; day < selectedDates.length; day++) {
-        for (let hour = 0; hour < 24; hour++) {
-          const totalHours = day * 24 + hour
-          slots.push(`${totalHours.toString().padStart(2, "0")}:00`)
-        }
-      }
-      // Add one more hour to allow ending at the start of the next day
-      const finalHour = selectedDates.length * 24
-      slots.push(`${finalHour.toString().padStart(2, "0")}:00`)
-    }
-
-    return slots
-  }
-
-  const extendedTimeSlots = generateExtendedTimeSlots()
-
-  // Convert selected start time to minutes
-  const startTimeMinutes = selectedStartTime ? timeToMinutes(selectedStartTime) : 0
-
-  // Filter end time options based on selected start time
-  const availableEndTimes = useMemo(() => {
-    if (!selectedStartTime) return []
-
-    const startTimeIndex = extendedTimeSlots.findIndex((slot) => slot === selectedStartTime)
-    if (startTimeIndex === -1) return []
-
-    // For multi-day events, we need to check conflicts across all selected dates
-    return extendedTimeSlots.filter((timeSlot, index) => {
-      // Must be after start time
-      if (index <= startTimeIndex) return false
-
-      // For multi-day bookings, we allow much longer durations
-      return true
-    })
-  }, [extendedTimeSlots, selectedStartTime, selectedDates])
-
-  // Format time display for extended hours
-  const formatExtendedTime = (timeString) => {
-    const hours = Number.parseInt(timeString.split(":")[0])
-    const minutes = timeString.split(":")[1]
-
-    if (hours < 24) {
-      return formatTimeForDisplay(timeString)
-    } else {
-      const day = Math.floor(hours / 24)
-      const hourInDay = hours % 24
-      const dayLabel = day === 1 ? "Next Day" : `Day ${day + 1}`
-      const formattedTime = formatTimeForDisplay(`${hourInDay.toString().padStart(2, "0")}:${minutes}`)
-      return `${formattedTime} (${dayLabel})`
-    }
-  }
-
-  return (
-    <div className="space-y-4">
-      <div>
-        <label htmlFor="startTime" className="block text-sm font-medium text-gray-700 mb-1">
-          Start Time
-        </label>
-        <div className="relative">
-          <select
-            id="startTime"
-            value={selectedStartTime}
-            onChange={(e) => onStartTimeChange(e.target.value)}
-            className="appearance-none pl-10 pr-4 py-2 w-full border rounded-lg focus:ring-blue-500 focus:border-blue-500"
-            disabled={selectedDates.length === 0}
-          >
-            <option value="">Select start time</option>
-            {extendedTimeSlots.slice(0, 24).map((time) => (
-              <option key={`start-${time}`} value={time}>
-                {formatTimeForDisplay(time)}
-              </option>
-            ))}
-          </select>
-          <Clock className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-        </div>
-      </div>
-
-      <div>
-        <label htmlFor="endTime" className="block text-sm font-medium text-gray-700 mb-1">
-          End Time
-        </label>
-        <div className="relative">
-          <select
-            id="endTime"
-            value={selectedEndTime}
-            onChange={(e) => onEndTimeChange(e.target.value)}
-            className="appearance-none pl-10 pr-4 py-2 w-full border rounded-lg focus:ring-blue-500 focus:border-blue-500"
-            disabled={!selectedStartTime || availableEndTimes.length === 0}
-          >
-            <option value="">Select end time</option>
-            {availableEndTimes.map((time) => (
-              <option key={`end-${time}`} value={time}>
-                {formatExtendedTime(time)}
-              </option>
-            ))}
-          </select>
-          <Clock className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-        </div>
-      </div>
-
-      {/* Information about multi-day bookings */}
-      <div className="text-xs text-gray-500 italic">
-        {selectedDates.length > 1 ? (
-          <p>Multi-day event: You can select end times that extend beyond the first day.</p>
-        ) : (
-          <p>Note: A 1-hour gap is automatically reserved between bookings for venue preparation and cleanup.</p>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// Helper function to generate time slots for a day (24-hour format)
-const generateTimeSlots = () => {
-  const slots = []
-  // Generate slots from 00:00 to 23:00 in hourly increments
-  for (let hour = 0; hour < 24; hour++) {
-    slots.push(`${hour.toString().padStart(2, "0")}:00`)
-  }
-  return slots
-}
-
-// Helper function to check if a time is within a booking's time range (including 1-hour buffer)
-const isTimeConflicting = (time, bookings, date) => {
-  // Convert time string to minutes for easier comparison
-  const timeToMinutes = (timeStr) => {
-    const [hours, minutes] = timeStr.split(":").map(Number)
-    return hours * 60 + minutes
-  }
-
-  const timeInMinutes = timeToMinutes(time)
-
-  // Check each booking for the selected date
-  for (const booking of bookings) {
-    if (booking.date === date) {
-      for (const timeslot of booking.timeslots) {
-        // Convert booking times to minutes
-        const startInMinutes = timeToMinutes(timeslot.start)
-        const endInMinutes = timeToMinutes(timeslot.end)
-
-        // Add 1-hour buffer (60 minutes) before and after booking
-        const bufferStartInMinutes = Math.max(0, startInMinutes - 60)
-        const bufferEndInMinutes = Math.min(24 * 60 - 1, endInMinutes + 60)
-
-        // Check if time falls within the booking time range (including buffer)
-        if (timeInMinutes >= bufferStartInMinutes && timeInMinutes < bufferEndInMinutes) {
-          return true // Time conflicts with a booking
-        }
-      }
-    }
-  }
-
-  return false // No conflict found
-}
-
-// Enhanced duration calculation for multi-day events
-const calculateMultiDayDuration = (start, end, selectedDates) => {
-  if (!start || !end || selectedDates.length === 0) return 0
-
-  const startHours = Number.parseInt(start.split(":")[0])
-  const endHours = Number.parseInt(end.split(":")[0])
-
-  // If end time is in extended format (beyond 24 hours)
-  if (endHours >= 24) {
-    return endHours - startHours
-  } else {
-    // Single day event
-    const startTime = new Date(`2000-01-01T${start}`)
-    const endTime = new Date(`2000-01-01T${end}`)
-    return (endTime - startTime) / (1000 * 60 * 60)
-  }
-}
-
-// Helper function to format category names for display
-const formatCategoryName = (category) => {
-  return category
-    .split("_")
-    .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
-    .join(" ")
-}
-
-const BookNowPage = () => {
-  const { venueId } = useParams() || {}
+const BecomeVenueOwnerPage = () => {
   const { user } = useContext(AuthContext)
+  const [updateToVenueOwner] = useMutation(UPDATE_TO_VENUE_OWNER)
+  const { uploadImage } = useUploadImage()
+  const navigate = useNavigate()
 
-  useEffect(() => {
-    const token = localStorage.getItem("authToken")
-    if (!token) {
-      window.location.href = "/login"
-    }
-  }, [])
-
-  // Fetch venue details (which now includes bookings)
-  const { data, loading, error } = useQuery(VENUE_BY_ID, {
-    variables: { id: venueId },
-  })
-
-  const [bookingDetails, setBookingDetails] = useState({
-    dates: [], // Changed from single date to array of dates
-    startTime: "",
-    endTime: "",
-    name: user?.name || "",
-    email: user?.email || "",
+  const [formData, setFormData] = useState({
+    name: user.name,
+    email: user.email,
     phone: user?.phone || "",
-    selectedServices: [],
-    eventType: "",
-    numberOfAttendees: "", // Add this new field
+    companyName: "",
+    governmentId: null,
+    profilePicture: null,
+    address: "",
+    eSewaId: "",
+    termsAccepted: false,
   })
 
   const [errors, setErrors] = useState({})
-  const [totalPrice, setTotalPrice] = useState(0)
 
-  // Process venue data to get available dates and time slots
-  const { availableDates, availableTimeSlotsByDate } = useMemo(() => {
-    if (!data?.venue) {
-      return { availableDates: [], availableTimeSlotsByDate: {} }
+  // Email validation function
+  const validateEmail = (email) => {
+    // Check if email starts with a number
+    if (/^[0-9]/.test(email)) {
+      return "Email cannot start with a number"
     }
 
-    const venue = data.venue
-    const bookings = venue.bookings || []
-    const allTimeSlots = generateTimeSlots()
-    const availableTimeSlotsByDate = {}
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-
-    // Generate dates for the next 90 days
-    const dates = []
-    for (let i = 0; i < 90; i++) {
-      const date = new Date(today)
-      date.setDate(today.getDate() + i)
-      dates.push(date.toISOString().split("T")[0])
+    // Check basic email format
+    const emailRegex = /^[a-zA-Z][a-zA-Z0-9._-]*@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+    if (!emailRegex.test(email)) {
+      return "Please enter a valid email address"
     }
 
-    // Calculate available time slots for each date
-    for (const date of dates) {
-      const availableSlotsForDate = allTimeSlots.filter((time) => !isTimeConflicting(time, bookings, date))
+    return null
+  }
 
-      // Only include dates that have at least one available time slot
-      if (availableSlotsForDate.length > 0) {
-        availableTimeSlotsByDate[date] = availableSlotsForDate
-      }
+  // Phone validation function
+  const validatePhone = (phone) => {
+    // Remove any spaces or special characters for validation
+    const cleanPhone = phone.replace(/[\s\-$$$$]/g, "")
+
+    // Check if it's a valid Nepali phone number format
+    const phoneRegex = /^(\+977)?[0-9]{10}$/
+    if (!phoneRegex.test(cleanPhone)) {
+      return "Please enter a valid phone number (10 digits)"
     }
 
-    return {
-      availableDates: Object.keys(availableTimeSlotsByDate),
-      availableTimeSlotsByDate,
+    return null
+  }
+
+  // File validation function
+  const validateFile = (file, fieldName) => {
+    if (!file) return `${fieldName} is required`
+
+    // Check if file is an image
+    if (!file.type.startsWith("image/")) {
+      return `${fieldName} must be an image file (JPG, PNG, GIF, etc.)`
     }
-  }, [data?.venue])
 
-  // Get available time slots for the selected dates
-  const availableTimeSlotsForSelectedDates = useMemo(() => {
-    if (!bookingDetails.dates.length || !availableTimeSlotsByDate) {
-      return []
+    // Check file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024 // 5MB in bytes
+    if (file.size > maxSize) {
+      return `${fieldName} must be less than 5MB`
     }
 
-    // For multi-day events, we use the time slots from the first day as the base
-    const firstDate = bookingDetails.dates[0]
-    return availableTimeSlotsByDate[firstDate] || []
-  }, [bookingDetails.dates, availableTimeSlotsByDate])
+    return null
+  }
 
-  useEffect(() => {
-    // Calculate total price whenever booking details change
-    if (data?.venue && bookingDetails.startTime && bookingDetails.endTime && bookingDetails.dates.length > 0) {
-      // Calculate venue rental price based on hours and days
-      const duration = calculateMultiDayDuration(bookingDetails.startTime, bookingDetails.endTime, bookingDetails.dates)
-      const basePrice = data.venue.basePricePerHour * duration
+  // eSewa ID validation function
+  const validateESewaId = (eSewaId) => {
+    // eSewa ID should be either phone number or email format
+    const phoneRegex = /^[0-9]{10}$/
+    const emailRegex = /^[a-zA-Z][a-zA-Z0-9._-]*@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
 
-      // Add service prices based on their category (fixed or hourly)
-      const servicePrice = bookingDetails.selectedServices.reduce((total, serviceId) => {
-        const service = data.venue.services.find((s) => s.serviceId.id === serviceId)
-        if (service) {
-          // Check if the service is hourly or fixed
-          if (service.category === "hourly") {
-            // For hourly services, multiply by duration
-            return total + service.servicePrice * duration
-          } else {
-            // For fixed services, multiply by number of days for multi-day events
-            return total + service.servicePrice * bookingDetails.dates.length
-          }
-        }
-        return total
-      }, 0)
-
-      setTotalPrice(basePrice + servicePrice)
+    if (!phoneRegex.test(eSewaId) && !emailRegex.test(eSewaId)) {
+      return "eSewa ID must be a valid phone number or email address"
     }
-  }, [
-    bookingDetails.startTime,
-    bookingDetails.endTime,
-    bookingDetails.selectedServices,
-    bookingDetails.dates,
-    data?.venue,
-  ])
 
-  // Reset time selections when dates change
-  useEffect(() => {
-    setBookingDetails((prev) => ({
-      ...prev,
-      startTime: "",
-      endTime: "",
-    }))
-  }, [bookingDetails.dates])
-
-  if (loading) return <Loader />
-  if (error) return <div className="text-red-500">Error: {error.message}</div>
-  if (!data?.venue) return <div className="text-gray-500">Venue not found</div>
-
-  const venue = data.venue
+    return null
+  }
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target
-    setBookingDetails((prevDetails) => ({
-      ...prevDetails,
-      [name]: value,
-    }))
+    const { name, value, type, checked } = e.target
+    const newValue = type === "checkbox" ? checked : value
 
-    // Clear errors when input changes
-    setErrors((prevErrors) => ({
-      ...prevErrors,
-      [name]: "",
-    }))
-  }
-
-  const handleDateChange = (dates) => {
-    setBookingDetails((prev) => ({
+    setFormData((prev) => ({
       ...prev,
-      dates,
-      startTime: "",
-      endTime: "",
+      [name]: newValue,
     }))
-  }
 
-  const handleStartTimeChange = (time) => {
-    setBookingDetails((prev) => ({
-      ...prev,
-      startTime: time,
-      endTime: "",
-    }))
-  }
+    // Real-time validation
+    if (errors[name]) {
+      let error = null
 
-  const handleEndTimeChange = (time) => {
-    setBookingDetails((prev) => ({
-      ...prev,
-      endTime: time,
-    }))
-  }
-
-  const handleServiceToggle = (serviceId) => {
-    setBookingDetails((prevDetails) => {
-      const selectedServices = [...prevDetails.selectedServices]
-
-      if (selectedServices.includes(serviceId)) {
-        return {
-          ...prevDetails,
-          selectedServices: selectedServices.filter((id) => id !== serviceId),
-        }
-      } else {
-        return {
-          ...prevDetails,
-          selectedServices: [...selectedServices, serviceId],
-        }
+      switch (name) {
+        case "email":
+          error = validateEmail(newValue)
+          break
+        case "phone":
+          error = validatePhone(newValue)
+          break
+        case "eSewaId":
+          error = validateESewaId(newValue)
+          break
+        default:
+          error = null
       }
-    })
+
+      setErrors((prev) => ({ ...prev, [name]: error }))
+    }
   }
 
-  // Get today's date in YYYY-MM-DD format
-  const today = new Date().toISOString().split("T")[0]
+  const handleFileChange = (e) => {
+    const { name, files } = e.target
 
-  // Calculate duration for display and calculations
-  const duration = calculateMultiDayDuration(bookingDetails.startTime, bookingDetails.endTime, bookingDetails.dates)
+    if (files && files.length > 0) {
+      const file = files[0]
 
-  // Add this validation in the form submission or validation function
+      // Validate file immediately
+      const fieldDisplayName = name === "governmentId" ? "Government ID" : "Profile Picture"
+      const fileError = validateFile(file, fieldDisplayName)
+
+      if (fileError) {
+        setErrors((prev) => ({ ...prev, [name]: fileError }))
+        // Clear the file input
+        e.target.value = ""
+        return
+      }
+
+      setFormData((prev) => ({ ...prev, [name]: file }))
+
+      if (errors[name]) {
+        setErrors((prev) => ({ ...prev, [name]: "" }))
+      }
+    }
+  }
+
   const validateForm = () => {
-    let isValid = true
     const newErrors = {}
 
-    if (!bookingDetails.numberOfAttendees || bookingDetails.numberOfAttendees < 1) {
-      newErrors.numberOfAttendees = "Number of attendees is required"
-      isValid = false
+    // Name validation
+    if (!formData.name.trim()) {
+      newErrors.name = "Name is required"
+    } else if (formData.name.trim().length < 2) {
+      newErrors.name = "Name must be at least 2 characters long"
     }
 
-    if (Number(bookingDetails.numberOfAttendees) > venue.capacity) {
-      newErrors.numberOfAttendees = `Number of attendees cannot exceed venue capacity of ${venue.capacity}`
-      isValid = false
+    // Email validation
+    if (!formData.email.trim()) {
+      newErrors.email = "Email is required"
+    } else {
+      const emailError = validateEmail(formData.email)
+      if (emailError) newErrors.email = emailError
     }
 
-    if (!bookingDetails.eventType) {
-      newErrors.eventType = "Event type is required"
-      isValid = false
+    // Phone validation
+    if (!formData.phone.trim()) {
+      newErrors.phone = "Phone number is required"
+    } else {
+      const phoneError = validatePhone(formData.phone)
+      if (phoneError) newErrors.phone = phoneError
+    }
+
+    // Company name validation
+    if (!formData.companyName.trim()) {
+      newErrors.companyName = "Company name is required"
+    } else if (formData.companyName.trim().length < 2) {
+      newErrors.companyName = "Company name must be at least 2 characters long"
+    }
+
+    // Address validation
+    if (!formData.address.trim()) {
+      newErrors.address = "Address is required"
+    } else if (formData.address.trim().length < 5) {
+      newErrors.address = "Please provide a complete address"
+    }
+
+    // eSewa ID validation
+    if (!formData.eSewaId.trim()) {
+      newErrors.eSewaId = "eSewa ID is required"
+    } else {
+      const eSewaError = validateESewaId(formData.eSewaId)
+      if (eSewaError) newErrors.eSewaId = eSewaError
+    }
+
+    // File validations
+    const govIdError = validateFile(formData.governmentId, "Government ID")
+    if (govIdError) newErrors.governmentId = govIdError
+
+    const profilePicError = validateFile(formData.profilePicture, "Profile Picture")
+    if (profilePicError) newErrors.profilePicture = profilePicError
+
+    // Terms validation
+    if (!formData.termsAccepted) {
+      newErrors.termsAccepted = "You must accept the Terms and Conditions"
     }
 
     setErrors(newErrors)
-    return isValid
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+
+    if (!validateForm()) {
+      toast.error("Please fix the errors in the form")
+      return
+    }
+
+    toast
+      .promise(
+        (async () => {
+          try {
+            let profileImgData = null
+            let legalDocImgData = null
+
+            if (formData.profilePicture && formData.governmentId) {
+              profileImgData = await uploadImage(
+                formData.profilePicture,
+                import.meta.env.VITE_SIGNED_UPLOAD_PRESET,
+                import.meta.env.VITE_UPLOAD_USER_IMAGE_FOLDER,
+              )
+
+              legalDocImgData = await uploadImage(
+                formData.governmentId,
+                import.meta.env.VITE_SIGNED_UPLOAD_PRESET,
+                import.meta.env.VITE_UPLOAD_USER_DOCS_IMAGE_FOLDER,
+              )
+
+              if (!profileImgData || !legalDocImgData) {
+                throw new Error("Failed to upload images")
+              }
+            }
+
+            const extractImageData = (imageData) =>
+              imageData
+                ? {
+                    public_id: imageData.public_id,
+                    secure_url: imageData.secure_url,
+                    asset_id: imageData.asset_id,
+                    version: Number.parseInt(imageData.version, 10),
+                    format: imageData.format,
+                    width: Number.parseInt(imageData.width, 10),
+                    height: Number.parseInt(imageData.height, 10),
+                    created_at: imageData.created_at,
+                  }
+                : null
+
+            const pfpImageWithoutTypename = extractImageData(profileImgData)
+            const govIdImageWithoutTypename = extractImageData(legalDocImgData)
+
+            const response = await updateToVenueOwner({
+              variables: {
+                input: {
+                  name: formData.name.trim(),
+                  email: formData.email.trim().toLowerCase(),
+                  phone: formData.phone.trim(),
+                  address: formData.address.trim(),
+                  profileImg: pfpImageWithoutTypename,
+                  legalDocImg: govIdImageWithoutTypename,
+                  esewaId: formData.eSewaId.trim(),
+                  companyName: formData.companyName.trim(),
+             
+                },
+              },
+            })
+
+            const { success, message } = response.data?.updateToVenueOwner
+
+            if (!success) throw new Error(message || "Failed to update, try again later")
+          } catch (error) {
+            console.error("Update error:", error)
+            throw error
+          }
+        })(),
+        {
+          loading: "Processing your application...",
+          success: "Application submitted successfully!",
+          error: "Failed to submit application. Please try again.",
+        },
+      )
+      .then(() => {
+        setFormData({
+          name: "",
+          email: "",
+          phone: "",
+          companyName: "",
+          governmentId: null,
+          profilePicture: null,
+          address: "",
+          eSewaId: "",
+          termsAccepted: false,
+        })
+        navigate("/Dashboard")
+      })
   }
 
   return (
-    <div className="container mx-auto p-4 md:p-1">
-      <h1 className="text-3xl font-bold mb-6">Book Now</h1>
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Become a Venue Owner</h1>
+        <p className="text-gray-600">Join our platform and start listing your venues to reach more customers.</p>
+      </div>
 
-      <div className="grid md:grid-cols-2 gap-8">
-        {/* Left Column: Venue Details and Services */}
-        <div>
-          <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-            <h2 className="text-2xl font-semibold mb-4">{venue.name}</h2>
-            <img
-              src={venue.image?.secure_url || "/placeholder.svg?height=300&width=500"}
-              alt={venue.name}
-              className="w-full h-48 object-cover rounded-md mb-4"
-            />
-            <div className="space-y-2">
-              <p className="flex items-center text-gray-600 mb-2">
-                <MapPin className="mr-2" size={18} /> {venue.location.street}, {venue.location.city},{" "}
-                {venue.location.province}
-              </p>
-              <p className="flex items-center">
-                <Users className="mr-2" size={18} /> Capacity: {venue.capacity}
-              </p>
-              <p className="flex items-center">
-                <DollarSign className="mr-2" size={18} /> Rs. {venue.basePricePerHour}
-                /hour
-              </p>
-            </div>
-
-            {/* Availability notice */}
-            <div className="mt-4 p-3 bg-blue-50 rounded-lg flex items-start">
-              <Info className="text-blue-500 mt-0.5 mr-2 flex-shrink-0" size={16} />
-              <div className="text-sm text-blue-700">
-                <p>Bookings can be made from tomorrow onwards. Select multiple dates for multi-day events.</p>
-                <p className="mt-1">For multi-day events, you can extend your booking beyond 24 hours.</p>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+          {/* Name Input */}
+          <div>
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+              Full Name <span className="text-red-500">*</span>
+            </label>
+            <div className="relative rounded-md shadow-sm">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <User className="h-5 w-5 text-gray-400" aria-hidden="true" />
               </div>
-            </div>
-          </div>
-
-          {/* Services Selection */}
-          {venue.services && venue.services.length > 0 && (
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h3 className="text-lg font-semibold mb-3 flex items-center">
-                <Package className="mr-2" size={18} />
-                Additional Services
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {venue.services.map((service) => (
-                  <div
-                    key={service.serviceId.id}
-                    onClick={() => handleServiceToggle(service.serviceId.id)}
-                    className={`p-3 border rounded-lg cursor-pointer transition-colors flex items-start ${
-                      bookingDetails.selectedServices.includes(service.serviceId.id)
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-gray-200 hover:border-blue-300"
-                    }`}
-                  >
-                    {/* Service Image */}
-                    <div className="flex-shrink-0 mr-3">
-                      {service.serviceId.image?.secure_url ? (
-                        <img
-                          src={service.serviceId.image.secure_url || "/placeholder.svg"}
-                          alt={service.serviceId.name}
-                          className="w-12 h-12 object-cover rounded-md"
-                        />
-                      ) : (
-                        <div className="w-12 h-12 bg-gray-100 rounded-md flex items-center justify-center text-gray-400">
-                          <Package size={20} />
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{service.serviceId.name}</p>
-                      <p className="text-xs text-gray-600">
-                        Rs. {service.servicePrice}
-                        {service.category === "hourly" ? "/hour" : " (fixed per day)"}
-                      </p>
-                    </div>
-
-                    <div
-                      className={`ml-2 w-5 h-5 rounded-full flex items-center justify-center ${
-                        bookingDetails.selectedServices.includes(service.serviceId.id)
-                          ? "bg-blue-500 text-white"
-                          : "bg-gray-200"
-                      }`}
-                    >
-                      {bookingDetails.selectedServices.includes(service.serviceId.id) && <Check size={12} />}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Right Column: Booking Form */}
-        <div>
-          {/* Multi-day Date Selection */}
-          <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-            <h3 className="text-lg font-semibold mb-4 flex items-center">
-              <Calendar className="mr-2" size={18} />
-              Select Dates
-            </h3>
-            <MultiDayDatePicker
-              availableDates={availableDates}
-              selectedDates={bookingDetails.dates}
-              onDateChange={handleDateChange}
-              minDate={today}
-            />
-          </div>
-
-          {/* Time Selection */}
-          <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-            <h3 className="text-lg font-semibold mb-4">Select Time</h3>
-            {bookingDetails.dates.length > 0 ? (
-              <MultiDayTimeSlotSelector
-                availableTimeSlots={availableTimeSlotsForSelectedDates}
-                selectedStartTime={bookingDetails.startTime}
-                selectedEndTime={bookingDetails.endTime}
-                onStartTimeChange={handleStartTimeChange}
-                onEndTimeChange={handleEndTimeChange}
-                bookings={data?.venue?.bookings || []}
-                selectedDates={bookingDetails.dates}
-              />
-            ) : (
-              <div className="text-center py-6 text-gray-500">
-                <Clock className="mx-auto h-12 w-12 text-gray-300 mb-2" />
-                <p>Please select at least one date first to see available time slots</p>
-              </div>
-            )}
-            {errors.time && (
-              <p className="text-red-500 text-sm mt-1 flex items-center">
-                <AlertCircle size={16} className="mr-1" />
-                {errors.time}
-              </p>
-            )}
-          </div>
-
-          {/* Customer Details */}
-          <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-            <h3 className="text-lg font-semibold mb-4">Customer Details</h3>
-
-            {/* Event Type Selection */}
-            <div className="mb-4">
-              <label htmlFor="eventType" className="block text-sm font-medium text-gray-700 mb-1">
-                Event Type <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <select
-                  id="eventType"
-                  name="eventType"
-                  value={bookingDetails.eventType}
-                  onChange={handleInputChange}
-                  className="appearance-none pl-10 pr-4 py-2 w-full border rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                  required
-                >
-                  <option value="">Select event type</option>
-                  {venue.categories &&
-                    venue.categories.map((category) => (
-                      <option key={category} value={category}>
-                        {formatCategoryName(category)}
-                      </option>
-                    ))}
-                </select>
-                <Package className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-              </div>
-              {errors.eventType && (
-                <p className="text-red-500 text-sm mt-1 flex items-center">
-                  <AlertCircle size={16} className="mr-1" />
-                  {errors.eventType}
-                </p>
-              )}
-            </div>
-
-            {/* Number of Attendees */}
-            <div className="mb-4">
-              <label htmlFor="numberOfAttendees" className="block text-sm font-medium text-gray-700 mb-1">
-                Number of Attendees <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  id="numberOfAttendees"
-                  name="numberOfAttendees"
-                  value={bookingDetails.numberOfAttendees}
-                  onChange={handleInputChange}
-                  min="1"
-                  max={venue.capacity}
-                  placeholder="Enter number of attendees"
-                  className="appearance-none pl-10 pr-4 py-2 w-full border rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                  required
-                />
-                <Users className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-              </div>
-              {errors.numberOfAttendees && (
-                <p className="text-red-500 text-sm mt-1 flex items-center">
-                  <AlertCircle size={16} className="mr-1" />
-                  {errors.numberOfAttendees}
-                </p>
-              )}
-              <p className="text-sm text-gray-500 mt-1">Maximum capacity: {venue.capacity} people</p>
-            </div>
-
-            <div className="space-y-3">
               <input
                 type="text"
                 name="name"
-                value={bookingDetails.name}
+                id="name"
+                className={`focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border rounded-md ${
+                  errors.name ? "border-red-500 focus:ring-red-500 focus:border-red-500" : "border-gray-300"
+                }`}
+                placeholder="John Doe"
+                value={formData.name}
                 onChange={handleInputChange}
-                placeholder="Full Name"
-                className="border rounded px-3 py-2 w-full focus:ring-blue-500 focus:border-blue-500"
-                required
-              />
-              <input
-                type="email"
-                name="email"
-                value={bookingDetails.email}
-                onChange={handleInputChange}
-                placeholder="Email Address"
-                className="border rounded px-3 py-2 w-full focus:ring-blue-500 focus:border-blue-500"
-                required
-              />
-              <input
-                type="tel"
-                name="phone"
-                value={bookingDetails.phone}
-                onChange={handleInputChange}
-                placeholder="Phone Number"
-                className="border rounded px-3 py-2 w-full focus:ring-blue-500 focus:border-blue-500"
                 required
               />
             </div>
+            {errors.name && (
+              <p className="mt-1 text-sm text-red-600 flex items-center">
+                <AlertCircle className="h-4 w-4 mr-1" />
+                {errors.name}
+              </p>
+            )}
           </div>
 
-          {/* Price Summary & Payment */}
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-lg font-semibold mb-4">Booking Summary</h3>
-
-            {bookingDetails.startTime && bookingDetails.endTime && bookingDetails.dates.length > 0 ? (
-              <div className="space-y-4">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span>Dates:</span>
-                      <span>
-                        {bookingDetails.dates.length === 1
-                          ? new Date(bookingDetails.dates[0]).toLocaleDateString("en-US", {
-                              weekday: "short",
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                            })
-                          : `${bookingDetails.dates.length} days (${new Date(bookingDetails.dates[0]).toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${new Date(bookingDetails.dates[bookingDetails.dates.length - 1]).toLocaleDateString("en-US", { month: "short", day: "numeric" })})`}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Time:</span>
-                      <span>
-                        {formatTimeForDisplay(bookingDetails.startTime)} -{" "}
-                        {bookingDetails.endTime.includes(":") &&
-                        Number.parseInt(bookingDetails.endTime.split(":")[0]) >= 24
-                          ? (() => {
-                              const hours = Number.parseInt(bookingDetails.endTime.split(":")[0])
-                              const minutes = bookingDetails.endTime.split(":")[1]
-                              const day = Math.floor(hours / 24)
-                              const hourInDay = hours % 24
-                              const dayLabel = day === 1 ? "Next Day" : `Day ${day + 1}`
-                              const formattedTime = formatTimeForDisplay(
-                                `${hourInDay.toString().padStart(2, "0")}:${minutes}`,
-                              )
-                              return `${formattedTime} (${dayLabel})`
-                            })()
-                          : formatTimeForDisplay(bookingDetails.endTime)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Duration:</span>
-                      <span>{duration} hours</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Event Type:</span>
-                      <span>
-                        {bookingDetails.eventType ? formatCategoryName(bookingDetails.eventType) : "Not selected"}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Number of Attendees:</span>
-                      <span>{bookingDetails.numberOfAttendees || "Not specified"} people</span>
-                    </div>
-
-                    <div className="flex justify-between">
-                      <span>Venue Rental:</span>
-                      <span>Rs. {venue.basePricePerHour * duration}</span>
-                    </div>
-
-                    {bookingDetails.selectedServices.length > 0 && (
-                      <>
-                        <div className="pt-2 border-t">
-                          <p className="font-medium mb-2">Additional Services:</p>
-                          {bookingDetails.selectedServices.map((serviceId) => {
-                            const service = venue.services.find((s) => s.serviceId.id === serviceId)
-                            if (!service) return null
-
-                            // Calculate service price based on category
-                            let servicePrice
-                            if (service.category === "hourly") {
-                              servicePrice = service.servicePrice * duration
-                            } else {
-                              // For fixed services in multi-day events, multiply by number of days
-                              servicePrice = service.servicePrice * bookingDetails.dates.length
-                            }
-
-                            return (
-                              <div key={serviceId} className="flex justify-between text-sm pl-2 items-center py-1">
-                                <div className="flex items-center">
-                                  <span>{service.serviceId.name}</span>
-                                  {service.category === "hourly" ? (
-                                    <span className="text-xs text-gray-500 ml-1">
-                                      (Rs. {service.servicePrice}/hr × {duration}hr)
-                                    </span>
-                                  ) : (
-                                    <span className="text-xs text-gray-500 ml-1">
-                                      (Rs. {service.servicePrice}/day × {bookingDetails.dates.length} days)
-                                    </span>
-                                  )}
-                                </div>
-                                <span>Rs. {servicePrice}</span>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </>
-                    )}
-
-                    <div className="border-t pt-2 mt-2 font-semibold flex justify-between">
-                      <span>Total Amount:</span>
-                      <span>Rs. {totalPrice}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Esewa Payment Form */}
-                <EsewaPaymentForm
-                  venue={venueId}
-                  start={bookingDetails.startTime}
-                  end={bookingDetails.endTime}
-                  dates={bookingDetails.dates} // Pass multiple dates instead of single date
-                  selectedServices={bookingDetails.selectedServices}
-                  totalAmount={totalPrice}
-                  disabled={
-                    !bookingDetails.dates.length ||
-                    !bookingDetails.startTime ||
-                    !bookingDetails.endTime ||
-                    !bookingDetails.name ||
-                    !bookingDetails.email ||
-                    !bookingDetails.phone ||
-                    !bookingDetails.eventType ||
-                    !bookingDetails.numberOfAttendees
-                  }
-                />
+          {/* Email Input */}
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              Email Address <span className="text-red-500">*</span>
+            </label>
+            <div className="relative rounded-md shadow-sm">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Mail className="h-5 w-5 text-gray-400" aria-hidden="true" />
               </div>
-            ) : (
-              <div className="text-center py-6 text-gray-500">
-                <AlertCircle className="mx-auto h-12 w-12 text-gray-300 mb-2" />
-                <p>Please select dates and time to see booking summary</p>
-              </div>
+              <input
+                type="email"
+                name="email"
+                id="email"
+                className={`focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border rounded-md ${
+                  errors.email ? "border-red-500 focus:ring-red-500 focus:border-red-500" : "border-gray-300"
+                }`}
+                placeholder="john@example.com"
+                value={formData.email}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            {errors.email && (
+              <p className="mt-1 text-sm text-red-600 flex items-center">
+                <AlertCircle className="h-4 w-4 mr-1" />
+                {errors.email}
+              </p>
             )}
+          </div>
+
+          {/* Phone Input */}
+          <div>
+            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+              Phone Number <span className="text-red-500">*</span>
+            </label>
+            <div className="relative rounded-md shadow-sm">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Phone className="h-5 w-5 text-gray-400" aria-hidden="true" />
+              </div>
+              <input
+                type="tel"
+                name="phone"
+                id="phone"
+                className={`focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border rounded-md ${
+                  errors.phone ? "border-red-500 focus:ring-red-500 focus:border-red-500" : "border-gray-300"
+                }`}
+                placeholder="9812345678"
+                value={formData.phone}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            {errors.phone && (
+              <p className="mt-1 text-sm text-red-600 flex items-center">
+                <AlertCircle className="h-4 w-4 mr-1" />
+                {errors.phone}
+              </p>
+            )}
+          </div>
+
+          {/* Company Name Input */}
+          <div>
+            <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-1">
+              Company Name <span className="text-red-500">*</span>
+            </label>
+            <div className="relative rounded-md shadow-sm">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Building className="h-5 w-5 text-gray-400" aria-hidden="true" />
+              </div>
+              <input
+                type="text"
+                name="companyName"
+                id="companyName"
+                className={`focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border rounded-md ${
+                  errors.companyName ? "border-red-500 focus:ring-red-500 focus:border-red-500" : "border-gray-300"
+                }`}
+                placeholder="Awesome Venues Inc."
+                value={formData.companyName}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            {errors.companyName && (
+              <p className="mt-1 text-sm text-red-600 flex items-center">
+                <AlertCircle className="h-4 w-4 mr-1" />
+                {errors.companyName}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Address Field */}
+        <div>
+          <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
+            Business Address <span className="text-red-500">*</span>
+          </label>
+          <div className="relative rounded-md shadow-sm">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <MapPin className="h-5 w-5 text-gray-400" aria-hidden="true" />
+            </div>
+            <input
+              type="text"
+              name="address"
+              id="address"
+              className={`focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border rounded-md ${
+                errors.address ? "border-red-500 focus:ring-red-500 focus:border-red-500" : "border-gray-300"
+              }`}
+              placeholder="123 Main Street, City, Province"
+              value={formData.address}
+              onChange={handleInputChange}
+              required
+            />
+          </div>
+          {errors.address && (
+            <p className="mt-1 text-sm text-red-600 flex items-center">
+              <AlertCircle className="h-4 w-4 mr-1" />
+              {errors.address}
+            </p>
+          )}
+        </div>
+
+        {/* eSewa ID */}
+        <div>
+          <label htmlFor="eSewaId" className="block text-sm font-medium text-gray-700 mb-1">
+            eSewa ID <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            name="eSewaId"
+            id="eSewaId"
+            className={`focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border rounded-md ${
+              errors.eSewaId ? "border-red-500 focus:ring-red-500 focus:border-red-500" : "border-gray-300"
+            }`}
+            placeholder="9812345678 or your@esewa.com"
+            value={formData.eSewaId}
+            onChange={handleInputChange}
+            required
+          />
+          {errors.eSewaId && (
+            <p className="mt-1 text-sm text-red-600 flex items-center">
+              <AlertCircle className="h-4 w-4 mr-1" />
+              {errors.eSewaId}
+            </p>
+          )}
+          <p className="mt-1 text-sm text-gray-500">
+            Enter your eSewa phone number or email address for payment processing
+          </p>
+        </div>
+
+        {/* File Upload Section */}
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+          {/* Government-issued ID Upload */}
+          <div>
+            <label htmlFor="governmentId" className="block text-sm font-medium text-gray-700 mb-1">
+              Government-issued ID <span className="text-red-500">*</span>
+            </label>
+            <div className="mt-1 flex items-center">
+              <input
+                type="file"
+                name="governmentId"
+                id="governmentId"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="sr-only"
+                required
+              />
+              <label
+                htmlFor="governmentId"
+                className={`cursor-pointer bg-white py-2 px-3 border rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                  errors.governmentId ? "border-red-500" : "border-gray-300"
+                }`}
+              >
+                <Upload className="h-5 w-5 inline-block mr-2" />
+                Upload ID Image
+              </label>
+              <span className="ml-3 text-sm text-gray-500">
+                {formData.governmentId ? formData.governmentId.name : "No file chosen"}
+              </span>
+            </div>
+            {errors.governmentId && (
+              <p className="mt-1 text-sm text-red-600 flex items-center">
+                <AlertCircle className="h-4 w-4 mr-1" />
+                {errors.governmentId}
+              </p>
+            )}
+            <p className="mt-1 text-sm text-gray-500">Upload a clear image of your citizenship, license, or passport</p>
+          </div>
+
+          {/* Profile Picture Upload */}
+          <div>
+            <label htmlFor="profilePicture" className="block text-sm font-medium text-gray-700 mb-1">
+              Profile Picture <span className="text-red-500">*</span>
+            </label>
+            <div className="mt-1 flex items-center">
+              <input
+                type="file"
+                name="profilePicture"
+                id="profilePicture"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="sr-only"
+                required
+              />
+              <label
+                htmlFor="profilePicture"
+                className={`cursor-pointer bg-white py-2 px-3 border rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                  errors.profilePicture ? "border-red-500" : "border-gray-300"
+                }`}
+              >
+                <User className="h-5 w-5 inline-block mr-2" />
+                Upload Profile Picture
+              </label>
+              <span className="ml-3 text-sm text-gray-500">
+                {formData.profilePicture ? formData.profilePicture.name : "No file chosen"}
+              </span>
+            </div>
+            {errors.profilePicture && (
+              <p className="mt-1 text-sm text-red-600 flex items-center">
+                <AlertCircle className="h-4 w-4 mr-1" />
+                {errors.profilePicture}
+              </p>
+            )}
+            <p className="mt-1 text-sm text-gray-500">Upload a professional photo for your profile</p>
+          </div>
+        </div>
+
+        {/* Terms and Conditions Checkbox */}
+        <div className="flex items-start">
+          <input
+            id="termsAccepted"
+            name="termsAccepted"
+            type="checkbox"
+            className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mt-1 ${
+              errors.termsAccepted ? "border-red-500" : ""
+            }`}
+            checked={formData.termsAccepted}
+            onChange={handleInputChange}
+            required
+          />
+          <label htmlFor="termsAccepted" className="ml-2 block text-sm text-gray-900">
+            I agree to the{" "}
+            <a href="#" className="text-blue-600 hover:text-blue-500 underline">
+              Terms and Conditions
+            </a>{" "}
+            and{" "}
+            <a href="#" className="text-blue-600 hover:text-blue-500 underline">
+              Privacy Policy
+            </a>
+            <span className="text-red-500 ml-1">*</span>
+          </label>
+        </div>
+        {errors.termsAccepted && (
+          <p className="mt-1 text-sm text-red-600 flex items-center">
+            <AlertCircle className="h-4 w-4 mr-1" />
+            {errors.termsAccepted}
+          </p>
+        )}
+
+        {/* Submit Button */}
+        <div className="pt-4">
+          <button
+            type="submit"
+            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            Submit Application
+          </button>
+        </div>
+      </form>
+
+      {/* Information Section */}
+      <div className="mt-8 bg-blue-50 border border-blue-200 rounded-md p-4">
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <AlertCircle className="h-5 w-5 text-blue-400" />
+          </div>
+          <div className="ml-3">
+            <h3 className="text-sm font-medium text-blue-800">Application Review Process</h3>
+            <div className="mt-2 text-sm text-blue-700">
+              <p>
+                Your application will be reviewed within 2-3 business days. We'll contact you via email once your
+                application is approved. Make sure all information is accurate and documents are clearly visible.
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -995,4 +635,4 @@ const BookNowPage = () => {
   )
 }
 
-export default BookNowPage
+export default BecomeVenueOwnerPage

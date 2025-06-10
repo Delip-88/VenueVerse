@@ -56,12 +56,15 @@ const resolvers = {
 
     // Fetch all bookings
     bookings: async () => {
-      return await Booking.find().populate("venue").populate("user");
+      return await Booking.find()
+        .populate("venue")
+        .populate("user").populate("selectedServices.serviceId")
+        ;
     },
 
     // Fetch a single booking by ID
     booking: async (_, { id }) => {
-      return await Booking.findById(id).populate("venue").populate("user");
+      return await Booking.findById(id).populate("venue").populate("user").populate("selectedServices.serviceId")
     },
 
     // Fetch all users
@@ -95,6 +98,13 @@ const resolvers = {
     },
     services: async () => {
       return await Service.find();
+    },
+    service: async (_, { id }) => {
+      const service = await Service.findById(id);
+      if (!service) {
+        throw new Error("Service not found");
+      }
+      return service;
     },
 
     recentBookings: async (_, { limit }) => {
@@ -162,7 +172,7 @@ const resolvers = {
 
     pendingVenueOwners: async () => {
       return await User.find({
-        role: "VenueOwner",
+        role: "Customer",
         roleApprovalStatus: "PENDING",
       });
     },
@@ -753,16 +763,16 @@ const resolvers = {
           throw new Error("User doesn't exist");
         }
         return {
-          response: {
-            message: "User deleted sucessfully",
-            success: true,
-          },
-          user,
+          message: "User deleted sucessfully",
+          success: true,
         };
-      } catch (err) {}
+      } catch (err) {
+        console.error("Error deleting user:", err);
+        throw new Error("Error deleting user: " + err.message);
+      }
     },
 
-    updateUserDetails: async (_, { input }, { user }) => {
+    updateUserDetails: async (_, { name }, { user }) => {
       if (!user) {
         throw new Error("Unauthorized!!!!");
       }
@@ -1054,7 +1064,8 @@ const resolvers = {
         existingUser.address = input.address;
         existingUser.companyName = input.companyName;
         existingUser.esewaId = input.esewaId;
-        existingUser.roleApprovalStatus = "PENDING";
+        existingUser.roleApprovalStatus = "APPROVED";
+        existingUser.submittedAt= new Date().toISOString();
 
 
         await existingUser.save();
@@ -1066,6 +1077,36 @@ const resolvers = {
       } catch (error) {
         return { success: false, message: error.message };
       }
+    },
+    approveRoleChangeRequest: async (_, { userId }, { user }) => {
+      // if (!user || user.role !== "Admin") {
+      //   throw new AuthenticationError("User not authenticated")
+      // }
+      console.log(userId);
+
+      const userToUpdate = await User.findById(userId);
+      if (!userToUpdate) { 
+        return { success: false, message: "User not found" };
+      }
+      console.log(userToUpdate)
+      userToUpdate.roleApprovalStatus = "APPROVED";
+      userToUpdate.role = "VenueOwner"; // Update role to VenueOwner
+      await userToUpdate.save()
+      return {message: "Role update Success",success:true}
+    },
+
+    rejectRoleChangeRequest: async (_, { userId,rejectionReason }, { user }) => {
+      // if (!user || user.role !== "Admin") {
+      //   return { success: false, message: "Unauthorized" };
+      // }
+      const userToUpdate = await User.findById(userId);
+      if (!userToUpdate) { 
+        return { success: false, message: "User not found" };
+      }
+      userToUpdate.roleApprovalStatus = "REJECTED";
+      userToUpdate.rejectionReason = rejectionReason;
+      await userToUpdate.save()
+      return {message: "Update Success",success:true}
     },
 
     generateSignature: async (
@@ -1160,6 +1201,71 @@ const resolvers = {
 
       return { success: true, message: "Venue rejected." };
     },
+    addService: async (_, { name, image }) => {
+      try {
+        // Check if service with the same name already exists
+        const existingService = await Service.findOne({ name })
+        if (existingService) {
+          throw new Error("A service with this name already exists")
+        }
+
+        // Create new service
+        const newService = new Service({
+          name,
+          image,
+        })
+
+        await newService.save()
+        return {message: "Service added successfully", success: true}
+      } catch (error) {
+        throw new Error(`Failed to add service: ${error.message}`)
+      }
+    },
+
+    updateService: async (_, { id, name, image }) => {
+      try {
+        // Check if service exists
+        const service = await Service.findById(id)
+        if (!service) {
+          throw new Error("Service not found")
+        }
+
+        // Check if name is being changed and if it conflicts
+        if (name !== service.name) {
+          const existingService = await Service.findOne({ name })
+          if (existingService) {
+            throw new Error("A service with this name already exists")
+          }
+        }
+
+        // Update service
+        const updatedService = await Service.findByIdAndUpdate(id, { name, image }, { new: true })
+
+        return {message: "Service updated successfully", success: true}
+      } catch (error) {
+        throw new Error(`Failed to update service: ${error.message}`)
+      }
+    },
+
+    deleteService: async (_, { id }) => {
+      try {
+        // Check if service exists
+        const service = await Service.findById(id)
+        if (!service) {
+          throw new Error("Service not found")
+        }
+
+        // Delete service
+        await Service.findByIdAndDelete(id)
+
+        return {
+          success: true,
+          message: "Service deleted successfully",
+        }
+      } catch (error) {
+        throw new Error(`Failed to delete service: ${error.message}`)
+      }
+    },
   },
   User: {
     async venues(parent) {
@@ -1179,6 +1285,23 @@ const resolvers = {
     },
     async venue(parent) {
       return await Venue.findById(parent.venue); // Booking relates to one venue
+    },
+    async selectedServices(parent) {
+      if (!parent.selectedServices || !Array.isArray(parent.selectedServices)) {
+        // Return an empty array if services is undefined or not an array
+        return [];
+      }
+    
+      return await Promise.all(
+        parent.selectedServices.map(async (service) => {
+          const serviceDetails = await Service.findById(service.serviceId);
+          return {
+            serviceId: serviceDetails, // Full service document
+            servicePrice: service.servicePrice, // Custom price set by venue owner
+            
+          };
+        })
+      );
     },
   },
 
@@ -1204,9 +1327,14 @@ const resolvers = {
       return await Booking.find({ venue: parent._id });
     },
     async services(parent) {
-      return await Promise.all(
+      // Filter out services whose referenced Service document does not exist
+      const results = await Promise.all(
         parent.services.map(async (service) => {
           const serviceDetails = await Service.findById(service.serviceId);
+          if (!serviceDetails) {
+            // Optionally log a warning here
+            return null; // Skip this service if not found
+          }
           return {
             serviceId: serviceDetails, // Full service document
             servicePrice: service.servicePrice, // Custom price set by venue owner
@@ -1214,6 +1342,8 @@ const resolvers = {
           };
         })
       );
+      // Remove nulls to avoid returning null for non-nullable fields
+      return results.filter(s => s !== null);
     },
   },
 

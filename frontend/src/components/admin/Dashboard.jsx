@@ -272,8 +272,8 @@ export default function SuperAdminDashboard() {
                         <div className="text-sm text-gray-500">{owner.email}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{owner?.description || "N/A"}</div>
-                        <div className="text-sm text-gray-500 truncate max-w-xs">{owner?.description || "N/A"}</div>
+                        <div className="text-sm text-gray-900">{owner?.companyName || "N/A"}</div>
+                        <div className="text-sm text-gray-500 truncate max-w-xs">{owner?.address || "N/A"}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-500">{owner?.phone || "N/A"}</div>
