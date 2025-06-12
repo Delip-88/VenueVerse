@@ -365,8 +365,9 @@ const resolvers = {
 
             // Find the service in the venue's offerings
             const venueService = venueData.services.find(
-              (s) => s.serviceId._id.toString() === serviceId
+              (s) => s.serviceId && s.serviceId._id.toString() === serviceId
             );
+            
 
             if (!venueService) {
               throw new Error(`Service not found in venue: ${serviceId}`);
@@ -772,7 +773,7 @@ const resolvers = {
       }
     },
 
-    updateUserDetails: async (_, { name }, { user }) => {
+    updateUserDetails: async (_, { input }, { user }) => {
       if (!user) {
         throw new Error("Unauthorized!!!!");
       }
@@ -1064,7 +1065,7 @@ const resolvers = {
         existingUser.address = input.address;
         existingUser.companyName = input.companyName;
         existingUser.esewaId = input.esewaId;
-        existingUser.roleApprovalStatus = "APPROVED";
+        existingUser.roleApprovalStatus = "PENDING";
         existingUser.submittedAt= new Date().toISOString();
 
 

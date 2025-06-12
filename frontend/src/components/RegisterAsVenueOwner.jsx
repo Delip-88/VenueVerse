@@ -1,7 +1,23 @@
 "use client"
 
 import { useContext, useState } from "react"
-import { User, Mail, Phone, Building, MapPin, Upload, AlertCircle } from "lucide-react"
+import {
+  User,
+  Mail,
+  Phone,
+  Building,
+  MapPin,
+  Upload,
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+  Check,
+  FileText,
+  CreditCard,
+  UserPlus,
+  Camera,
+  BadgeIcon as IdCard,
+} from "lucide-react"
 import { useUploadImage } from "./Functions/UploadImage"
 import { AuthContext } from "../middleware/AuthContext"
 import toast from "react-hot-toast"
@@ -14,6 +30,8 @@ const BecomeVenueOwnerPage = () => {
   const [updateToVenueOwner] = useMutation(UPDATE_TO_VENUE_OWNER)
   const { uploadImage } = useUploadImage()
   const navigate = useNavigate()
+  const [currentStep, setCurrentStep] = useState(1)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const [formData, setFormData] = useState({
     name: user.name,
@@ -28,65 +46,47 @@ const BecomeVenueOwnerPage = () => {
   })
 
   const [errors, setErrors] = useState({})
+  const [governmentIdPreview, setGovernmentIdPreview] = useState(null)
+  const [profilePicturePreview, setProfilePicturePreview] = useState(null)
 
-  // Email validation function
+  // Validation functions
   const validateEmail = (email) => {
-    // Check if email starts with a number
     if (/^[0-9]/.test(email)) {
       return "Email cannot start with a number"
     }
-
-    // Check basic email format
     const emailRegex = /^[a-zA-Z][a-zA-Z0-9._-]*@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
     if (!emailRegex.test(email)) {
       return "Please enter a valid email address"
     }
-
     return null
   }
 
-  // Phone validation function
   const validatePhone = (phone) => {
-    // Remove any spaces or special characters for validation
-    const cleanPhone = phone.replace(/[\s\-$$$$]/g, "")
-
-    // Check if it's a valid Nepali phone number format
+    const cleanPhone = phone.replace(/[\s\-()]/g, "")
     const phoneRegex = /^(\+977)?[0-9]{10}$/
     if (!phoneRegex.test(cleanPhone)) {
       return "Please enter a valid phone number (10 digits)"
     }
-
     return null
   }
 
-  // File validation function
   const validateFile = (file, fieldName) => {
     if (!file) return `${fieldName} is required`
-
-    // Check if file is an image
     if (!file.type.startsWith("image/")) {
       return `${fieldName} must be an image file (JPG, PNG, GIF, etc.)`
     }
-
-    // Check file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024 // 5MB in bytes
+    const maxSize = 5 * 1024 * 1024 // 5MB
     if (file.size > maxSize) {
       return `${fieldName} must be less than 5MB`
     }
-
     return null
   }
-
-  // eSewa ID validation function
   const validateESewaId = (eSewaId) => {
-    // eSewa ID should be either phone number or email format
-    const phoneRegex = /^[0-9]{10}$/
-    const emailRegex = /^[a-zA-Z][a-zA-Z0-9._-]*@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
-
-    if (!phoneRegex.test(eSewaId) && !emailRegex.test(eSewaId)) {
-      return "eSewa ID must be a valid phone number or email address"
+    // Must be exactly 10 digits and start with 9
+    const phoneRegex = /^9\d{9}$/
+    if (!phoneRegex.test(eSewaId)) {
+      return "eSewa ID must be a 10-digit number starting with 9"
     }
-
     return null
   }
 
@@ -99,25 +99,9 @@ const BecomeVenueOwnerPage = () => {
       [name]: newValue,
     }))
 
-    // Real-time validation
+    // Clear errors when user starts typing
     if (errors[name]) {
-      let error = null
-
-      switch (name) {
-        case "email":
-          error = validateEmail(newValue)
-          break
-        case "phone":
-          error = validatePhone(newValue)
-          break
-        case "eSewaId":
-          error = validateESewaId(newValue)
-          break
-        default:
-          error = null
-      }
-
-      setErrors((prev) => ({ ...prev, [name]: error }))
+      setErrors((prev) => ({ ...prev, [name]: null }))
     }
   }
 
@@ -126,97 +110,121 @@ const BecomeVenueOwnerPage = () => {
 
     if (files && files.length > 0) {
       const file = files[0]
-
-      // Validate file immediately
       const fieldDisplayName = name === "governmentId" ? "Government ID" : "Profile Picture"
       const fileError = validateFile(file, fieldDisplayName)
 
       if (fileError) {
         setErrors((prev) => ({ ...prev, [name]: fileError }))
-        // Clear the file input
         e.target.value = ""
         return
       }
 
       setFormData((prev) => ({ ...prev, [name]: file }))
 
+      // Create preview
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        if (name === "governmentId") {
+          setGovernmentIdPreview(e.target.result)
+        } else {
+          setProfilePicturePreview(e.target.result)
+        }
+      }
+      reader.readAsDataURL(file)
+
       if (errors[name]) {
-        setErrors((prev) => ({ ...prev, [name]: "" }))
+        setErrors((prev) => ({ ...prev, [name]: null }))
       }
     }
   }
 
-  const validateForm = () => {
+  const validateStep = (step) => {
     const newErrors = {}
 
-    // Name validation
-    if (!formData.name.trim()) {
-      newErrors.name = "Name is required"
-    } else if (formData.name.trim().length < 2) {
-      newErrors.name = "Name must be at least 2 characters long"
-    }
+    switch (step) {
+      case 1: // Personal Information
+        if (!formData.name.trim()) {
+          newErrors.name = "Name is required"
+        } else if (formData.name.trim().length < 2) {
+          newErrors.name = "Name must be at least 2 characters long"
+        }
 
-    // Email validation
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required"
-    } else {
-      const emailError = validateEmail(formData.email)
-      if (emailError) newErrors.email = emailError
-    }
+        if (!formData.email.trim()) {
+          newErrors.email = "Email is required"
+        } else {
+          const emailError = validateEmail(formData.email)
+          if (emailError) newErrors.email = emailError
+        }
 
-    // Phone validation
-    if (!formData.phone.trim()) {
-      newErrors.phone = "Phone number is required"
-    } else {
-      const phoneError = validatePhone(formData.phone)
-      if (phoneError) newErrors.phone = phoneError
-    }
+        if (!formData.phone.trim()) {
+          newErrors.phone = "Phone number is required"
+        } else {
+          const phoneError = validatePhone(formData.phone)
+          if (phoneError) newErrors.phone = phoneError
+        }
+        break
 
-    // Company name validation
-    if (!formData.companyName.trim()) {
-      newErrors.companyName = "Company name is required"
-    } else if (formData.companyName.trim().length < 2) {
-      newErrors.companyName = "Company name must be at least 2 characters long"
-    }
+      case 2: // Business Information
+        if (!formData.companyName.trim()) {
+          newErrors.companyName = "Company name is required"
+        } else if (formData.companyName.trim().length < 2) {
+          newErrors.companyName = "Company name must be at least 2 characters long"
+        }
 
-    // Address validation
-    if (!formData.address.trim()) {
-      newErrors.address = "Address is required"
-    } else if (formData.address.trim().length < 5) {
-      newErrors.address = "Please provide a complete address"
-    }
+        if (!formData.address.trim()) {
+          newErrors.address = "Address is required"
+        } else if (formData.address.trim().length < 5) {
+          newErrors.address = "Please provide a complete address"
+        }
 
-    // eSewa ID validation
-    if (!formData.eSewaId.trim()) {
-      newErrors.eSewaId = "eSewa ID is required"
-    } else {
-      const eSewaError = validateESewaId(formData.eSewaId)
-      if (eSewaError) newErrors.eSewaId = eSewaError
-    }
+        if (!formData.eSewaId.trim()) {
+          newErrors.eSewaId = "eSewa ID is required"
+        } else {
+          const eSewaError = validateESewaId(formData.eSewaId)
+          if (eSewaError) newErrors.eSewaId = eSewaError
+        }
+        break
 
-    // File validations
-    const govIdError = validateFile(formData.governmentId, "Government ID")
-    if (govIdError) newErrors.governmentId = govIdError
+      case 3: // Document Upload
+        const govIdError = validateFile(formData.governmentId, "Government ID")
+        if (govIdError) newErrors.governmentId = govIdError
 
-    const profilePicError = validateFile(formData.profilePicture, "Profile Picture")
-    if (profilePicError) newErrors.profilePicture = profilePicError
+        const profilePicError = validateFile(formData.profilePicture, "Profile Picture")
+        if (profilePicError) newErrors.profilePicture = profilePicError
+        break
 
-    // Terms validation
-    if (!formData.termsAccepted) {
-      newErrors.termsAccepted = "You must accept the Terms and Conditions"
+      case 4: // Review & Terms
+        if (!formData.termsAccepted) {
+          newErrors.termsAccepted = "You must accept the Terms and Conditions"
+        }
+        break
     }
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
+  const nextStep = () => {
+    if (validateStep(currentStep)) {
+      setCurrentStep(currentStep + 1)
+      window.scrollTo(0, 0)
+    }
+  }
+
+  const prevStep = () => {
+    setCurrentStep(currentStep - 1)
+    window.scrollTo(0, 0)
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    if (!validateForm()) {
+    if (!validateStep(currentStep)) {
       toast.error("Please fix the errors in the form")
       return
     }
+
+    setIsSubmitting(true)
 
     toast
       .promise(
@@ -271,7 +279,6 @@ const BecomeVenueOwnerPage = () => {
                   legalDocImg: govIdImageWithoutTypename,
                   esewaId: formData.eSewaId.trim(),
                   companyName: formData.companyName.trim(),
-             
                 },
               },
             })
@@ -291,343 +298,610 @@ const BecomeVenueOwnerPage = () => {
         },
       )
       .then(() => {
-        setFormData({
-          name: "",
-          email: "",
-          phone: "",
-          companyName: "",
-          governmentId: null,
-          profilePicture: null,
-          address: "",
-          eSewaId: "",
-          termsAccepted: false,
-        })
-        navigate("/Dashboard")
+        navigate("/Home")
+      })
+      .finally(() => {
+        setIsSubmitting(false)
       })
   }
 
+  const totalSteps = 4
+  const progress = Math.round((currentStep / totalSteps) * 100)
+
+  const renderStep = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <div className="space-y-6">
+            <div className="text-center mb-8">
+              <div className="bg-teal-100 rounded-full p-3 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                <User className="h-8 w-8 text-teal-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Personal Information</h2>
+              <p className="text-gray-600">Let's start with your basic information</p>
+            </div>
+
+            <div className="space-y-6">
+              {/* Name Input */}
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                  Full Name <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <User className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    name="name"
+                    id="name"
+                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors ${
+                      errors.name ? "border-red-500" : "border-gray-300"
+                    }`}
+                    placeholder="Enter your full name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                {errors.name && (
+                  <p className="mt-2 text-sm text-red-600 flex items-center">
+                    <AlertCircle className="h-4 w-4 mr-2" />
+                    {errors.name}
+                  </p>
+                )}
+              </div>
+
+              {/* Email Input */}
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                  Email Address <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Mail className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="email"
+                    name="email"
+                    id="email"
+                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors ${
+                      errors.email ? "border-red-500" : "border-gray-300"
+                    }`}
+                    placeholder="you@example.com"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                {errors.email && (
+                  <p className="mt-2 text-sm text-red-600 flex items-center">
+                    <AlertCircle className="h-4 w-4 mr-2" />
+                    {errors.email}
+                  </p>
+                )}
+                <p className="mt-1 text-xs text-gray-500">Email cannot start with a number</p>
+              </div>
+
+              {/* Phone Input */}
+              <div>
+                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                  Phone Number <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Phone className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="tel"
+                    name="phone"
+                    id="phone"
+                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors ${
+                      errors.phone ? "border-red-500" : "border-gray-300"
+                    }`}
+                    placeholder="9812345678"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                {errors.phone && (
+                  <p className="mt-2 text-sm text-red-600 flex items-center">
+                    <AlertCircle className="h-4 w-4 mr-2" />
+                    {errors.phone}
+                  </p>
+                )}
+                <p className="mt-1 text-xs text-gray-500">Enter a 10-digit phone number</p>
+              </div>
+            </div>
+          </div>
+        )
+
+      case 2:
+        return (
+          <div className="space-y-6">
+            <div className="text-center mb-8">
+              <div className="bg-teal-100 rounded-full p-3 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                <Building className="h-8 w-8 text-teal-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Business Information</h2>
+              <p className="text-gray-600">Tell us about your business and payment details</p>
+            </div>
+
+            <div className="space-y-6">
+              {/* Company Name */}
+              <div>
+                <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-2">
+                  Company Name <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Building className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    name="companyName"
+                    id="companyName"
+                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors ${
+                      errors.companyName ? "border-red-500" : "border-gray-300"
+                    }`}
+                    placeholder="Awesome Venues Inc."
+                    value={formData.companyName}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                {errors.companyName && (
+                  <p className="mt-2 text-sm text-red-600 flex items-center">
+                    <AlertCircle className="h-4 w-4 mr-2" />
+                    {errors.companyName}
+                  </p>
+                )}
+              </div>
+
+              {/* Business Address */}
+              <div>
+                <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-2">
+                  Business Address <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <MapPin className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    name="address"
+                    id="address"
+                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors ${
+                      errors.address ? "border-red-500" : "border-gray-300"
+                    }`}
+                    placeholder="123 Main Street, City, Province"
+                    value={formData.address}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                {errors.address && (
+                  <p className="mt-2 text-sm text-red-600 flex items-center">
+                    <AlertCircle className="h-4 w-4 mr-2" />
+                    {errors.address}
+                  </p>
+                )}
+              </div>
+
+              {/* eSewa ID */}
+              <div>
+                <label htmlFor="eSewaId" className="block text-sm font-medium text-gray-700 mb-2">
+                  eSewa ID <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <CreditCard className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    name="eSewaId"
+                    id="eSewaId"
+                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors ${
+                      errors.eSewaId ? "border-red-500" : "border-gray-300"
+                    }`}
+                    placeholder="98********"
+                    value={formData.eSewaId}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                {errors.eSewaId && (
+                  <p className="mt-2 text-sm text-red-600 flex items-center">
+                    <AlertCircle className="h-4 w-4 mr-2" />
+                    {errors.eSewaId}
+                  </p>
+                )}
+                <p className="mt-1 text-xs text-gray-500">
+                  Enter your eSewa phone number address for payment processing
+                </p>
+              </div>
+            </div>
+          </div>
+        )
+
+      case 3:
+        return (
+          <div className="space-y-6">
+            <div className="text-center mb-8">
+              <div className="bg-teal-100 rounded-full p-3 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                <FileText className="h-8 w-8 text-teal-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Document Upload</h2>
+              <p className="text-gray-600">Upload your identification and profile picture</p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-8">
+              {/* Government ID Upload */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-4">
+                  Government-issued ID <span className="text-red-500">*</span>
+                </label>
+                <div
+                  className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors ${
+                    errors.governmentId
+                      ? "border-red-300 bg-red-50"
+                      : governmentIdPreview
+                        ? "border-teal-300 bg-teal-50"
+                        : "border-gray-300 hover:border-teal-400"
+                  }`}
+                >
+                  {governmentIdPreview ? (
+                    <div className="space-y-4">
+                      <img
+                        src={governmentIdPreview || "/placeholder.svg"}
+                        alt="Government ID Preview"
+                        className="mx-auto h-32 w-auto rounded-lg object-cover"
+                      />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{formData.governmentId?.name}</p>
+                        <p className="text-xs text-gray-500">
+                          {(formData.governmentId?.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </div>
+                      <label
+                        htmlFor="governmentId"
+                        className="inline-flex items-center px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 cursor-pointer transition-colors"
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        Change File
+                      </label>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <IdCard className="mx-auto h-12 w-12 text-gray-400" />
+                      <div>
+                        <label
+                          htmlFor="governmentId"
+                          className="inline-flex items-center px-6 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 cursor-pointer transition-colors font-medium"
+                        >
+                          <Upload className="h-5 w-5 mr-2" />
+                          Upload ID Image
+                        </label>
+                        <p className="mt-2 text-xs text-gray-500">PNG, JPG, GIF up to 5MB</p>
+                      </div>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    name="governmentId"
+                    id="governmentId"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                </div>
+                {errors.governmentId && (
+                  <p className="mt-2 text-sm text-red-600 flex items-center">
+                    <AlertCircle className="h-4 w-4 mr-2" />
+                    {errors.governmentId}
+                  </p>
+                )}
+                <p className="mt-2 text-xs text-gray-500">
+                  Upload a clear image of your citizenship, license, or passport
+                </p>
+              </div>
+
+              {/* Profile Picture Upload */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-4">
+                  Profile Picture <span className="text-red-500">*</span>
+                </label>
+                <div
+                  className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors ${
+                    errors.profilePicture
+                      ? "border-red-300 bg-red-50"
+                      : profilePicturePreview
+                        ? "border-teal-300 bg-teal-50"
+                        : "border-gray-300 hover:border-teal-400"
+                  }`}
+                >
+                  {profilePicturePreview ? (
+                    <div className="space-y-4">
+                      <img
+                        src={profilePicturePreview || "/placeholder.svg"}
+                        alt="Profile Picture Preview"
+                        className="mx-auto h-32 w-32 rounded-full object-cover border-4 border-white shadow-lg"
+                      />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{formData.profilePicture?.name}</p>
+                        <p className="text-xs text-gray-500">
+                          {(formData.profilePicture?.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </div>
+                      <label
+                        htmlFor="profilePicture"
+                        className="inline-flex items-center px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 cursor-pointer transition-colors"
+                      >
+                        <Camera className="h-4 w-4 mr-2" />
+                        Change Photo
+                      </label>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <Camera className="mx-auto h-12 w-12 text-gray-400" />
+                      <div>
+                        <label
+                          htmlFor="profilePicture"
+                          className="inline-flex items-center px-6 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 cursor-pointer transition-colors font-medium"
+                        >
+                          <Camera className="h-5 w-5 mr-2" />
+                          Upload Photo
+                        </label>
+                        <p className="mt-2 text-xs text-gray-500">PNG, JPG, GIF up to 5MB</p>
+                      </div>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    name="profilePicture"
+                    id="profilePicture"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                </div>
+                {errors.profilePicture && (
+                  <p className="mt-2 text-sm text-red-600 flex items-center">
+                    <AlertCircle className="h-4 w-4 mr-2" />
+                    {errors.profilePicture}
+                  </p>
+                )}
+                <p className="mt-2 text-xs text-gray-500">Upload a professional photo for your profile</p>
+              </div>
+            </div>
+          </div>
+        )
+
+      case 4:
+        return (
+          <div className="space-y-6">
+            <div className="text-center mb-8">
+              <div className="bg-emerald-100 rounded-full p-3 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                <Check className="h-8 w-8 text-emerald-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Review & Submit</h2>
+              <p className="text-gray-600">Review your information and accept our terms</p>
+            </div>
+
+            {/* Application Summary */}
+            <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Application Summary</h3>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Personal Information</p>
+                    <p className="text-gray-900">{formData.name}</p>
+                    <p className="text-gray-600 text-sm">{formData.email}</p>
+                    <p className="text-gray-600 text-sm">{formData.phone}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Business Information</p>
+                    <p className="text-gray-900">{formData.companyName}</p>
+                    <p className="text-gray-600 text-sm">{formData.address}</p>
+                    <p className="text-gray-600 text-sm">eSewa: {formData.eSewaId}</p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Documents</p>
+                    <div className="flex items-center space-x-4">
+                      {profilePicturePreview && (
+                        <img
+                          src={profilePicturePreview || "/placeholder.svg"}
+                          alt="Profile"
+                          className="h-16 w-16 rounded-full object-cover border-2 border-gray-200"
+                        />
+                      )}
+                      {governmentIdPreview && (
+                        <img
+                          src={governmentIdPreview || "/placeholder.svg"}
+                          alt="Government ID"
+                          className="h-16 w-24 rounded-lg object-cover border-2 border-gray-200"
+                        />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Terms and Conditions */}
+            <div className="bg-white border border-gray-200 rounded-xl p-6">
+              <div className="flex items-start space-x-3">
+                <input
+                  id="termsAccepted"
+                  name="termsAccepted"
+                  type="checkbox"
+                  className={`h-5 w-5 text-teal-600 focus:ring-teal-500 border-gray-300 rounded mt-1 ${
+                    errors.termsAccepted ? "border-red-500" : ""
+                  }`}
+                  checked={formData.termsAccepted}
+                  onChange={handleInputChange}
+                />
+                <div className="flex-1">
+                  <label htmlFor="termsAccepted" className="text-sm text-gray-900">
+                    I agree to the{" "}
+                    <a href="#" className="text-teal-600 hover:text-teal-500 underline font-medium">
+                      Terms and Conditions
+                    </a>{" "}
+                    and{" "}
+                    <a href="#" className="text-teal-600 hover:text-teal-500 underline font-medium">
+                      Privacy Policy
+                    </a>
+                    <span className="text-red-500 ml-1">*</span>
+                  </label>
+                  {errors.termsAccepted && (
+                    <p className="mt-2 text-sm text-red-600 flex items-center">
+                      <AlertCircle className="h-4 w-4 mr-2" />
+                      {errors.termsAccepted}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Information Section */}
+            <div className="bg-teal-50 border border-teal-200 rounded-xl p-6">
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  <AlertCircle className="h-6 w-6 text-teal-600" />
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-teal-800">Application Review Process</h3>
+                  <div className="mt-2 text-sm text-teal-700">
+                    <p>
+                      Your application will be reviewed within 2-3 business days. We'll contact you via email once your
+                      application is approved. Make sure all information is accurate and documents are clearly visible.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+
+      default:
+        return null
+    }
+  }
+
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Become a Venue Owner</h1>
-        <p className="text-gray-600">Join our platform and start listing your venues to reach more customers.</p>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-          {/* Name Input */}
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-              Full Name <span className="text-red-500">*</span>
-            </label>
-            <div className="relative rounded-md shadow-sm">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <User className="h-5 w-5 text-gray-400" aria-hidden="true" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-center mb-4">
+              <div className="bg-teal-100 rounded-full p-3 mr-4">
+                <UserPlus className="h-8 w-8 text-teal-600" />
               </div>
-              <input
-                type="text"
-                name="name"
-                id="name"
-                className={`focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border rounded-md ${
-                  errors.name ? "border-red-500 focus:ring-red-500 focus:border-red-500" : "border-gray-300"
-                }`}
-                placeholder="John Doe"
-                value={formData.name}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            {errors.name && (
-              <p className="mt-1 text-sm text-red-600 flex items-center">
-                <AlertCircle className="h-4 w-4 mr-1" />
-                {errors.name}
-              </p>
-            )}
-          </div>
-
-          {/* Email Input */}
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email Address <span className="text-red-500">*</span>
-            </label>
-            <div className="relative rounded-md shadow-sm">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Mail className="h-5 w-5 text-gray-400" aria-hidden="true" />
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Become a Venue Owner</h1>
+                <p className="text-gray-600 mt-1">Join our platform and start listing your venues</p>
               </div>
-              <input
-                type="email"
-                name="email"
-                id="email"
-                className={`focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border rounded-md ${
-                  errors.email ? "border-red-500 focus:ring-red-500 focus:border-red-500" : "border-gray-300"
-                }`}
-                placeholder="john@example.com"
-                value={formData.email}
-                onChange={handleInputChange}
-                required
-              />
             </div>
-            {errors.email && (
-              <p className="mt-1 text-sm text-red-600 flex items-center">
-                <AlertCircle className="h-4 w-4 mr-1" />
-                {errors.email}
-              </p>
-            )}
           </div>
+        </div>
 
-          {/* Phone Input */}
-          <div>
-            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
-              Phone Number <span className="text-red-500">*</span>
-            </label>
-            <div className="relative rounded-md shadow-sm">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Phone className="h-5 w-5 text-gray-400" aria-hidden="true" />
+        {/* Progress Bar */}
+        <div className="max-w-4xl mx-auto mb-8">
+          <div className="flex justify-between mb-4">
+            <span className="text-sm font-medium text-gray-700">
+              Step {currentStep} of {totalSteps}
+            </span>
+            <span className="text-sm font-medium text-gray-700">{progress}% Complete</span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-3">
+            <div
+              className="bg-teal-600 h-3 rounded-full transition-all duration-300"
+              style={{ width: `${progress}%` }}
+            ></div>
+          </div>
+        </div>
+
+        {/* Step Indicators */}
+        <div className="max-w-4xl mx-auto mb-8">
+          <div className="flex justify-between">
+            {[
+              { number: 1, title: "Personal", icon: User },
+              { number: 2, title: "Business", icon: Building },
+              { number: 3, title: "Documents", icon: FileText },
+              { number: 4, title: "Review", icon: Check },
+            ].map((step) => {
+              const isActive = step.number === currentStep
+              const isCompleted = step.number < currentStep
+
+              return (
+                <div key={step.number} className="flex flex-col items-center">
+                  <div
+                    className={`flex items-center justify-center w-12 h-12 rounded-full transition-all duration-200 ${
+                      isActive
+                        ? "bg-teal-600 text-white shadow-lg"
+                        : isCompleted
+                          ? "bg-emerald-500 text-white"
+                          : "bg-gray-200 text-gray-600"
+                    }`}
+                  >
+                    {isCompleted ? <Check className="h-6 w-6" /> : <step.icon className="h-6 w-6" />}
+                  </div>
+                  <span className="text-sm font-medium text-gray-700 mt-2">{step.title}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Step Content */}
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+            <form onSubmit={handleSubmit}>
+              {renderStep()}
+
+              {/* Navigation Buttons */}
+              <div className="flex justify-between mt-8 pt-6 border-t border-gray-200">
+                {currentStep > 1 ? (
+                  <button
+                    type="button"
+                    onClick={prevStep}
+                    className="flex items-center px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 transition-colors font-medium"
+                  >
+                    <ChevronLeft className="h-5 w-5 mr-2" />
+                    Previous
+                  </button>
+                ) : (
+                  <div></div>
+                )}
+
+                {currentStep < totalSteps ? (
+                  <button
+                    type="button"
+                    onClick={nextStep}
+                    className="flex items-center px-6 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 transition-colors font-medium"
+                  >
+                    Next
+                    <ChevronRight className="h-5 w-5 ml-2" />
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="flex items-center px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="h-5 w-5 mr-2" />
+                        Submit Application
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
-              <input
-                type="tel"
-                name="phone"
-                id="phone"
-                className={`focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border rounded-md ${
-                  errors.phone ? "border-red-500 focus:ring-red-500 focus:border-red-500" : "border-gray-300"
-                }`}
-                placeholder="9812345678"
-                value={formData.phone}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            {errors.phone && (
-              <p className="mt-1 text-sm text-red-600 flex items-center">
-                <AlertCircle className="h-4 w-4 mr-1" />
-                {errors.phone}
-              </p>
-            )}
-          </div>
-
-          {/* Company Name Input */}
-          <div>
-            <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-1">
-              Company Name <span className="text-red-500">*</span>
-            </label>
-            <div className="relative rounded-md shadow-sm">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Building className="h-5 w-5 text-gray-400" aria-hidden="true" />
-              </div>
-              <input
-                type="text"
-                name="companyName"
-                id="companyName"
-                className={`focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border rounded-md ${
-                  errors.companyName ? "border-red-500 focus:ring-red-500 focus:border-red-500" : "border-gray-300"
-                }`}
-                placeholder="Awesome Venues Inc."
-                value={formData.companyName}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            {errors.companyName && (
-              <p className="mt-1 text-sm text-red-600 flex items-center">
-                <AlertCircle className="h-4 w-4 mr-1" />
-                {errors.companyName}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Address Field */}
-        <div>
-          <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
-            Business Address <span className="text-red-500">*</span>
-          </label>
-          <div className="relative rounded-md shadow-sm">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <MapPin className="h-5 w-5 text-gray-400" aria-hidden="true" />
-            </div>
-            <input
-              type="text"
-              name="address"
-              id="address"
-              className={`focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border rounded-md ${
-                errors.address ? "border-red-500 focus:ring-red-500 focus:border-red-500" : "border-gray-300"
-              }`}
-              placeholder="123 Main Street, City, Province"
-              value={formData.address}
-              onChange={handleInputChange}
-              required
-            />
-          </div>
-          {errors.address && (
-            <p className="mt-1 text-sm text-red-600 flex items-center">
-              <AlertCircle className="h-4 w-4 mr-1" />
-              {errors.address}
-            </p>
-          )}
-        </div>
-
-        {/* eSewa ID */}
-        <div>
-          <label htmlFor="eSewaId" className="block text-sm font-medium text-gray-700 mb-1">
-            eSewa ID <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            name="eSewaId"
-            id="eSewaId"
-            className={`focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border rounded-md ${
-              errors.eSewaId ? "border-red-500 focus:ring-red-500 focus:border-red-500" : "border-gray-300"
-            }`}
-            placeholder="9812345678 or your@esewa.com"
-            value={formData.eSewaId}
-            onChange={handleInputChange}
-            required
-          />
-          {errors.eSewaId && (
-            <p className="mt-1 text-sm text-red-600 flex items-center">
-              <AlertCircle className="h-4 w-4 mr-1" />
-              {errors.eSewaId}
-            </p>
-          )}
-          <p className="mt-1 text-sm text-gray-500">
-            Enter your eSewa phone number or email address for payment processing
-          </p>
-        </div>
-
-        {/* File Upload Section */}
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-          {/* Government-issued ID Upload */}
-          <div>
-            <label htmlFor="governmentId" className="block text-sm font-medium text-gray-700 mb-1">
-              Government-issued ID <span className="text-red-500">*</span>
-            </label>
-            <div className="mt-1 flex items-center">
-              <input
-                type="file"
-                name="governmentId"
-                id="governmentId"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="sr-only"
-                required
-              />
-              <label
-                htmlFor="governmentId"
-                className={`cursor-pointer bg-white py-2 px-3 border rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                  errors.governmentId ? "border-red-500" : "border-gray-300"
-                }`}
-              >
-                <Upload className="h-5 w-5 inline-block mr-2" />
-                Upload ID Image
-              </label>
-              <span className="ml-3 text-sm text-gray-500">
-                {formData.governmentId ? formData.governmentId.name : "No file chosen"}
-              </span>
-            </div>
-            {errors.governmentId && (
-              <p className="mt-1 text-sm text-red-600 flex items-center">
-                <AlertCircle className="h-4 w-4 mr-1" />
-                {errors.governmentId}
-              </p>
-            )}
-            <p className="mt-1 text-sm text-gray-500">Upload a clear image of your citizenship, license, or passport</p>
-          </div>
-
-          {/* Profile Picture Upload */}
-          <div>
-            <label htmlFor="profilePicture" className="block text-sm font-medium text-gray-700 mb-1">
-              Profile Picture <span className="text-red-500">*</span>
-            </label>
-            <div className="mt-1 flex items-center">
-              <input
-                type="file"
-                name="profilePicture"
-                id="profilePicture"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="sr-only"
-                required
-              />
-              <label
-                htmlFor="profilePicture"
-                className={`cursor-pointer bg-white py-2 px-3 border rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                  errors.profilePicture ? "border-red-500" : "border-gray-300"
-                }`}
-              >
-                <User className="h-5 w-5 inline-block mr-2" />
-                Upload Profile Picture
-              </label>
-              <span className="ml-3 text-sm text-gray-500">
-                {formData.profilePicture ? formData.profilePicture.name : "No file chosen"}
-              </span>
-            </div>
-            {errors.profilePicture && (
-              <p className="mt-1 text-sm text-red-600 flex items-center">
-                <AlertCircle className="h-4 w-4 mr-1" />
-                {errors.profilePicture}
-              </p>
-            )}
-            <p className="mt-1 text-sm text-gray-500">Upload a professional photo for your profile</p>
-          </div>
-        </div>
-
-        {/* Terms and Conditions Checkbox */}
-        <div className="flex items-start">
-          <input
-            id="termsAccepted"
-            name="termsAccepted"
-            type="checkbox"
-            className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mt-1 ${
-              errors.termsAccepted ? "border-red-500" : ""
-            }`}
-            checked={formData.termsAccepted}
-            onChange={handleInputChange}
-            required
-          />
-          <label htmlFor="termsAccepted" className="ml-2 block text-sm text-gray-900">
-            I agree to the{" "}
-            <a href="#" className="text-blue-600 hover:text-blue-500 underline">
-              Terms and Conditions
-            </a>{" "}
-            and{" "}
-            <a href="#" className="text-blue-600 hover:text-blue-500 underline">
-              Privacy Policy
-            </a>
-            <span className="text-red-500 ml-1">*</span>
-          </label>
-        </div>
-        {errors.termsAccepted && (
-          <p className="mt-1 text-sm text-red-600 flex items-center">
-            <AlertCircle className="h-4 w-4 mr-1" />
-            {errors.termsAccepted}
-          </p>
-        )}
-
-        {/* Submit Button */}
-        <div className="pt-4">
-          <button
-            type="submit"
-            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            Submit Application
-          </button>
-        </div>
-      </form>
-
-      {/* Information Section */}
-      <div className="mt-8 bg-blue-50 border border-blue-200 rounded-md p-4">
-        <div className="flex">
-          <div className="flex-shrink-0">
-            <AlertCircle className="h-5 w-5 text-blue-400" />
-          </div>
-          <div className="ml-3">
-            <h3 className="text-sm font-medium text-blue-800">Application Review Process</h3>
-            <div className="mt-2 text-sm text-blue-700">
-              <p>
-                Your application will be reviewed within 2-3 business days. We'll contact you via email once your
-                application is approved. Make sure all information is accurate and documents are clearly visible.
-              </p>
-            </div>
+            </form>
           </div>
         </div>
       </div>

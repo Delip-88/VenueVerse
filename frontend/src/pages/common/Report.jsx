@@ -13,6 +13,7 @@ import {
   Users,
 } from "lucide-react"
 import { MY_BOOKINGS } from "../../components/Graphql/query/meGql"
+import { convertToDate } from "../../components/Functions/calc"
 
 export default function BookingReport({ companyInfo: propCompanyInfo }) {
   const { id: bookingID } = useParams()
@@ -35,14 +36,7 @@ export default function BookingReport({ companyInfo: propCompanyInfo }) {
     website: "www.venueVerse.com",
   }
 
-  const formatDate = (dateString) => {
-    if (!dateString) return ""
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    })
-  }
+
 
   const formatCurrency = (amount) => {
     if (typeof amount !== "number") return "-"
@@ -133,7 +127,7 @@ export default function BookingReport({ companyInfo: propCompanyInfo }) {
           <div className="text-gray-500 text-sm mt-1">
             <span className="font-medium">Booking ID:</span> {booking.id}
             <br />
-            <span className="font-medium">Issued:</span> {formatDate(booking.createdAt || booking.date)}
+            <span className="font-medium">Issued:</span> {convertToDate(booking.createdAt || booking.date)}
           </div>
         </div>
       </div>
@@ -194,7 +188,7 @@ export default function BookingReport({ companyInfo: propCompanyInfo }) {
               <div className="ml-6 text-gray-500 text-sm">{formatLocation(booking.venue?.location)}</div>
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
-                {formatDate(booking.date)}
+                {convertToDate(booking.date)}
               </div>
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4" />
@@ -239,7 +233,7 @@ export default function BookingReport({ companyInfo: propCompanyInfo }) {
                   <td className="p-4">
                     <div className="font-medium">Venue Rental - {booking.venue?.name}</div>
                     <div className="text-xs text-gray-500">
-                      {formatDate(booking.date)} &bull; {booking.eventType}
+                      {convertToDate(booking.date)} &bull; {booking.eventType}
                     </div>
                   </td>
                   <td className="p-4 text-right">{duration}</td>

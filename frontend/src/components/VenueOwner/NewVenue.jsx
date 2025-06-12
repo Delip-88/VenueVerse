@@ -402,7 +402,7 @@ const AddNewVenue = () => {
         return (
           <div className="space-y-6">
             <div className="flex items-center mb-6">
-              <div className="bg-blue-500 rounded-full p-2 text-white">
+              <div className="bg-teal-500 rounded-full p-2 text-white">
                 <FileText className="h-6 w-6" />
               </div>
               <h2 className="text-xl font-semibold ml-2">Basic Information</h2>
@@ -420,7 +420,7 @@ const AddNewVenue = () => {
                 onChange={handleChange}
                 className={`mt-1 block w-full rounded-md border ${
                   errors.name ? "border-red-500" : "border-gray-300"
-                } shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
+                } shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200 focus:ring-opacity-50`}
               />
               {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name}</p>}
             </div>
@@ -437,7 +437,7 @@ const AddNewVenue = () => {
                 rows="4"
                 className={`mt-1 block w-full rounded-md border ${
                   errors.description ? "border-red-500" : "border-gray-300"
-                } shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
+                } shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200 focus:ring-opacity-50`}
               ></textarea>
               {errors.description && <p className="mt-1 text-sm text-red-500">{errors.description}</p>}
             </div>
@@ -453,15 +453,15 @@ const AddNewVenue = () => {
                     key={category}
                     className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
                       venue.categories.includes(category)
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-gray-200 hover:border-blue-300"
+                        ? "border-teal-500 bg-teal-50"
+                        : "border-gray-200 hover:border-teal-300"
                     }`}
                     onClick={() => handleCategoryToggle(category)}
                   >
                     <div className="flex-shrink-0">
                       <div
                         className={`w-5 h-5 rounded border flex items-center justify-center ${
-                          venue.categories.includes(category) ? "bg-blue-500 border-blue-500" : "border-gray-300"
+                          venue.categories.includes(category) ? "bg-teal-500 border-teal-500" : "border-gray-300"
                         }`}
                       >
                         {venue.categories.includes(category) && <Check className="h-3 w-3 text-white" />}
@@ -480,7 +480,7 @@ const AddNewVenue = () => {
         return (
           <div className="space-y-6">
             <div className="flex items-center mb-6">
-              <div className="bg-blue-500 rounded-full p-2 text-white">
+              <div className="bg-teal-500 rounded-full p-2 text-white">
                 <MapPin className="h-6 w-6" />
               </div>
               <h2 className="text-xl font-semibold ml-2">Location Details</h2>
@@ -498,7 +498,7 @@ const AddNewVenue = () => {
                   onChange={handleChange}
                   className={`mt-1 block w-full rounded-md border ${
                     errors.province ? "border-red-500" : "border-gray-300"
-                  } shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
+                  } shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200 focus:ring-opacity-50`}
                 >
                   <option value="">Select a province</option>
                   {Object.keys(cityData).map((province) => (
@@ -522,7 +522,7 @@ const AddNewVenue = () => {
                   disabled={!venue.location.province}
                   className={`mt-1 block w-full rounded-md border ${
                     errors.city ? "border-red-500" : "border-gray-300"
-                  } shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
+                  } shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200 focus:ring-opacity-50`}
                 >
                   <option value="">Select a city</option>
                   {cities.map((city) => (
@@ -546,7 +546,7 @@ const AddNewVenue = () => {
                   onChange={handleChange}
                   className={`mt-1 block w-full rounded-md border ${
                     errors.street ? "border-red-500" : "border-gray-300"
-                  } shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
+                  } shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200 focus:ring-opacity-50`}
                 />
                 {errors.street && <p className="mt-1 text-sm text-red-500">{errors.street}</p>}
               </div>
@@ -563,7 +563,7 @@ const AddNewVenue = () => {
                   onChange={handleChange}
                   className={`mt-1 block w-full rounded-md border ${
                     errors.zipCode ? "border-red-500" : "border-gray-300"
-                  } shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
+                  } shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200 focus:ring-opacity-50`}
                 />
                 {errors.zipCode && <p className="mt-1 text-sm text-red-500">{errors.zipCode}</p>}
               </div>
@@ -575,7 +575,7 @@ const AddNewVenue = () => {
         return (
           <div className="space-y-6">
             <div className="flex items-center mb-6">
-              <div className="bg-blue-500 rounded-full p-2 text-white">
+              <div className="bg-teal-500 rounded-full p-2 text-white">
                 <DollarSign className="h-6 w-6" />
               </div>
               <h2 className="text-xl font-semibold ml-2">Capacity & Pricing</h2>
@@ -598,7 +598,7 @@ const AddNewVenue = () => {
                   min="0"
                   className={`block w-full pl-12 pr-12 rounded-md border ${
                     errors.basePricePerHour ? "border-red-500" : "border-gray-300"
-                  } shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
+                  } shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200 focus:ring-opacity-50`}
                 />
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                   <span className="text-gray-500 sm:text-sm">/hour</span>
@@ -624,7 +624,7 @@ const AddNewVenue = () => {
                   min="1"
                   className={`block w-full pl-10 rounded-md border ${
                     errors.capacity ? "border-red-500" : "border-gray-300"
-                  } shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
+                  } shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200 focus:ring-opacity-50`}
                 />
               </div>
               {errors.capacity && <p className="mt-1 text-sm text-red-500">{errors.capacity}</p>}
@@ -636,7 +636,7 @@ const AddNewVenue = () => {
         return (
           <div className="space-y-6">
             <div className="flex items-center mb-6">
-              <div className="bg-blue-500 rounded-full p-2 text-white">
+              <div className="bg-teal-500 rounded-full p-2 text-white">
                 <Package className="h-6 w-6" />
               </div>
               <h2 className="text-xl font-semibold ml-2">Services</h2>
@@ -650,7 +650,7 @@ const AddNewVenue = () => {
 
               {servicesLoading ? (
                 <div className="flex justify-center py-4">
-                  <Loader className="h-8 w-8 text-blue-500 animate-spin" />
+                  <Loader className="h-8 w-8 text-teal-500 animate-spin" />
                 </div>
               ) : servicesData?.services?.length > 0 ? (
                 <div className="space-y-4">
@@ -662,7 +662,7 @@ const AddNewVenue = () => {
                       <div
                         key={service.id}
                         className={`border rounded-lg p-4 ${
-                          isSelected ? "border-blue-500 bg-blue-50" : "border-gray-200"
+                          isSelected ? "border-teal-500 bg-teal-50" : "border-gray-200"
                         }`}
                       >
                         <div className="flex items-start">
@@ -671,7 +671,7 @@ const AddNewVenue = () => {
                               type="button"
                               onClick={() => handleServiceToggle(service.id)}
                               className={`h-5 w-5 rounded border ${
-                                isSelected ? "bg-blue-500 border-blue-500" : "border-gray-300"
+                                isSelected ? "bg-teal-500 border-teal-500" : "border-gray-300"
                               } flex items-center justify-center`}
                             >
                               {isSelected && <Check className="h-4 w-4 text-white" />}
@@ -713,7 +713,7 @@ const AddNewVenue = () => {
                                         name={`pricing-type-${service.id}`}
                                         checked={selectedService.category === "hourly"}
                                         onChange={() => handleServiceCategoryChange(service.id, "hourly")}
-                                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                                        className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300"
                                       />
                                       <label
                                         htmlFor={`hourly-${service.id}`}
@@ -732,7 +732,7 @@ const AddNewVenue = () => {
                                         name={`pricing-type-${service.id}`}
                                         checked={selectedService.category === "fixed"}
                                         onChange={() => handleServiceCategoryChange(service.id, "fixed")}
-                                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                                        className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300"
                                       />
                                       <label
                                         htmlFor={`fixed-${service.id}`}
@@ -765,7 +765,7 @@ const AddNewVenue = () => {
                                       value={selectedService?.servicePrice || ""}
                                       onChange={(e) => handleServicePriceChange(service.id, e.target.value)}
                                       min="0"
-                                      className="block w-full pl-12 py-2 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                      className="block w-full pl-12 py-2 rounded-md border border-gray-300 shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200 focus:ring-opacity-50"
                                     />
                                     {selectedService.category === "hourly" && (
                                       <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -795,7 +795,7 @@ const AddNewVenue = () => {
         return (
           <div className="space-y-6">
             <div className="flex items-center mb-6">
-              <div className="bg-blue-500 rounded-full p-2 text-white">
+              <div className="bg-teal-500 rounded-full p-2 text-white">
                 <ImageIcon className="h-6 w-6" />
               </div>
               <h2 className="text-xl font-semibold ml-2">Venue Image</h2>
@@ -819,7 +819,7 @@ const AddNewVenue = () => {
                   <div className="flex text-sm text-gray-600">
                     <label
                       htmlFor="image"
-                      className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500"
+                      className="relative cursor-pointer bg-white rounded-md font-medium text-teal-600 hover:text-teal-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-teal-500"
                     >
                       <span>Upload an image</span>
                       <input
@@ -864,7 +864,7 @@ const AddNewVenue = () => {
         return (
           <div className="space-y-6">
             <div className="flex items-center mb-6">
-              <div className="bg-green-500 rounded-full p-2 text-white">
+              <div className="bg-emerald-500 rounded-full p-2 text-white">
                 <Check className="h-6 w-6" />
               </div>
               <h2 className="text-xl font-semibold ml-2">Review & Submit</h2>
@@ -998,7 +998,7 @@ const AddNewVenue = () => {
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2.5">
           <div
-            className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+            className="bg-teal-600 h-2.5 rounded-full transition-all duration-300"
             style={{ width: `${progress}%` }}
           ></div>
         </div>
@@ -1016,9 +1016,9 @@ const AddNewVenue = () => {
               <div
                 className={`flex items-center justify-center w-8 h-8 rounded-full ${
                   isActive
-                    ? "bg-blue-600 text-white"
+                    ? "bg-teal-600 text-white"
                     : isCompleted
-                      ? "bg-green-500 text-white"
+                      ? "bg-emerald-500 text-white"
                       : "bg-gray-200 text-gray-700"
                 }`}
               >
@@ -1046,7 +1046,7 @@ const AddNewVenue = () => {
               <button
                 type="button"
                 onClick={prevStep}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
               >
                 <div className="flex items-center">
                   <ChevronLeft className="h-5 w-5 mr-1" />
@@ -1061,7 +1061,7 @@ const AddNewVenue = () => {
               <button
                 type="button"
                 onClick={nextStep}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
               >
                 <div className="flex items-center">
                   Next
@@ -1073,7 +1073,7 @@ const AddNewVenue = () => {
                 type="button" // Change from "submit" to "button"
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? (
                   <div className="flex items-center">

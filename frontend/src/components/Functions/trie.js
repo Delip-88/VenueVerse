@@ -1,122 +1,158 @@
-// Trie data structure for efficient prefix-based searching
-export class TrieNode {
-    constructor() {
-      this.children = {}
-      this.isEndOfWord = false
-      this.venues = [] // Store venue references at each node
-    }
+// Trie data structure for efficient prefix-based searching and recommendations
+class TrieNode {
+  constructor() {
+    this.children = {};
+    this.isEndOfWord = false;
+    this.venues = [];
   }
-  
-  export class Trie {
-    constructor() {
-      this.root = new TrieNode()
-    }
-  
-    /**
-     * Insert a word into the trie and associate it with a venue
-     * @param {string} word - The word to insert
-     * @param {object} venue - The venue to associate with this word
-     */
-    insert(word, venue) {
-      let node = this.root
-      for (const char of word.toLowerCase()) {
-        if (!node.children[char]) node.children[char] = new TrieNode()
-        node = node.children[char]
-        // Store venue reference at each node in the path
-        if (!node.venues.some((v) => v.id === venue.id)) {
-          node.venues.push(venue)
-        }
-      }
-      node.isEndOfWord = true
-    }
-  
-    /**
-     * Search for venues and suggestions that match a prefix
-     * @param {string} prefix - The prefix to search for
-     * @returns {object} Object containing matching venues and word suggestions
-     */
-    search(prefix) {
-      let node = this.root
-      for (const char of prefix.toLowerCase()) {
-        if (!node.children[char]) return { venues: [], suggestions: [] }
-        node = node.children[char]
-      }
-  
-      // Get all suggestions starting with this prefix
-      const suggestions = []
-      const collectWords = (currentNode, path) => {
-        if (currentNode.isEndOfWord) suggestions.push(path)
-        for (const char in currentNode.children) {
-          collectWords(currentNode.children[char], path + char)
-        }
-      }
-      collectWords(node, prefix.toLowerCase())
-  
-      return {
-        venues: node.venues, // Return venues associated with this prefix
-        suggestions: suggestions.slice(0, 5), // Limit to 5 suggestions
-      }
-    }
-  
-    /**
-     * Delete a word from the trie
-     * @param {string} word - The word to delete
-     */
-    delete(word) {
-      const deleteHelper = (node, word, depth = 0) => {
-        // If we've reached the end of the word
-        if (depth === word.length) {
-          // This node is no longer an end of word
-          if (!node.isEndOfWord) return false
-          node.isEndOfWord = false
-  
-          // Return true if this node has no children
-          return Object.keys(node.children).length === 0
-        }
-  
-        const char = word[depth].toLowerCase()
-        if (!node.children[char]) return false
-  
-        // If we should delete the child
-        const shouldDeleteChild = deleteHelper(node.children[char], word, depth + 1)
-  
-        if (shouldDeleteChild) {
-          delete node.children[char]
-          return Object.keys(node.children).length === 0
-        }
-  
-        return false
-      }
-  
-      deleteHelper(this.root, word)
-    }
-  
-    /**
-     * Clear all data from the trie
-     */
-    clear() {
-      this.root = new TrieNode()
-    }
-  
-    /**
-     * Get all words in the trie
-     * @returns {Array} Array of all words in the trie
-     */
-    getAllWords() {
-      const words = []
-  
-      const traverse = (node, prefix) => {
-        if (node.isEndOfWord) {
-          words.push(prefix)
-        }
-  
-        for (const char in node.children) {
-          traverse(node.children[char], prefix + char)
-        }
-      }
-  
-      traverse(this.root, "")
-      return words
-    }
+}
+
+// Binary Search Utility
+function binarySearch(arr, target) {
+  let left = 0;
+  let right = arr.length - 1;
+  target = target.toLowerCase();
+
+  while (left <= right) {
+    const mid = Math.floor((left + right) / 2);
+    const midVal = arr[mid].toLowerCase();
+
+    if (midVal === target) return true;
+    if (midVal < target) left = mid + 1;
+    else right = mid - 1;
   }
-  
+
+  return false;
+}
+
+export class Trie {
+  constructor() {
+    this.root = new TrieNode();
+  }
+
+  insert(word, venue) {
+    let node = this.root;
+    for (const char of word.toLowerCase()) {
+      if (!node.children[char]) node.children[char] = new TrieNode();
+      node = node.children[char];
+      if (!node.venues.some((v) => v.id === venue.id)) {
+        node.venues.push(venue);
+      }
+    }
+    node.isEndOfWord = true;
+  }
+
+  search(prefix) {
+    let node = this.root;
+    for (const char of prefix.toLowerCase()) {
+      if (!node.children[char]) return { venues: [], suggestions: [] };
+      node = node.children[char];
+    }
+
+    const suggestions = [];
+    const collectWords = (currentNode, path) => {
+      if (currentNode.isEndOfWord) suggestions.push(path);
+      for (const char in currentNode.children) {
+        collectWords(currentNode.children[char], path + char);
+      }
+    };
+    collectWords(node, prefix.toLowerCase());
+
+    return {
+      venues: node.venues,
+      suggestions: suggestions.slice(0, 5),
+    };
+  }
+}
+
+export class VenueTrie extends Trie {
+  constructor(globalCategories = []) {
+    super();
+    this.allowedCategories = globalCategories.sort(); // Ensure sorted
+  }
+
+  indexVenue(venue) {
+    this.insert(venue.name, venue);
+
+    if (venue.location?.city) this.insert(venue.location.city, venue);
+    if (venue.location?.province) this.insert(venue.location.province, venue);
+
+    if (Array.isArray(venue.categories)) {
+      venue.categories.forEach((category) => {
+        if (binarySearch(this.allowedCategories, category)) {
+          this.insert(category, venue);
+        }
+      });
+    } else if (venue.category) {
+      if (binarySearch(this.allowedCategories, venue.category)) {
+        this.insert(venue.category, venue);
+      }
+    }
+
+    venue.services?.forEach((service) => {
+      if (service.serviceId?.name) {
+        this.insert(service.serviceId.name, venue);
+      }
+    });
+  }
+
+  indexVenues(venues) {
+    venues.forEach((venue) => this.indexVenue(venue));
+  }
+
+  findSimilarVenues(venue, allVenues, limit = 3) {
+    const trie = new VenueTrie(this.allowedCategories);
+    trie.indexVenues(allVenues);
+
+    const matches = new Map();
+
+    if (Array.isArray(venue.categories)) {
+      venue.categories.forEach((category) => {
+        const results = trie.search(category).venues;
+        results.forEach((v) => {
+          if (v.id !== venue.id) {
+            const currentScore = matches.get(v.id)?.score || 0;
+            matches.set(v.id, { venue: v, score: currentScore + 3 });
+          }
+        });
+      });
+    } else if (venue.category) {
+      const results = trie.search(venue.category).venues;
+      results.forEach((v) => {
+        if (v.id !== venue.id) {
+          const currentScore = matches.get(v.id)?.score || 0;
+          matches.set(v.id, { venue: v, score: currentScore + 3 });
+        }
+      });
+    }
+
+    if (venue.location?.city) {
+      const results = trie.search(venue.location.city).venues;
+      results.forEach((v) => {
+        if (v.id !== venue.id) {
+          const currentScore = matches.get(v.id)?.score || 0;
+          matches.set(v.id, { venue: v, score: currentScore + 2 });
+        }
+      });
+    }
+
+    if (venue.services && venue.services.length > 0) {
+      venue.services.forEach((service) => {
+        if (service.serviceId?.name) {
+          const results = trie.search(service.serviceId.name).venues;
+          results.forEach((v) => {
+            if (v.id !== venue.id) {
+              const currentScore = matches.get(v.id)?.score || 0;
+              matches.set(v.id, { venue: v, score: currentScore + 1 });
+            }
+          });
+        }
+      });
+    }
+
+    return Array.from(matches.values())
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit)
+      .map((item) => item.venue);
+  }
+}

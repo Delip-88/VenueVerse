@@ -100,6 +100,8 @@ function App() {
             }
           >
             <Route index element={<VendorDashboard />} />
+
+            <Route path="dashboard" element={<VendorDashboard />} />
             <Route path="add-venue" element={<AddNewVenue />} />
             <Route path="bookings" element={<ManageBookings />} />
             <Route path="help&support" element={<VenueOwnerSupport />} />

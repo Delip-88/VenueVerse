@@ -1,7 +1,7 @@
 "use client"
 
 import { useContext, useState } from "react"
-import { Save, User, Lock, Upload, AlertCircle } from "lucide-react"
+import { Save, User, Lock, Upload, AlertCircle, Camera, Mail, Phone, Shield, UserCheck, Settings } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { AuthContext } from "../../middleware/AuthContext"
 import toast from "react-hot-toast"
@@ -10,11 +10,11 @@ import { useMutation } from "@apollo/client"
 import { UPDATE_USER_DETAILS } from "../Graphql/mutations/UserGql"
 
 const UserSettingsPage = () => {
-  const { user, loading,refreshUser } = useContext(AuthContext)
-   const { uploadImage } = useUploadImage ();
+  const { user, loading, refreshUser } = useContext(AuthContext)
+  const { uploadImage } = useUploadImage()
   const navigate = useNavigate()
 
-  const [updateUserDetails]  = useMutation(UPDATE_USER_DETAILS)
+  const [updateUserDetails] = useMutation(UPDATE_USER_DETAILS)
 
   const [personalInfo, setPersonalInfo] = useState({
     name: user?.name || "",
@@ -25,6 +25,7 @@ const UserSettingsPage = () => {
   const [profileImage, setProfileImage] = useState(user?.profileImg?.secure_url || null)
   const [profileImagePreview, setProfileImagePreview] = useState(user?.profileImg?.secure_url || null)
   const [errors, setErrors] = useState({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handlePersonalInfoChange = (e) => {
     const { name, value } = e.target
@@ -47,14 +48,14 @@ const UserSettingsPage = () => {
     // Validate file is an image
     if (!file.type.match("image.*")) {
       setErrors({ ...errors, profileImage: "Please select an image file (JPEG, PNG, etc.)" })
-      e.target.value = null // Reset the input
+      e.target.value = null
       return
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       setErrors({ ...errors, profileImage: "Image size should be less than 5MB" })
-      e.target.value = null // Reset the input
+      e.target.value = null
       return
     }
 
@@ -89,28 +90,33 @@ const UserSettingsPage = () => {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit =async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
 
-    if (validateForm()) {
+    if (!validateForm()) {
+      return
+    }
 
-      toast.promise(
+    setIsSubmitting(true)
+
+    toast
+      .promise(
         (async () => {
           try {
-            let profileImgData = null;
-      
-            if (profileImage) {
+            let profileImgData = null
+
+            if (profileImage && typeof profileImage !== "string") {
               profileImgData = await uploadImage(
                 profileImage,
                 import.meta.env.VITE_SIGNED_UPLOAD_PRESET,
-                import.meta.env.VITE_UPLOAD_USER_IMAGE_FOLDER
-              );
-              
-              if (!profileImgData ) {
-                throw new Error("Failed to upload image");
+                import.meta.env.VITE_UPLOAD_USER_IMAGE_FOLDER,
+              )
+
+              if (!profileImgData) {
+                throw new Error("Failed to upload image")
               }
             }
-      
+
             const extractImageData = (imageData) =>
               imageData
                 ? {
@@ -123,10 +129,10 @@ const UserSettingsPage = () => {
                     height: Number.parseInt(imageData.height, 10),
                     created_at: imageData.created_at,
                   }
-                : null;
-      
-            const pfpImageWithoutTypename = extractImageData(profileImgData);
-      
+                : null
+
+            const pfpImageWithoutTypename = extractImageData(profileImgData)
+
             const response = await updateUserDetails({
               variables: {
                 input: {
@@ -136,197 +142,317 @@ const UserSettingsPage = () => {
                   profileImg: pfpImageWithoutTypename,
                 },
               },
-            });
-      
-            const { success, message } = response.data?.updateUserDetails;
-      
-            if (!success) throw new Error("Failed to update, try again later");
-            
+            })
+
+            const { success, message } = response.data?.updateUserDetails
+
+            if (!success) throw new Error("Failed to update, try again later")
           } catch (error) {
-            console.error("Update error:", error);
-            throw error;
+            console.error("Update error:", error)
+            throw error
           }
         })(),
         {
-          loading: "Updating...",
-          success: "Updated successfully!",
-          error: "Failed to update. Please try again.",
-        }
-      ).then(() => {
-        refreshUser();        
-      });
-      
-    } else {
-      console.log("Form has validation errors")
-    }
+          loading: "Updating your profile...",
+          success: "Profile updated successfully!",
+          error: "Failed to update profile. Please try again.",
+        },
+      )
+      .then(() => {
+        refreshUser()
+      })
+      .finally(() => {
+        setIsSubmitting(false)
+      })
   }
 
-  if (loading) return <div>Loading...</div>
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your profile...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold mb-8">Account Settings</h1>
-      {user?.roleApprovalStatus === "PENDING" && (
-        <div className="mb-4 p-4 bg-yellow-100 text-yellow-800 rounded-md">
-          Your form is in review.
-        </div>
-      )}
-      <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Profile Picture Upload */}
-        <section aria-labelledby="profile-picture-heading">
-          <h2 id="profile-picture-heading" className="text-xl font-semibold mb-4 flex items-center">
-            <User className="mr-2" />
-            Profile Picture
-          </h2>
-          <div className="flex flex-col items-center space-y-4">
-            <div className="relative h-32 w-32 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center border border-gray-300">
-              {profileImagePreview ? (
-                <img
-                  src={profileImagePreview || "/placeholder.svg"}
-                  alt={personalInfo.name}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <User className="h-16 w-16 text-gray-400" />
-              )}
-            </div>
-
-            <div className="flex flex-col items-center">
-              <label
-                htmlFor="profile-image"
-                className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
-              >
-                <Upload className="h-4 w-4" />
-                Upload Photo
-                <input
-                  id="profile-image"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="hidden"
-                />
-              </label>
-              {errors.profileImage && (
-                <div className="mt-2 flex items-center text-sm text-red-600">
-                  <AlertCircle className="h-4 w-4 mr-1" />
-                  {errors.profileImage}
-                </div>
-              )}
-              <p className="mt-1 text-xs text-gray-500">Allowed formats: JPEG, PNG, GIF. Max size: 5MB</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="max-w-4xl mx-auto mb-8">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center">
+              <div className="bg-teal-100 rounded-full p-3 mr-4">
+                <Settings className="h-8 w-8 text-teal-600" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Account Settings</h1>
+                <p className="text-gray-600 mt-1">Manage your profile and account preferences</p>
+              </div>
             </div>
           </div>
-        </section>
-
-        {/* Personal Information */}
-        <section aria-labelledby="personal-info-heading">
-          <h2 id="personal-info-heading" className="text-xl font-semibold mb-4 flex items-center">
-            <User className="mr-2" />
-            Personal Information
-          </h2>
-          <div className="grid grid-cols-1 gap-y-6 sm:grid-cols-2 sm:gap-x-4">
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                Full name
-              </label>
-              <input
-                type="text"
-                name="name"
-                id="name"
-                value={personalInfo.name}
-                onChange={handlePersonalInfoChange}
-                className={`mt-1 block w-full rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.name ? "border-red-500" : "border-gray-300"
-                }`}
-              />
-              {errors.name && (
-                <div className="mt-1 flex items-center text-sm text-red-600">
-                  <AlertCircle className="h-4 w-4 mr-1" />
-                  {errors.name}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email address
-              </label>
-              <input
-                type="email"
-                name="email"
-                id="email"
-                value={personalInfo.email}
-                onChange={handlePersonalInfoChange}
-                className={`mt-1 block w-full rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.email ? "border-red-500" : "border-gray-300"
-                }`}
-              />
-              {errors.email && (
-                <div className="mt-1 flex items-center text-sm text-red-600">
-                  <AlertCircle className="h-4 w-4 mr-1" />
-                  {errors.email}
-                </div>
-              )}
-              <p className="mt-1 text-xs text-gray-500">Email should not start with a number</p>
-            </div>
-
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-                Phone number
-              </label>
-              <input
-                type="tel"
-                name="phone"
-                id="phone"
-                value={personalInfo.phone}
-                onChange={handlePersonalInfoChange}
-                className={`mt-1 block w-full rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.phone ? "border-red-500" : "border-gray-300"
-                }`}
-              />
-              {errors.phone && (
-                <div className="mt-1 flex items-center text-sm text-red-600">
-                  <AlertCircle className="h-4 w-4 mr-1" />
-                  {errors.phone}
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
-
-        {/* Password Change */}
-        <section aria-labelledby="password-heading">
-          <h2 id="password-heading" className="text-xl font-semibold mb-4 flex items-center">
-            <Lock className="mr-2" />
-            Password
-          </h2>
-          <button
-            type="button"
-            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500"
-          >
-            Change Password
-          </button>
-        </section>
-
-        {/* Submit Button */}
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            <Save className="h-5 w-5 mr-2" />
-            Save Changes
-          </button>
         </div>
-      </form>
-      <div className="mt-8 flex">
-        {user?.roleApprovalStatus !== "PENDING" && (
-          <button
-            onClick={() => navigate(user?.role === "VenueOwner" ? "/dashboard" : "/home/BecomeVenueOwner")}
-            className="px-6 py-2 text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-          >
-            {user?.role === "VenueOwner" ? "Go To Dashboard" : "Register as Venue Owner"}
-          </button>
-        )}
+
+        <div className="max-w-4xl mx-auto">
+          <form onSubmit={handleSubmit} className="space-y-8">
+            {/* Status Alert */}
+            {user?.roleApprovalStatus === "PENDING" && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-6">
+                <div className="flex items-center">
+                  <AlertCircle className="h-6 w-6 text-amber-600 mr-3 flex-shrink-0" />
+                  <div>
+                    <h3 className="text-lg font-semibold text-amber-800">Application Under Review</h3>
+                    <p className="text-amber-700 mt-1">
+                      Your venue owner application is currently being reviewed by our team. We'll notify you once the
+                      review is complete.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="grid lg:grid-cols-3 gap-8">
+              {/* Profile Picture Section */}
+              <div className="lg:col-span-1">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sticky top-8">
+                  <div className="text-center">
+                    <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center justify-center">
+                      <Camera className="h-5 w-5 mr-2 text-teal-600" />
+                      Profile Picture
+                    </h2>
+
+                    <div className="relative inline-block mb-6">
+                      <div className="h-32 w-32 rounded-full overflow-hidden bg-gradient-to-br from-teal-100 to-teal-200 flex items-center justify-center border-4 border-white shadow-lg mx-auto">
+                        {profileImagePreview ? (
+                          <img
+                            src={profileImagePreview || "/placeholder.svg"}
+                            alt={personalInfo.name || "Profile"}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <User className="h-16 w-16 text-teal-600" />
+                        )}
+                      </div>
+                      <label
+                        htmlFor="profile-image"
+                        className="absolute bottom-0 right-0 bg-teal-600 hover:bg-teal-700 text-white rounded-full p-2 cursor-pointer shadow-lg transition-colors"
+                      >
+                        <Camera className="h-4 w-4" />
+                        <input
+                          id="profile-image"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageChange}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+
+                    <label
+                      htmlFor="profile-image-alt"
+                      className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-teal-50 text-teal-700 rounded-lg hover:bg-teal-100 transition-colors border border-teal-200 text-sm font-medium"
+                    >
+                      <Upload className="h-4 w-4" />
+                      Change Photo
+                      <input
+                        id="profile-image-alt"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="hidden"
+                      />
+                    </label>
+
+                    {errors.profileImage && (
+                      <div className="mt-3 flex items-center justify-center text-sm text-red-600">
+                        <AlertCircle className="h-4 w-4 mr-2" />
+                        {errors.profileImage}
+                      </div>
+                    )}
+
+                    <div className="mt-4 text-xs text-gray-500 space-y-1">
+                      <p>Supported: JPEG, PNG, GIF</p>
+                      <p>Maximum size: 5MB</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Main Content */}
+              <div className="lg:col-span-2 space-y-8">
+                {/* Personal Information */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                  <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+                    <User className="h-5 w-5 mr-2 text-teal-600" />
+                    Personal Information
+                  </h2>
+
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="md:col-span-2">
+                      <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                        Full Name <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          name="name"
+                          id="name"
+                          value={personalInfo.name}
+                          onChange={handlePersonalInfoChange}
+                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors ${
+                            errors.name ? "border-red-500" : "border-gray-300"
+                          }`}
+                          placeholder="Enter your full name"
+                        />
+                        <User className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+                      </div>
+                      {errors.name && (
+                        <div className="mt-2 flex items-center text-sm text-red-600">
+                          <AlertCircle className="h-4 w-4 mr-2" />
+                          {errors.name}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                        Email Address <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="email"
+                          name="email"
+                          id="email"
+                          value={personalInfo.email}
+                          onChange={handlePersonalInfoChange}
+                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors ${
+                            errors.email ? "border-red-500" : "border-gray-300"
+                          }`}
+                          placeholder="Enter your email"
+                        />
+                        <Mail className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+                      </div>
+                      {errors.email && (
+                        <div className="mt-2 flex items-center text-sm text-red-600">
+                          <AlertCircle className="h-4 w-4 mr-2" />
+                          {errors.email}
+                        </div>
+                      )}
+                      <p className="mt-1 text-xs text-gray-500">Email should not start with a number</p>
+                    </div>
+
+                    <div>
+                      <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                        Phone Number <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="tel"
+                          name="phone"
+                          id="phone"
+                          value={personalInfo.phone}
+                          onChange={handlePersonalInfoChange}
+                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors ${
+                            errors.phone ? "border-red-500" : "border-gray-300"
+                          }`}
+                          placeholder="Enter phone number"
+                        />
+                        <Phone className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+                      </div>
+                      {errors.phone && (
+                        <div className="mt-2 flex items-center text-sm text-red-600">
+                          <AlertCircle className="h-4 w-4 mr-2" />
+                          {errors.phone}
+                        </div>
+                      )}
+                      <p className="mt-1 text-xs text-gray-500">Enter a 10-digit phone number</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Security & Account Management */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                  <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+                    <Shield className="h-5 w-5 mr-2 text-teal-600" />
+                    Security & Account
+                  </h2>
+
+                  <div className="space-y-4">
+                    {/* Password Management */}
+                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="flex items-center">
+                        <Lock className="h-5 w-5 text-gray-600 mr-3" />
+                        <div>
+                          <h3 className="font-medium text-gray-900">Password</h3>
+                          <p className="text-sm text-gray-600">Manage your account password</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 transition-colors text-sm font-medium"
+                      >
+                        Change Password
+                      </button>
+                    </div>
+
+                    {/* Account Type */}
+                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="flex items-center">
+                        <UserCheck className="h-5 w-5 text-gray-600 mr-3" />
+                        <div>
+                          <h3 className="font-medium text-gray-900">Account Type</h3>
+                          <p className="text-sm text-gray-600">
+                            Current role: <span className="font-medium text-teal-600">{user?.role || "User"}</span>
+                          </p>
+                        </div>
+                      </div>
+                      {user?.roleApprovalStatus !== "PENDING" && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            navigate(user?.role === "VenueOwner" ? "/dashboard" : "/home/BecomeVenueOwner")
+                          }
+                          className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-colors text-sm font-medium"
+                        >
+                          {user?.role === "VenueOwner" ? "Go To Dashboard" : "Become Venue Owner"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Save Button */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">Save Changes</h3>
+                      <p className="text-sm text-gray-600">Make sure to save your changes before leaving this page</p>
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="inline-flex items-center px-6 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-5 w-5 mr-2" />
+                          Save Changes
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   )
