@@ -1,12 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useContext, useState } from "react"
 import { NavLink, Outlet } from "react-router-dom"
 import { Home, Building, Users, Calendar, BarChart2, User, Settings, LogOut, Menu, PersonStanding, Option, ChevronUpCircleIcon, HelpCircle, HelpingHand } from "lucide-react"
+import { AuthContext } from "../../middleware/AuthContext"
 
 export default function SuperAdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-
+  const { user, logout, loading } = useContext(AuthContext);
   // Sidebar navigation items
   const navItems = [
     { name: "Dashboard", icon: Home, path: "/super-admin" },
@@ -17,6 +18,16 @@ export default function SuperAdminLayout() {
     { name: "Add Services", icon: HelpingHand, path: "/super-admin/addServices" },
     // { name: "Reports", icon: BarChart2, path: "/super-admin/reports" },
   ]
+
+  const handleLogout = async () => {
+    const confirmed = window.confirm("Are you sure?");
+    if (!confirmed) return;
+
+    logout();
+    setTimeout(() => {
+      window.location.href = "/";
+    }, 200);
+  };
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -66,7 +77,7 @@ export default function SuperAdminLayout() {
               <p className="text-sm font-medium text-gray-700">Super Admin</p>
               <p className="text-xs font-medium text-gray-500">admin@venueverse.com</p>
             </div>
-            <button className="ml-auto bg-white rounded-full p-1 text-gray-400 hover:text-gray-500">
+            <button className="ml-auto bg-white rounded-full p-1 text-gray-400 hover:text-gray-500" onClick={handleLogout}>
               <LogOut className="h-6 w-6" />
             </button>
           </div>

@@ -17,6 +17,9 @@ import {
   AlertCircle,
   Search,
   Calendar,
+  UserCheck,
+  Shield,
+  Download,
 } from "lucide-react"
 import { useQuery, useMutation } from "@apollo/client"
 import { PENDING_ROLE_REQUESTS, APPROVE_ROLE_REQUEST, REJECT_ROLE_REQUEST } from "../Graphql/query/SueprAdmin"
@@ -39,13 +42,6 @@ const AdminRoleRequests = () => {
   // Transform API data to match UI structure
   const requests = useMemo(() => {
     return (data?.pendingVenueOwners || []).map((user) => {
-      // Handle address as object or string
-      let addressObj = { city: "", province: "", area: "", street: "" }
-      if (typeof user.address === "object" && user.address !== null) {
-        addressObj = user.address
-      } else if (typeof user.address === "string") {
-        addressObj = { ...addressObj, city: user.address }
-      }
       return {
         id: user.id,
         user: {
@@ -61,7 +57,7 @@ const AdminRoleRequests = () => {
           phone: user.phone,
           profileImg: user?.profileImg,
           legalDocImg: user?.legalDocImg,
-          address: addressObj,
+          address: user.address || "N/A", // Keep as string
           companyName: user.companyName || "",
           esewaId: user.esewaId,
         },
@@ -134,38 +130,53 @@ const AdminRoleRequests = () => {
 
   const getStatusBadge = (status) => {
     return (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 border border-yellow-300">
         <Clock className="w-3 h-3 mr-1" />
-        PENDING
+        PENDING REVIEW
       </span>
     )
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-teal-50/20 to-slate-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading role requests...</p>
+          <div className="relative">
+            <div className="w-16 h-16 border-4 border-teal-200 border-t-teal-600 rounded-full animate-spin mx-auto"></div>
+            <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-r-teal-400 rounded-full animate-pulse mx-auto"></div>
+          </div>
+          <p className="mt-6 text-lg font-medium text-gray-700">Loading role requests...</p>
+          <p className="mt-2 text-sm text-gray-500">Please wait while we fetch the pending applications</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-teal-50/20 to-slate-100">
       {/* Header */}
-      <div className="bg-white shadow">
+      <div className="bg-white shadow-lg border-b border-teal-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="py-6">
+          <div className="py-8">
             <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Pending Role Requests</h1>
-                <p className="mt-1 text-sm text-gray-500">Manage user requests to become venue owners</p>
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl shadow-lg">
+                  <Shield className="w-8 h-8 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                    Venue Owner Applications
+                  </h1>
+                  <p className="mt-2 text-lg text-gray-600">Review and manage requests to become venue owners</p>
+                </div>
               </div>
               <div className="flex items-center space-x-4">
-                <div className="bg-blue-50 px-3 py-2 rounded-lg">
-                  <span className="text-sm font-medium text-blue-700">{filteredRequests.length} Pending</span>
+                <div className="bg-gradient-to-r from-teal-50 to-teal-100 px-6 py-3 rounded-xl border border-teal-200 shadow-sm">
+                  <div className="flex items-center space-x-2">
+                    <UserCheck className="w-5 h-5 text-teal-600" />
+                    <span className="text-lg font-semibold text-teal-700">{filteredRequests.length}</span>
+                    <span className="text-sm font-medium text-teal-600">Pending Reviews</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -174,18 +185,32 @@ const AdminRoleRequests = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Search Filter */}
-        <div className="bg-white rounded-lg shadow mb-6 p-6">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search by name, email, or company..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+        {/* Search and Stats */}
+        <div className="bg-white rounded-2xl shadow-lg border border-teal-100 mb-8 overflow-hidden">
+          <div className="p-6">
+            <div className="flex flex-col lg:flex-row gap-6">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Search Applications</label>
+                <div className="relative">
+                  <Search className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search by name, email, or company name..."
+                    className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all duration-200"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm("")}
+                      className="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
@@ -193,69 +218,123 @@ const AdminRoleRequests = () => {
         {/* Requests List */}
         <div className="space-y-6">
           {filteredRequests.length === 0 ? (
-            <div className="bg-white rounded-lg shadow p-12 text-center">
-              <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No requests found</h3>
-              <p className="text-gray-500">
-                {searchTerm ? "Try adjusting your search criteria" : "No pending role requests have been submitted yet"}
+            <div className="bg-white rounded-2xl shadow-lg border border-teal-100 p-16 text-center">
+              <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">
+                <AlertCircle className="h-10 w-10 text-gray-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">No applications found</h3>
+              <p className="text-gray-500 max-w-md mx-auto leading-relaxed">
+                {searchTerm
+                  ? "No applications match your search criteria. Try adjusting your search terms."
+                  : "No pending venue owner applications have been submitted yet. New applications will appear here for review."}
               </p>
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="mt-4 text-teal-600 hover:text-teal-700 font-medium"
+                >
+                  Clear search
+                </button>
+              )}
             </div>
           ) : (
             filteredRequests.map((request) => (
-              <div key={request.id} className="bg-white rounded-lg shadow overflow-hidden">
-                <div className="p-6">
-                  <div className="flex items-start justify-between mb-4">
+              <div
+                key={request.id}
+                className="bg-white rounded-2xl shadow-lg border border-teal-100 overflow-hidden hover:shadow-xl transition-all duration-300"
+              >
+                <div className="p-8">
+                  <div className="flex items-start justify-between mb-6">
                     <div className="flex items-center space-x-4">
-                      <img
-                        src={getOptimizedCloudinaryUrl(request?.requestData?.profileImg?.secure_url) || "/placeholder.svg"}
-                        alt={request.requestData.name || "N/A"}
-                        className="h-12 w-12 rounded-full object-cover"
-                      />
+                      <div className="relative">
+                        <img
+                          src={
+                            getOptimizedCloudinaryUrl(request?.requestData?.profileImg?.secure_url) ||
+                            "/placeholder.svg?height=64&width=64" ||
+                            "/placeholder.svg"
+                          }
+                          alt={request.requestData.name || "Profile"}
+                          className="h-16 w-16 rounded-xl object-cover border-2 border-teal-100 shadow-sm"
+                        />
+                        <div className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 border-2 border-white rounded-full flex items-center justify-center">
+                          <Clock className="w-2.5 h-2.5 text-yellow-700" />
+                        </div>
+                      </div>
                       <div>
-                        <h3 className="text-lg font-medium text-gray-900">{request.requestData.name || "N/A"}</h3>
-                        <p className="text-sm text-gray-500">{request.requestData.email || "N/A"}</p>
+                        <h3 className="text-xl font-semibold text-gray-900">{request.requestData.name || "N/A"}</h3>
+                        <p className="text-gray-600 mt-1">{request.requestData.email || "N/A"}</p>
+                        <div className="mt-2">{getStatusBadge(request.status)}</div>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-3">
-                      {getStatusBadge(request.status)}
-                      <button
-                        onClick={() => setSelectedRequest(request)}
-                        className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        View Details
-                      </button>
+                    <button
+                      onClick={() => setSelectedRequest(request)}
+                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-teal-50 to-teal-100 text-teal-700 rounded-xl hover:from-teal-100 hover:to-teal-200 transition-all duration-200 border border-teal-200 shadow-sm hover:shadow-md"
+                    >
+                      <Eye className="h-4 w-4" />
+                      Review Application
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                      <div className="p-2 bg-white rounded-lg shadow-sm">
+                        <Building2 className="h-4 w-4 text-teal-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{request.requestData.companyName || "N/A"}</p>
+                        <p className="text-xs text-gray-500">Company</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                      <div className="p-2 bg-white rounded-lg shadow-sm">
+                        <Phone className="h-4 w-4 text-teal-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{request.requestData.phone || "N/A"}</p>
+                        <p className="text-xs text-gray-500">Phone</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                      <div className="p-2 bg-white rounded-lg shadow-sm">
+                        <MapPin className="h-4 w-4 text-teal-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {typeof request.requestData.address === "object"
+                            ? [
+                                request.requestData.address.street,
+                                request.requestData.address.area,
+                                request.requestData.address.city,
+                                request.requestData.address.province,
+                              ]
+                                .filter(Boolean)
+                                .join(", ") || "N/A"
+                            : request.requestData.address || "N/A"}
+                        </p>
+                        <p className="text-xs text-gray-500">Location</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                      <div className="p-2 bg-white rounded-lg shadow-sm">
+                        <Calendar className="h-4 w-4 text-teal-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {convertToDate(request.submittedAt) || "N/A"}
+                        </p>
+                        <p className="text-xs text-gray-500">Submitted</p>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Building2 className="h-4 w-4 mr-2" />
-                      {request.requestData.companyName || "N/A"}
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Phone className="h-4 w-4 mr-2" />
-                      {request.requestData.phone || "N/A"}
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <MapPin className="h-4 w-4 mr-2" />
-                      {(request.requestData.address.city || "N/A") +
-                        (request.requestData.address.province ? `, ${request.requestData.address.province}` : "")}
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Calendar className="h-4 w-4 mr-2" />
-                      {convertToDate(request.submittedAt) || "N/A"}
-                    </div>
-                  </div>
-
-                  <div className="flex space-x-3">
+                  <div className="flex flex-col sm:flex-row gap-3">
                     <button
                       onClick={() => handleApprove(request.id)}
                       disabled={approveLoading}
-                      className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+                      className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <Check className="h-4 w-4 mr-2" />
-                      {approveLoading ? "Approving..." : "Approve"}
+                      <Check className="h-4 w-4" />
+                      {approveLoading ? "Approving..." : "Approve Application"}
                     </button>
                     <button
                       onClick={() => {
@@ -263,10 +342,10 @@ const AdminRoleRequests = () => {
                         setShowRejectModal(true)
                       }}
                       disabled={rejectLoading}
-                      className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                      className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <X className="h-4 w-4 mr-2" />
-                      {rejectLoading ? "Rejecting..." : "Reject"}
+                      <X className="h-4 w-4" />
+                      {rejectLoading ? "Rejecting..." : "Reject Application"}
                     </button>
                   </div>
                 </div>
@@ -278,135 +357,175 @@ const AdminRoleRequests = () => {
 
       {/* Request Details Modal */}
       {selectedRequest && !showRejectModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-medium text-gray-900">Request Details</h3>
-              <button onClick={() => setSelectedRequest(null)} className="text-gray-400 hover:text-gray-600">
-                <X className="h-6 w-6" />
-              </button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-6xl shadow-2xl border border-teal-100 max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-8 py-6 rounded-t-2xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="p-3 bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl">
+                    <User className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-gray-900">Application Review</h3>
+                    <p className="text-gray-600 mt-1">Comprehensive application details</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedRequest(null)}
+                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all duration-200"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Personal Information */}
-              <div>
-                <h4 className="text-md font-medium text-gray-900 mb-4">Personal Information</h4>
-                <div className="space-y-4">
-                  <div className="flex items-center">
-                    <User className="h-5 w-5 text-gray-400 mr-3" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{selectedRequest.requestData.name || "N/A"}</p>
-                      <p className="text-sm text-gray-500">Full Name</p>
+            <div className="p-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Personal Information */}
+                <div className="bg-gradient-to-br from-teal-50 to-teal-100/50 rounded-2xl p-6 border border-teal-200">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-2 bg-teal-600 rounded-lg">
+                      <User className="h-5 w-5 text-white" />
+                    </div>
+                    <h4 className="text-lg font-semibold text-gray-900">Personal Information</h4>
+                  </div>
+                  <div className="space-y-6">
+                    <div className="flex items-start gap-4">
+                      <div className="p-2 bg-white rounded-lg shadow-sm">
+                        <User className="h-4 w-4 text-teal-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">{selectedRequest.requestData.name || "N/A"}</p>
+                        <p className="text-sm text-gray-600 mt-1">Full Name</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-4">
+                      <div className="p-2 bg-white rounded-lg shadow-sm">
+                        <Mail className="h-4 w-4 text-teal-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">{selectedRequest.requestData.email || "N/A"}</p>
+                        <p className="text-sm text-gray-600 mt-1">Email Address</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-4">
+                      <div className="p-2 bg-white rounded-lg shadow-sm">
+                        <Phone className="h-4 w-4 text-teal-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">{selectedRequest.requestData.phone || "N/A"}</p>
+                        <p className="text-sm text-gray-600 mt-1">Phone Number</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-4">
+                      <div className="p-2 bg-white rounded-lg shadow-sm">
+                        <MapPin className="h-4 w-4 text-teal-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">{selectedRequest.requestData.address || "N/A"}</p>
+                        <p className="text-sm text-gray-600 mt-1">Address</p>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center">
-                    <Mail className="h-5 w-5 text-gray-400 mr-3" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{selectedRequest.requestData.email || "N/A"}</p>
-                      <p className="text-sm text-gray-500">Email Address</p>
+                </div>
+
+                {/* Business Information */}
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-2xl p-6 border border-blue-200">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-2 bg-blue-600 rounded-lg">
+                      <Building2 className="h-5 w-5 text-white" />
                     </div>
+                    <h4 className="text-lg font-semibold text-gray-900">Business Information</h4>
                   </div>
-                  <div className="flex items-center">
-                    <Phone className="h-5 w-5 text-gray-400 mr-3" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{selectedRequest.requestData.phone || "N/A"}</p>
-                      <p className="text-sm text-gray-500">Phone Number</p>
+                  <div className="space-y-6">
+                    <div className="flex items-start gap-4">
+                      <div className="p-2 bg-white rounded-lg shadow-sm">
+                        <Building2 className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">{selectedRequest.requestData.companyName || "N/A"}</p>
+                        <p className="text-sm text-gray-600 mt-1">Company Name</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-start">
-                    <MapPin className="h-5 w-5 text-gray-400 mr-3 mt-1" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {(selectedRequest.requestData.address.street || "") +
-                          (selectedRequest.requestData.address.area
-                            ? `, ${selectedRequest.requestData.address.area}`
-                            : "") || "N/A"}
-                      </p>
-                      <p className="text-sm font-medium text-gray-900">
-                        {(selectedRequest.requestData.address.city || "") +
-                          (selectedRequest.requestData.address.province
-                            ? `, ${selectedRequest.requestData.address.province}`
-                            : "") || "N/A"}
-                      </p>
-                      <p className="text-sm text-gray-500">Address</p>
+                    <div className="flex items-start gap-4">
+                      <div className="p-2 bg-white rounded-lg shadow-sm">
+                        <CreditCard className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">{selectedRequest.requestData.esewaId || "N/A"}</p>
+                        <p className="text-sm text-gray-600 mt-1">eSewa ID</p>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Business Information */}
-              <div>
-                <h4 className="text-md font-medium text-gray-900 mb-4">Business Information</h4>
-                <div className="space-y-4">
-                  <div className="flex items-center">
-                    <Building2 className="h-5 w-5 text-gray-400 mr-3" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {selectedRequest.requestData.companyName || "N/A"}
-                      </p>
-                      <p className="text-sm text-gray-500">Company Name</p>
+              {/* Documents Section */}
+              <div className="mt-8 bg-gradient-to-br from-purple-50 to-purple-100/50 rounded-2xl p-6 border border-purple-200">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-purple-600 rounded-lg">
+                    <FileText className="h-5 w-5 text-white" />
+                  </div>
+                  <h4 className="text-lg font-semibold text-gray-900">Uploaded Documents</h4>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="bg-white rounded-xl p-4 border border-purple-200 shadow-sm">
+                    <div className="flex items-center gap-2 mb-4">
+                      <ImageIcon className="h-5 w-5 text-purple-600" />
+                      <span className="font-medium text-gray-900">Profile Image</span>
+                    </div>
+                    <div className="aspect-square bg-gray-50 rounded-xl overflow-hidden border border-gray-200">
+                      <img
+                        src={
+                          getOptimizedCloudinaryUrl(selectedRequest?.requestData?.profileImg?.secure_url) ||
+                          "/placeholder.svg?height=300&width=300" ||
+                          "/placeholder.svg"
+                        }
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                   </div>
-                  <div className="flex items-center">
-                    <CreditCard className="h-5 w-5 text-gray-400 mr-3" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {selectedRequest.requestData.esewaId || "N/A"}
-                      </p>
-                      <p className="text-sm text-gray-500">Esewa ID</p>
+                  <div className="bg-white rounded-xl p-4 border border-purple-200 shadow-sm">
+                    <div className="flex items-center gap-2 mb-4">
+                      <FileText className="h-5 w-5 text-purple-600" />
+                      <span className="font-medium text-gray-900">Legal Document</span>
+                    </div>
+                    <div className="aspect-square bg-gray-50 rounded-xl overflow-hidden border border-gray-200">
+                      <img
+                        src={
+                          selectedRequest?.requestData?.legalDocImg?.secure_url ||
+                          "/placeholder.svg?height=300&width=300" ||
+                          "/placeholder.svg"
+                        }
+                        alt="Legal Document"
+                        className="w-full h-full object-contain"
+                      />
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* /* Documents */ }
-                  <div className="mt-8">
-                    <h4 className="text-md font-medium text-gray-900 mb-4">Uploaded Documents</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <div className="flex items-center mb-2">
-                      <ImageIcon className="h-5 w-5 text-gray-400 mr-2" />
-                      <span className="text-sm font-medium text-gray-900">Profile Image</span>
-                      </div>
-                      <img
-                      src={getOptimizedCloudinaryUrl(selectedRequest?.requestData?.profileImg?.secure_url) || "/placeholder.svg"}
-                      alt="Profile"
-                      className="w-full h-48 object-contain rounded-lg border bg-gray-100"
-                      />
-                    </div>
-                    <div>
-                      <div className="flex items-center mb-2">
-                      <FileText className="h-5 w-5 text-gray-400 mr-2" />
-                      <span className="text-sm font-medium text-gray-900">Legal Document</span>
-                      </div>
-                      <img
-                      src={selectedRequest?.requestData?.legalDocImg?.secure_url || "/placeholder.svg"}
-                      alt="Legal Document"
-                      className="w-full h-48 object-contain rounded-lg border bg-gray-100"
-                      />
-                    </div>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-            <div className="mt-8 flex space-x-3">
-              <button
-                onClick={() => handleApprove(selectedRequest.id)}
-                disabled={approveLoading}
-                className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
-              >
-                <Check className="h-4 w-4 mr-2" />
-                {approveLoading ? "Approving..." : "Approve Request"}
-              </button>
-              <button
-                onClick={() => setShowRejectModal(true)}
-                disabled={rejectLoading}
-                className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
-              >
-                <X className="h-4 w-4 mr-2" />
-                Reject Request
-              </button>
+              {/* Action Buttons */}
+              <div className="mt-8 flex flex-col sm:flex-row gap-4">
+                <button
+                  onClick={() => handleApprove(selectedRequest.id)}
+                  disabled={approveLoading}
+                  className="flex-1 flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed text-lg font-medium"
+                >
+                  <Check className="h-5 w-5" />
+                  {approveLoading ? "Approving..." : "Approve Application"}
+                </button>
+                <button
+                  onClick={() => setShowRejectModal(true)}
+                  disabled={rejectLoading}
+                  className="flex-1 flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed text-lg font-medium"
+                >
+                  <X className="h-5 w-5" />
+                  Reject Application
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -414,52 +533,52 @@ const AdminRoleRequests = () => {
 
       {/* Reject Modal */}
       {showRejectModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-md shadow-lg rounded-md bg-white">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Reject Request</h3>
-              <button
-                onClick={() => {
-                  setShowRejectModal(false)
-                  setRejectReason("")
-                }}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-red-200">
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-red-100 rounded-xl">
+                  <X className="h-6 w-6 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Reject Application</h3>
+                  <p className="text-gray-600 mt-1">Provide feedback to the applicant</p>
+                </div>
+              </div>
 
-            <div className="mb-4">
-              <p className="text-sm text-gray-600 mb-3">
-                Please provide a reason for rejecting this request. This will be sent to the user.
-              </p>
-              <textarea
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                rows="4"
-                placeholder="Enter rejection reason..."
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-              />
-            </div>
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Rejection Reason <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  className="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-200 resize-none"
+                  rows="5"
+                  placeholder="Please provide a clear reason for rejecting this application. This will help the applicant understand what needs to be improved."
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                />
+                <p className="text-xs text-gray-500 mt-2">This message will be sent to the applicant via email.</p>
+              </div>
 
-            <div className="flex space-x-3">
-              <button
-                onClick={handleReject}
-                disabled={rejectLoading}
-                className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
-              >
-                <X className="h-4 w-4 mr-2" />
-                {rejectLoading ? "Rejecting..." : "Reject Request"}
-              </button>
-              <button
-                onClick={() => {
-                  setShowRejectModal(false)
-                  setRejectReason("")
-                }}
-                className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                Cancel
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleReject}
+                  disabled={rejectLoading || !rejectReason.trim()}
+                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                >
+                  <X className="h-4 w-4" />
+                  {rejectLoading ? "Rejecting..." : "Reject Application"}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowRejectModal(false)
+                    setRejectReason("")
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all duration-200 font-medium"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -80,6 +80,7 @@ export const MY_VENUES = gql`
         bookingStatus
         paymentStatus
         additionalNotes
+        eventType
         attendees
         user {
           name

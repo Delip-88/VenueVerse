@@ -19,4 +19,28 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
-export default ProtectedRoute;
+
+const ProtectedAdmin = ({ children }) => {
+  const { isAuthenticated, user, loading } = useContext(AuthContext);
+
+  if (loading) return <Loader />;
+
+  // Not authenticated: redirect to login
+  if (!isAuthenticated) {
+    return <Navigate to="/admin" />;
+  }
+
+  // User loaded, but not admin: redirect to home
+  if (user && user.role !== "Admin") {
+    return <Navigate to="/" />;
+  }
+
+  // If user is still null after loading and authenticated, show loading (prevents redirect loop)
+  if (user === null) {
+    return <Loader />;
+  }
+
+  return children;
+};
+
+export { ProtectedRoute ,ProtectedAdmin };
