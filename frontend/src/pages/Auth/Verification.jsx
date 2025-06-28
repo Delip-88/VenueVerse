@@ -68,7 +68,7 @@ export default function OTPVerificationPage() {
         setError("");
   
         setTimeout(() => {
-          navigate("/Home");
+          navigate("/");
         }, 500);
       }
     } catch (err) {

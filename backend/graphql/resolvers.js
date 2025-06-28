@@ -1,7 +1,7 @@
 // graphql/resolvers.js
 import Booking from "../models/Booking.js";
 import Venue from "../models/Venue.js";
-import User from "../models/user.js";
+import User from "../models/User.js";
 import Review from "../models/Review.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";

@@ -1,7 +1,8 @@
+import dotenv from "dotenv";
+dotenv.config();
 import express from "express";
 import { ApolloServer } from "@apollo/server"; 
 import cors from "cors";
-import dotenv from "dotenv";
 import { expressMiddleware } from "@apollo/server/express4";
 import { connectDB } from "./config/db.js";
 import { authenticate } from "./middleware/authenticate.js";
@@ -14,7 +15,6 @@ import resolvers from "./graphql/resolvers.js";
 import { v2 as cloudinary } from "cloudinary";
 
 // Load environment variables from .env file
-dotenv.config();
 
 // Initialize express
 const app = express();
