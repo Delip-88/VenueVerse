@@ -337,7 +337,9 @@ const resolvers = {
         throw new Error("Not Authenticated");
       }
 
+      
       const { venue, date, start, end, phone, eventType,selectedServices , additionalNotes, attendees} = args.input;
+  
       // console.log("Received selectedServices:", selectedServices);
 
       try {
@@ -346,6 +348,10 @@ const resolvers = {
         );
         if (!venueData) {
           throw new Error("Venue not found");
+        }
+
+        if(user.id === venueData.owner.toString()) {
+          throw new Error("You cannot book your own venue.");
         }
 
         // Calculate total hours

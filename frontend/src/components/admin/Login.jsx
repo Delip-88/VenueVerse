@@ -5,7 +5,7 @@ import { useMutation } from "@apollo/client"
 import { AuthContext } from "../../middleware/AuthContext"
 import { Link, useNavigate } from "react-router-dom"
 import { LOGIN_USER } from "../../components/Graphql/mutations/AuthGql"
-import { Mail, Lock, Eye, EyeOff, AlertCircle, LogIn, CheckCircle2 } from "lucide-react"
+import { Mail, Lock, Eye, EyeOff, AlertCircle, LogIn, CheckCircle2, DoorClosed, DoorOpenIcon, DoorOpen } from "lucide-react"
 
 const AdminLogin = () => {
   const { login } = useContext(AuthContext)
@@ -25,9 +25,17 @@ const AdminLogin = () => {
       setLoading(false)
       const token = data?.login
       if (token) {
-        await login(token)
-        } 
-        window.location.href = "/super-admin"
+        // Decode JWT to get user role
+        const payload = JSON.parse(atob(token.split('.')[1]))
+        if (payload.role === "Admin") {
+          await login(token)
+          window.location.href = "/super-admin"
+        } else {
+          setGeneralError("Incorrect credentials. Admin access only.")
+        }
+      } else {
+        setGeneralError("Login failed. Please check your credentials.")
+      }
     },
     onError: (error) => {
       setLoading(false)
@@ -131,10 +139,10 @@ const AdminLogin = () => {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="text-center">
           <div className="bg-teal-100 rounded-full p-3 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-            <LogIn className="h-8 w-8 text-teal-600" />
+            <DoorClosed className="h-8 w-8 text-teal-600" />
           </div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h2>
-          <p className="text-gray-600">Sign in to your VenueVerse account</p>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">Admin Access Only</h2>
+          <p className="text-gray-600">Sign in to the admin account</p>
         </div>
       </div>
 
@@ -202,17 +210,6 @@ const AdminLogin = () => {
 
             {/* Password Field */}
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                  Password <span className="text-red-500">*</span>
-                </label>
-                <Link
-                  to="/forgot-password"
-                  className="text-sm font-medium text-teal-600 hover:text-teal-500 transition-colors"
-                >
-                  Forgot password?
-                </Link>
-              </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Lock
@@ -266,7 +263,7 @@ const AdminLogin = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
               >
                 {loading ? (
                   <>
@@ -275,7 +272,7 @@ const AdminLogin = () => {
                   </>
                 ) : (
                   <>
-                    <LogIn className="h-5 w-5 mr-2" />
+                    <DoorOpen className="h-5 w-5 mr-2 " />
                     Sign in
                   </>
                 )}
@@ -288,13 +285,7 @@ const AdminLogin = () => {
       {/* Footer */}
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="text-center">
-          <p className="text-sm text-gray-600">
-            Don't have an account?{" "}
-            <Link to="/signup" className="font-medium text-teal-600 hover:text-teal-500 transition-colors">
-              Sign up here
-            </Link>
-          </p>
-          <p className="mt-4 text-xs text-gray-500">
+          <p className="text-xs text-gray-500">
             By signing in, you agree to our{" "}
             <a href="/terms" className="text-teal-600 hover:text-teal-500">
               Terms of Service
@@ -303,6 +294,7 @@ const AdminLogin = () => {
             <a href="/privacy" className="text-teal-600 hover:text-teal-500">
               Privacy Policy
             </a>
+            .
           </p>
         </div>
       </div>

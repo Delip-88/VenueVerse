@@ -13,6 +13,8 @@ import cookieParser from "cookie-parser";
 import typeDefs from "./graphql/schema.js";
 import resolvers from "./graphql/resolvers.js";
 import { v2 as cloudinary } from "cloudinary";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 
 // Load environment variables from .env file
 
@@ -22,6 +24,18 @@ const PORT = process.env.PORT || 4000;
 
 // Use cookieParser
 app.use(cookieParser());
+
+app.use(helmet());
+
+// Rate Limiting Middleware for basic protection
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per window
+  message: "Too many requests from this IP, please try again later.",
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable `X-RateLimit-*` headers
+});
+app.use(limiter);
 
 // Cloudinary configuration
 cloudinary.config({

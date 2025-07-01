@@ -104,7 +104,7 @@ function App() {
           <Route path="my-venues/:id" element={<VenueDetails />} />
         </Route>
         {/* Admin Route */}
-        <Route path="admin" element={<AdminLogin />} />
+        <Route path="/admin" element={<AdminLogin />} />
         <Route
           path="/super-admin"
           element={
