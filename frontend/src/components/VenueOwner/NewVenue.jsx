@@ -26,32 +26,8 @@ import { GET_SERVICES } from "../Graphql/query/venuesGql"
 import { useNavigate } from "react-router-dom"
 import toast from "react-hot-toast"
 import { MY_VENUES } from "../Graphql/query/meGql"
+import { GET_CATEGORIES } from "../Graphql/query/AdminQuery"
 
-const VENUE_CATEGORIES = [
-  "WEDDING",
-  "CONFERENCE_HALL",
-  "PARTY_HALL",
-  "BANQUET",
-  "OUTDOOR",
-  "MEETING_ROOM",
-  "SEMINAR_HALL",
-  "CONCERT_HALL",
-  "EXHIBITION_CENTER",
-  "THEATER",
-  "SPORTS_ARENA",
-  "RESORT",
-  "GARDEN",
-  "CLUBHOUSE",
-  "ROOFTOP",
-  "RESTAURANT",
-  "AUDITORIUM",
-  "BEACH_VENUE",
-  "CONVENTION_CENTER",
-  "TRAINING_CENTER",
-  "COWORKING_SPACE",
-  "PRIVATE_VILLA",
-  "CORPORATE_EVENT_SPACE",
-]
 
 const AddNewVenue = () => {
   const navigate = useNavigate()
@@ -88,6 +64,9 @@ const AddNewVenue = () => {
     awaitRefetchQueries: true,
   })
   const { data: servicesData, loading: servicesLoading } = useQuery(GET_SERVICES)
+
+  const { data: categoriesData, loading: categoriesLoading, } = useQuery(GET_CATEGORIES)
+  const VENUE_CATEGORIES =  categoriesData?.categories?.categories || []
 
   // Format category for display
   const formatCategory = (category) => {

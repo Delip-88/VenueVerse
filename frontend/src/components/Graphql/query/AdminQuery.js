@@ -115,6 +115,14 @@ const PENDING_VENUE_APPROVAL = gql`
   }
 `
 
+const GET_CATEGORIES = gql`
+query Categories {
+  categories {
+    categories
+  }
+}
+`
+
 
 export {
   RECENT_BOOKINGS,
@@ -123,6 +131,7 @@ export {
   PENDING_VENUE_APPROVAL,
   GET_ALL_SERVICES,
   ADD_SERVICE,
-  DELETE_SERVICE
+  DELETE_SERVICE,
+  GET_CATEGORIES
 
 };

@@ -21,6 +21,8 @@ import {
   Loader,
   Tag,
   Info,
+  ServerIcon,
+  IndianRupee,
 } from "lucide-react"
 import { useQuery } from "@apollo/client"
 import { VENUE_BY_ID } from "../Graphql/query/venuesGql"
@@ -165,7 +167,7 @@ export default function VenueDetails() {
               </div>
               <div className="space-y-4">
                 <div className="flex items-center text-gray-700">
-                  <DollarSign className="h-5 w-5 mr-3 text-teal-600" />
+                  <IndianRupee className="h-5 w-5 mr-3 text-teal-600" />
                   <div>
                     <span className="text-sm text-gray-500 block">Base Price</span>
                     <span className="font-medium">Rs. {venue.basePricePerHour}/hour</span>
@@ -189,7 +191,7 @@ export default function VenueDetails() {
           {venue.services && venue.services.length > 0 && (
             <div className="bg-white rounded-lg shadow p-6">
               <h3 className="text-lg font-semibold mb-4 text-teal-700 flex items-center">
-                <DollarSign className="h-5 w-5 mr-2" />
+                <ServerIcon className="h-5 w-5 mr-2" />
                 Available Services
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

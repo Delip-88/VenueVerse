@@ -39,6 +39,7 @@ import AdminRoleRequests from "./components/admin/RoleRequest";
 import AdminUsers from "./components/admin/Users";
 import AdminServices from "./components/admin/Services";
 import AdminLogin from "./components/admin/Login";
+import AddCategoriesPage from "./components/admin/Categories";
 function App() {
   return (
     <>
@@ -118,6 +119,7 @@ function App() {
           <Route path="users" element={<AdminUsers />} />
           <Route path="venues" element={<VenuesPage />} />
           <Route path="addServices" element={<AdminServices />} />
+          <Route path="addCategories" element={<AddCategoriesPage />} />
         </Route>
 
         {/* 404 Page */}

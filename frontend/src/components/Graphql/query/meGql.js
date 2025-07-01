@@ -82,6 +82,7 @@ export const MY_VENUES = gql`
         additionalNotes
         eventType
         attendees
+        
         user {
           name
           email
@@ -93,6 +94,17 @@ export const MY_VENUES = gql`
         timeslots {
           start
           end
+        }
+        selectedServices{
+          servicePrice
+          serviceId {
+            id
+            name
+            image {
+              secure_url
+              public_id
+            }
+          }
         }
       }
       image {

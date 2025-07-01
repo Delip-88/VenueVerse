@@ -44,6 +44,10 @@ const typeDefs = gql`
     esewaReference: String
   }
 
+  type Categories {
+    categories: [String!]!
+  }
+
   type Location {
     street: String
     province: Provinces
@@ -61,31 +65,7 @@ const typeDefs = gql`
     Sudurpaschim
   }
 
-  enum VenueCategory {
-    WEDDING
-    CONFERENCE_HALL
-    PARTY_HALL
-    BANQUET
-    OUTDOOR
-    MEETING_ROOM
-    SEMINAR_HALL
-    CONCERT_HALL
-    EXHIBITION_CENTER
-    THEATER
-    SPORTS_ARENA
-    RESORT
-    GARDEN
-    CLUBHOUSE
-    ROOFTOP
-    RESTAURANT
-    AUDITORIUM
-    BEACH_VENUE
-    CONVENTION_CENTER
-    TRAINING_CENTER
-    COWORKING_SPACE
-    PRIVATE_VILLA
-    CORPORATE_EVENT_SPACE
-  }
+  
 
   type Image {
     public_id: String
@@ -112,7 +92,7 @@ const typeDefs = gql`
     users: [User!]
     image: Image
     services: [VenueService!]!
-    categories: [VenueCategory!]!
+    categories: [String!]!
 
     approvalStatus: VenueApprovalStatus!
   }
@@ -128,13 +108,13 @@ const typeDefs = gql`
 
   type VenueService {
     serviceId: Services!
-    servicePrice: Float!
+    servicePrice: Float
     category: ServiceCategory # "hourly" or "fixed"
   }
 
   type BookingService {
     serviceId: ID!
-    servicePrice: Float!
+    servicePrice: Float
   }
 
   type Availability {
@@ -198,6 +178,8 @@ const typeDefs = gql`
     services: [Services!]
     service(id: ID!): Services
 
+    categories: Categories!
+
     recentBookings(limit: Int): [Booking]
     topVenues(limit: Int): [TopVenue!]!
 
@@ -260,6 +242,9 @@ const typeDefs = gql`
     updateService(id: ID!, name: String, image: imageInput): Response!
     deleteService(id: ID!): Response!
 
+    addCategory(category: String!): Categories!
+    removeCategory(category: String!): Categories!
+    editCategory(oldCategory: String!, newCategory: String!): Categories!
   }
 
   type TopVenue {
@@ -269,7 +254,7 @@ const typeDefs = gql`
     avgRating: Float!
     location: Location!
     totalRevenue: Float!
-    categories: [VenueCategory!]!
+    categories: [String!]!
   }
   enum VenueApprovalStatus {
     PENDING
@@ -342,7 +327,7 @@ const typeDefs = gql`
     services: [ServiceInput!]
     capacity: Int!
     image: imageInput!
-    categories: [VenueCategory!]!
+    categories: [String!]!
   }
 
   input UserInput {

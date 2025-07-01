@@ -26,6 +26,7 @@ import { v4 as uuidv4 } from "uuid";
 import Transaction from "../models/Transaction.js";
 import Service from "../models/Service.js";
 import mongoose from "mongoose";
+import { Categories } from "../models/Categories.js";
 
 const resolvers = {
   Query: {
@@ -58,13 +59,16 @@ const resolvers = {
     bookings: async () => {
       return await Booking.find()
         .populate("venue")
-        .populate("user").populate("selectedServices.serviceId")
-        ;
+        .populate("user")
+        .populate("selectedServices.serviceId");
     },
 
     // Fetch a single booking by ID
     booking: async (_, { id }) => {
-      return await Booking.findById(id).populate("venue").populate("user").populate("selectedServices.serviceId")
+      return await Booking.findById(id)
+        .populate("venue")
+        .populate("user")
+        .populate("selectedServices.serviceId");
     },
 
     // Fetch all users
@@ -74,7 +78,7 @@ const resolvers = {
 
     // Fetch a single user by ID
     user: async (_, { id }) => {
-      return await User.findById(id)
+      return await User.findById(id);
     },
     reviewsByVenue: async (_, { venueId }) => {
       return await Review.find({ venue: venueId }).populate("user");
@@ -105,6 +109,13 @@ const resolvers = {
         throw new Error("Service not found");
       }
       return service;
+    },
+
+    categories: async () => {
+      // Assuming you have only one document storing all categories
+      const categoriesDoc = await Categories.findOne();
+      // If not found, return an empty array
+      return categoriesDoc || { categories: [] };
     },
 
     recentBookings: async (_, { limit }) => {
@@ -337,9 +348,18 @@ const resolvers = {
         throw new Error("Not Authenticated");
       }
 
-      
-      const { venue, date, start, end, phone, eventType,selectedServices , additionalNotes, attendees} = args.input;
-  
+      const {
+        venue,
+        date,
+        start,
+        end,
+        phone,
+        eventType,
+        selectedServices,
+        additionalNotes,
+        attendees,
+      } = args.input;
+
       // console.log("Received selectedServices:", selectedServices);
 
       try {
@@ -350,7 +370,7 @@ const resolvers = {
           throw new Error("Venue not found");
         }
 
-        if(user.id === venueData.owner.toString()) {
+        if (user.id === venueData.owner.toString()) {
           throw new Error("You cannot book your own venue.");
         }
 
@@ -373,7 +393,6 @@ const resolvers = {
             const venueService = venueData.services.find(
               (s) => s.serviceId && s.serviceId._id.toString() === serviceId
             );
-            
 
             if (!venueService) {
               throw new Error(`Service not found in venue: ${serviceId}`);
@@ -469,7 +488,6 @@ const resolvers = {
     },
 
     async verifyPayment(_, { transactionId }, { user }) {
-
       if (!user) throw new AuthenticationError("User not authenticated");
 
       const transaction = await Transaction.findOne({ transactionId });
@@ -504,17 +522,18 @@ const resolvers = {
           transaction.esewaReference = responseJson.ref_id;
           await transaction.save();
 
-          const booking = await Booking.findById(transaction.booking).populate('selectedServices.serviceId').populate('venue');
+          const booking = await Booking.findById(transaction.booking)
+            .populate("selectedServices.serviceId")
+            .populate("venue");
           if (booking) {
             booking.paymentStatus = "PAID";
             booking.bookingStatus = "APPROVED";
             await booking.save();
           }
 
-
           const location = booking.venue.location;
           const fullAddress = `${location.street}, ${location.city}, ${location.province} ${location.zipCode}`;
-          
+
           const bookingData = {
             venueName: booking.venue.name,
             address: fullAddress,
@@ -522,10 +541,20 @@ const resolvers = {
             start: booking.timeslots[0].start,
             end: booking.timeslots[0].end,
             totalPrice: booking.totalPrice,
-            services: booking.selectedServices.map(service => service.serviceId.name),
+            services: booking.selectedServices.map(
+              (service) => service.serviceId.name
+            ),
           };
           // console.log(bookingData)
-          sendEmail("payment_success", user.email, "Payment Success", "", user.name,"",bookingData);
+          sendEmail(
+            "payment_success",
+            user.email,
+            "Payment Success",
+            "",
+            user.name,
+            "",
+            bookingData
+          );
 
           return {
             success: true,
@@ -820,7 +849,7 @@ const resolvers = {
       }
 
       const token = jwt.sign(
-        { id: user._id, email: user.email, role: user.role,name: user.name},
+        { id: user._id, email: user.email, role: user.role, name: user.name },
         process.env.JWT_SECRET,
         { expiresIn: "1d" }
       );
@@ -1072,8 +1101,7 @@ const resolvers = {
         existingUser.companyName = input.companyName;
         existingUser.esewaId = input.esewaId;
         existingUser.roleApprovalStatus = "PENDING";
-        existingUser.submittedAt= new Date().toISOString();
-
+        existingUser.submittedAt = new Date().toISOString();
 
         await existingUser.save();
 
@@ -1092,28 +1120,32 @@ const resolvers = {
       console.log(userId);
 
       const userToUpdate = await User.findById(userId);
-      if (!userToUpdate) { 
+      if (!userToUpdate) {
         return { success: false, message: "User not found" };
       }
-      console.log(userToUpdate)
+      console.log(userToUpdate);
       userToUpdate.roleApprovalStatus = "APPROVED";
       userToUpdate.role = "VenueOwner"; // Update role to VenueOwner
-      await userToUpdate.save()
-      return {message: "Role update Success",success:true}
+      await userToUpdate.save();
+      return { message: "Role update Success", success: true };
     },
 
-    rejectRoleChangeRequest: async (_, { userId,rejectionReason }, { user }) => {
+    rejectRoleChangeRequest: async (
+      _,
+      { userId, rejectionReason },
+      { user }
+    ) => {
       // if (!user || user.role !== "Admin") {
       //   return { success: false, message: "Unauthorized" };
       // }
       const userToUpdate = await User.findById(userId);
-      if (!userToUpdate) { 
+      if (!userToUpdate) {
         return { success: false, message: "User not found" };
       }
       userToUpdate.roleApprovalStatus = "REJECTED";
       userToUpdate.rejectionReason = rejectionReason;
-      await userToUpdate.save()
-      return {message: "Update Success",success:true}
+      await userToUpdate.save();
+      return { message: "Update Success", success: true };
     },
 
     generateSignature: async (
@@ -1211,67 +1243,111 @@ const resolvers = {
     addService: async (_, { name, image }) => {
       try {
         // Check if service with the same name already exists
-        const existingService = await Service.findOne({ name })
+        const existingService = await Service.findOne({ name });
         if (existingService) {
-          throw new Error("A service with this name already exists")
+          throw new Error("A service with this name already exists");
         }
 
         // Create new service
         const newService = new Service({
           name,
           image,
-        })
+        });
 
-        await newService.save()
-        return {message: "Service added successfully", success: true}
+        await newService.save();
+        return { message: "Service added successfully", success: true };
       } catch (error) {
-        throw new Error(`Failed to add service: ${error.message}`)
+        throw new Error(`Failed to add service: ${error.message}`);
       }
     },
 
     updateService: async (_, { id, name, image }) => {
       try {
         // Check if service exists
-        const service = await Service.findById(id)
+        const service = await Service.findById(id);
         if (!service) {
-          throw new Error("Service not found")
+          throw new Error("Service not found");
         }
 
         // Check if name is being changed and if it conflicts
         if (name !== service.name) {
-          const existingService = await Service.findOne({ name })
+          const existingService = await Service.findOne({ name });
           if (existingService) {
-            throw new Error("A service with this name already exists")
+            throw new Error("A service with this name already exists");
           }
         }
 
         // Update service
-        const updatedService = await Service.findByIdAndUpdate(id, { name, image }, { new: true })
+        const updatedService = await Service.findByIdAndUpdate(
+          id,
+          { name, image },
+          { new: true }
+        );
 
-        return {message: "Service updated successfully", success: true}
+        return { message: "Service updated successfully", success: true };
       } catch (error) {
-        throw new Error(`Failed to update service: ${error.message}`)
+        throw new Error(`Failed to update service: ${error.message}`);
       }
     },
 
     deleteService: async (_, { id }) => {
       try {
         // Check if service exists
-        const service = await Service.findById(id)
+        const service = await Service.findById(id);
         if (!service) {
-          throw new Error("Service not found")
+          throw new Error("Service not found");
         }
 
         // Delete service
-        await Service.findByIdAndDelete(id)
+        await Service.findByIdAndDelete(id);
 
         return {
           success: true,
           message: "Service deleted successfully",
-        }
+        };
       } catch (error) {
-        throw new Error(`Failed to delete service: ${error.message}`)
+        throw new Error(`Failed to delete service: ${error.message}`);
       }
+    },
+
+    addCategory: async (_, { category }) => {
+      // Find the single categories document or create if not exists
+      let categoriesDoc = await Categories.findOne();
+      if (!categoriesDoc) {
+        categoriesDoc = new Categories({ categories: [category] });
+      } else {
+        if (!categoriesDoc.categories.includes(category)) {
+          categoriesDoc.categories.push(category);
+        }
+      }
+      await categoriesDoc.save();
+      return categoriesDoc;
+    },
+
+    removeCategory: async (_, { category }) => {
+      let categoriesDoc = await Categories.findOne();
+      if (!categoriesDoc) {
+        // If no doc, just return empty
+        return { categories: [] };
+      }
+      categoriesDoc.categories = categoriesDoc.categories.filter(
+        (cat) => cat !== category
+      );
+      await categoriesDoc.save();
+      return categoriesDoc;
+    },
+
+    editCategory: async (_, { oldCategory, newCategory }) => {
+      let categoriesDoc = await Categories.findOne();
+      if (!categoriesDoc) {
+        return { categories: [] };
+      }
+      const idx = categoriesDoc.categories.indexOf(oldCategory);
+      if (idx !== -1) {
+        categoriesDoc.categories[idx] = newCategory;
+        await categoriesDoc.save();
+      }
+      return categoriesDoc;
     },
   },
   User: {
@@ -1298,14 +1374,13 @@ const resolvers = {
         // Return an empty array if services is undefined or not an array
         return [];
       }
-    
+
       return await Promise.all(
         parent.selectedServices.map(async (service) => {
           const serviceDetails = await Service.findById(service.serviceId);
           return {
             serviceId: serviceDetails, // Full service document
             servicePrice: service.servicePrice, // Custom price set by venue owner
-            
           };
         })
       );
@@ -1350,7 +1425,7 @@ const resolvers = {
         })
       );
       // Remove nulls to avoid returning null for non-nullable fields
-      return results.filter(s => s !== null);
+      return results.filter((s) => s !== null);
     },
   },
 

@@ -43,35 +43,10 @@ const venueSchema = new mongoose.Schema(
     },
     approvalStatus: { type: String, enum: ["PENDING", "APPROVED", "REJECTED"], default: "PENDING" }, // NEW FIELD
 
-    categories: [{
-      type: String,
-      enum: [
-        "WEDDING",
-        "CONFERENCE_HALL",
-        "PARTY_HALL",
-        "BANQUET",
-        "OUTDOOR",
-        "MEETING_ROOM",
-        "SEMINAR_HALL",
-        "CONCERT_HALL",
-        "EXHIBITION_CENTER",
-        "THEATER",
-        "SPORTS_ARENA",
-        "RESORT",
-        "GARDEN",
-        "CLUBHOUSE",
-        "ROOFTOP",
-        "RESTAURANT",
-        "AUDITORIUM",
-        "BEACH_VENUE",
-        "CONVENTION_CENTER",
-        "TRAINING_CENTER",
-        "COWORKING_SPACE",
-        "PRIVATE_VILLA",
-        "CORPORATE_EVENT_SPACE",
-      ],
+    categories: {
+      type: [String],
       required: true,
-    }],
+    },
 
     image: {
       type: ImageSchema,

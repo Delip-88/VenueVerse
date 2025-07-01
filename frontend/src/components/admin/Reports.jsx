@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useMemo } from "react"
 import { useQuery } from "@apollo/client"
 import { GET_ALL_BOOKINGS, GET_ALL_VENUES, GET_ALL_USERS } from "../Graphql/query/Reports"
@@ -20,7 +18,7 @@ import {
   PolarRadiusAxis,
   Radar,
 } from "recharts"
-import { Calendar, ChevronDown, DollarSign, Users, Building, Printer } from "lucide-react"
+import { Calendar, ChevronDown, DollarSign, Users, Building, Printer, IndianRupee } from "lucide-react"
 
 export default function ReportsPage() {
   const [dateRange, setDateRange] = useState("last30days")
@@ -207,7 +205,7 @@ export default function ReportsPage() {
                 <h3 className="text-2xl font-bold text-gray-900 mt-1">{formatCurrency(summaryMetrics.totalRevenue)}</h3>
               </div>
               <div className="p-2 bg-blue-50 rounded-full">
-                <DollarSign className="h-6 w-6 text-blue-500" />
+                <IndianRupee className="h-6 w-6 text-blue-500" />
               </div>
             </div>
           </div>

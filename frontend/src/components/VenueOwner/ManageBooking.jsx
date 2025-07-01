@@ -25,6 +25,7 @@ import {
   DollarSign,
   Activity,
   Eye,
+  Package,
 } from "lucide-react"
 import { AuthContext } from "../../middleware/AuthContext"
 import Loader from "../../pages/common/Loader"
@@ -315,6 +316,12 @@ const ManageBookings = () => {
     window.print()
   }
 
+  // Calculate services total
+  const calculateServicesTotal = (selectedServices) => {
+    if (!selectedServices || selectedServices.length === 0) return 0
+    return selectedServices.reduce((total, service) => total + (service.servicePrice || 0), 0)
+  }
+
   if (authLoading || venueLoading) return <Loader />
   if (error) return <div className="text-red-500">Error: {error.message}</div>
 
@@ -341,7 +348,23 @@ const ManageBookings = () => {
               </div>
             </div>
 
- 
+            <div className="flex items-center gap-3">
+              <button
+                onClick={exportToCSV}
+                className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 transition-colors font-medium"
+              >
+                <Download className="w-4 h-4" />
+                <span className="hidden sm:inline">Export</span>
+              </button>
+
+              <button
+                onClick={printBookings}
+                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors font-medium"
+              >
+                <Printer className="w-4 h-4" />
+                <span className="hidden sm:inline">Print</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -659,254 +682,281 @@ const ManageBookings = () => {
           )}
         </div>
 
-     
-          {isDetailsModalOpen && selectedBooking && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-              <div
-                className="bg-white rounded-xl max-w-4xl w-full shadow-xl border border-gray-200"
-                style={{
-            maxHeight: "90vh",
-            overflowY: "auto",
-                }}
-              >
-                <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-xl">
-            <div className="flex justify-between items-center">
-              <h3 className="text-xl font-semibold text-gray-900">Booking Details</h3>
-              <button
-                onClick={() => {
-                  setIsDetailsModalOpen(false)
-                  setSelectedBooking(null)
-                }}
-                className="text-gray-400 hover:text-gray-500 p-2 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-                </div>
-
-                <div className="p-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                  <MapPin className="h-5 w-5 mr-2 text-teal-600" />
-                  Venue Information
-                </h4>
-                <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
-                  <div className="flex items-center mb-4">
-              {selectedBooking.venueImage ? (
-                <img
-                  src={selectedBooking.venueImage || "/placeholder.svg"}
-                  alt={selectedBooking.venueName}
-                  className="w-16 h-16 rounded-lg object-cover mr-4 border border-gray-200"
-                />
-              ) : (
-                <div className="w-16 h-16 rounded-lg bg-gray-200 flex items-center justify-center mr-4 border border-gray-200">
-                  <MapPin className="w-8 h-8 text-gray-400" />
-                </div>
-              )}
-              <div>
-                <div className="font-semibold text-gray-900">{selectedBooking.venueName}</div>
-                <div className="text-sm text-gray-600">
-                  {selectedBooking.venueLocation?.city}, {selectedBooking.venueLocation?.province}
-                </div>
-              </div>
-                  </div>
-
-                  <div className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Date:</span>
-                <span className="font-medium">{formatDate(selectedBooking.date)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Time:</span>
-                <span className="font-medium">
-                  {selectedBooking.timeslots[0]?.start} - {selectedBooking.timeslots[0]?.end}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Duration:</span>
-                <span className="font-medium">
-                  {(() => {
-                    const start = selectedBooking.timeslots[0]?.start || "00:00"
-                    const end = selectedBooking.timeslots[0]?.end || "00:00"
-                    const [startHour, startMin] = start.split(":").map(Number)
-                    const [endHour, endMin] = end.split(":").map(Number)
-                    const startMinutes = startHour * 60 + startMin
-                    const endMinutes = endHour * 60 + endMin
-                    const durationMinutes = endMinutes - startMinutes
-                    const hours = Math.floor(durationMinutes / 60)
-                    const minutes = durationMinutes % 60
-                    return `${hours} hr${hours !== 1 ? "s" : ""} ${minutes} min${minutes !== 1 ? "s" : ""}`
-                  })()}
-                </span>
-              </div>
-              {/* Event Type */}
-              <div className="flex justify-between">
-                <span className="text-gray-600">Event Type:</span>
-                <span className="font-medium">
-                  {selectedBooking.eventType || "N/A"}
-                </span>
-              </div>
-                  </div>
+        {/* Booking Details Modal */}
+        {isDetailsModalOpen && selectedBooking && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
+            <div
+              className="bg-white rounded-xl max-w-4xl w-full shadow-xl border border-gray-200"
+              style={{
+                maxHeight: "90vh",
+                overflowY: "auto",
+              }}
+            >
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-xl">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-xl font-semibold text-gray-900">Booking Details</h3>
+                  <button
+                    onClick={() => {
+                      setIsDetailsModalOpen(false)
+                      setSelectedBooking(null)
+                    }}
+                    className="text-gray-400 hover:text-gray-500 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                  >
+                    <X className="h-6 w-6" />
+                  </button>
                 </div>
               </div>
 
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                  <Users className="h-5 w-5 mr-2 text-teal-600" />
-                  Customer Information
-                </h4>
-                <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
-                  <div className="space-y-4">
-              <div>
-                <span className="text-gray-600 text-sm">Name:</span>
-                <p className="font-semibold text-gray-900">{selectedBooking.user?.name || "N/A"}</p>
-              </div>
-              <div>
-                <span className="text-gray-600 text-sm">Email:</span>
-                <p className="font-semibold text-gray-900">{selectedBooking.user?.email || "N/A"}</p>
-              </div>
-              <div>
-                <span className="text-gray-600 text-sm">Phone:</span>
-                <p className="font-semibold text-gray-900">{selectedBooking.user?.phone || "N/A"}</p>
-              </div>
-
-              <div className="flex gap-3 mt-4">
-                <button
-                  onClick={() => handleContactCustomer("email", selectedBooking.user?.email)}
-                  disabled={!selectedBooking.user?.email}
-                  className="flex items-center gap-2 px-4 py-2 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  <Mail className="w-4 h-4" />
-                  Email
-                </button>
-
-                <button
-                  onClick={() => handleContactCustomer("phone", selectedBooking.user?.phone)}
-                  disabled={!selectedBooking.user?.phone}
-                  className="flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  <Phone className="w-4 h-4" />
-                  Call
-                </button>
-              </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-8">
-              <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                <DollarSign className="h-5 w-5 mr-2 text-teal-600" />
-                Booking Status & Payment
-              </h4>
-              <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="p-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   <div>
-              <span className="text-gray-600 text-sm">Booking Status:</span>
-              <p
-                className={`mt-2 font-semibold ${getStatusBadge(selectedBooking.bookingStatus)} inline-block px-3 py-1 rounded-full text-sm`}
-              >
-                {selectedBooking.bookingStatus}
-              </p>
+                    <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+                      <MapPin className="h-5 w-5 mr-2 text-teal-600" />
+                      Venue Information
+                    </h4>
+                    <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
+                      <div className="flex items-center mb-4">
+                        {selectedBooking.venueImage ? (
+                          <img
+                            src={selectedBooking.venueImage || "/placeholder.svg"}
+                            alt={selectedBooking.venueName}
+                            className="w-16 h-16 rounded-lg object-cover mr-4 border border-gray-200"
+                          />
+                        ) : (
+                          <div className="w-16 h-16 rounded-lg bg-gray-200 flex items-center justify-center mr-4 border border-gray-200">
+                            <MapPin className="w-8 h-8 text-gray-400" />
+                          </div>
+                        )}
+                        <div>
+                          <div className="font-semibold text-gray-900">{selectedBooking.venueName}</div>
+                          <div className="text-sm text-gray-600">
+                            {selectedBooking.venueLocation?.city}, {selectedBooking.venueLocation?.province}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Date:</span>
+                          <span className="font-medium">{formatDate(selectedBooking.date)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Time:</span>
+                          <span className="font-medium">
+                            {selectedBooking.timeslots[0]?.start} - {selectedBooking.timeslots[0]?.end}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Duration:</span>
+                          <span className="font-medium">
+                            {(() => {
+                              const start = selectedBooking.timeslots[0]?.start || "00:00"
+                              const end = selectedBooking.timeslots[0]?.end || "00:00"
+                              const [startHour, startMin] = start.split(":").map(Number)
+                              const [endHour, endMin] = end.split(":").map(Number)
+                              const startMinutes = startHour * 60 + startMin
+                              const endMinutes = endHour * 60 + endMin
+                              const durationMinutes = endMinutes - startMinutes
+                              const hours = Math.floor(durationMinutes / 60)
+                              const minutes = durationMinutes % 60
+                              return `${hours} hr${hours !== 1 ? "s" : ""} ${minutes} min${minutes !== 1 ? "s" : ""}`
+                            })()}
+                          </span>
+                        </div>
+                        {/* Event Type */}
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Event Type:</span>
+                          <span className="font-medium">{selectedBooking.eventType || "N/A"}</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <div>
-              <span className="text-gray-600 text-sm">Payment Status:</span>
-              <p
-                className={`mt-2 font-semibold ${getPaymentBadge(selectedBooking.paymentStatus)} inline-block px-3 py-1 rounded-full text-sm`}
-              >
-                {selectedBooking.paymentStatus}
-              </p>
+                    <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+                      <Users className="h-5 w-5 mr-2 text-teal-600" />
+                      Customer Information
+                    </h4>
+                    <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
+                      <div className="space-y-4">
+                        <div>
+                          <span className="text-gray-600 text-sm">Name:</span>
+                          <p className="font-semibold text-gray-900">{selectedBooking.user?.name || "N/A"}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-600 text-sm">Email:</span>
+                          <p className="font-semibold text-gray-900">{selectedBooking.user?.email || "N/A"}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-600 text-sm">Phone:</span>
+                          <p className="font-semibold text-gray-900">
+                            {selectedBooking.phone || selectedBooking.user?.phone || "N/A"}
+                          </p>
+                        </div>
+
+                        <div className="flex gap-3 mt-4">
+                          <button
+                            onClick={() => handleContactCustomer("email", selectedBooking.user?.email)}
+                            disabled={!selectedBooking.user?.email}
+                            className="flex items-center gap-2 px-4 py-2 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            <Mail className="w-4 h-4" />
+                            Email
+                          </button>
+
+                          <button
+                            onClick={() =>
+                              handleContactCustomer("phone", selectedBooking.phone || selectedBooking.user?.phone)
+                            }
+                            disabled={!selectedBooking.phone && !selectedBooking.user?.phone}
+                            className="flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            <Phone className="w-4 h-4" />
+                            Call
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="mt-6">
-                  <span className="text-gray-600 text-sm">Total Amount:</span>
-                  <p className="text-2xl font-bold text-gray-900">Rs. {selectedBooking.totalPrice}</p>
-                </div>
-
-                {/* Additional Services */}
+                {/* Selected Services Section */}
                 {selectedBooking.selectedServices && selectedBooking.selectedServices.length > 0 && (
-                  <div className="mt-6">
-              <span className="text-gray-600 text-sm">Additional Services:</span>
-              <div className="mt-3 space-y-2">
-                {selectedBooking.selectedServices.map((service, index) => (
-                  <div key={index} className="flex justify-between text-sm bg-white p-3 rounded-lg border">
-                    <span className="font-medium">{service.name || service.serviceId?.name}</span>
-                    <span className="font-semibold">Rs. {service.price || service.servicePrice}</span>
-                  </div>
-                ))}
-              </div>
-                  </div>
-                )}
+                  <div className="mt-8">
+                    <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+                      <Package className="h-5 w-5 mr-2 text-teal-600" />
+                      Selected Services
+                    </h4>
+                    <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
+                      <div className="space-y-3">
+                        {selectedBooking.selectedServices.map((service, index) => (
+                          <div
+                            key={index}
+                            className="flex justify-between items-center bg-white p-4 rounded-lg border border-gray-200"
+                          >
+                            <div>
+                              <span className="font-medium text-gray-900">
+                                {service.serviceId?.name || "Unknown Service"}
+                              </span>
+                              <p className="text-sm text-gray-500">Service ID: {service.serviceId?.id}</p>
+                            </div>
+                            <div className="text-right">
+                              <span className="font-semibold text-gray-900">Rs. {service.servicePrice || 0}</span>
+                            </div>
+                          </div>
+                        ))}
 
-                {/* Attendees */}
-                {selectedBooking.attendees && (
-                  <div className="mt-6">
-              <span className="text-gray-600 text-sm">Number of Attendees:</span>
-              <span className="ml-3 font-semibold text-gray-900">{selectedBooking.attendees}</span>
-                  </div>
-                )}
-
-                {/* Additional Notes */}
-                {selectedBooking.additionalNotes && (
-                  <div className="mt-6">
-              <span className="text-gray-600 text-sm">Additional Notes:</span>
-              <div className="mt-2 bg-white border border-gray-200 rounded-lg p-4 text-sm text-gray-700">
-                {selectedBooking.additionalNotes}
-              </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="mt-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                {selectedTab === "upcoming" && (
-                  <div className="flex items-center text-sm text-gray-600 bg-teal-50 px-3 py-2 rounded-lg border border-teal-200">
-              <Clock className="w-4 h-4 mr-2 text-teal-600" />
-              <span>Coming up in {getTimeRemaining(selectedBooking.date)}</span>
+                        {/* Services Total */}
+                        <div className="border-t border-gray-200 pt-3 mt-4">
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium text-gray-700">Services Total:</span>
+                            <span className="font-bold text-teal-600">
+                              Rs. {calculateServicesTotal(selectedBooking.selectedServices)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
-              </div>
 
-              <div className="flex gap-3">
-                <button
-                  onClick={() => window.open(`/venue/${selectedBooking.venueId}`, "_blank")}
-                  className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                  View Venue
-                </button>
+                <div className="mt-8">
+                  <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+                    <DollarSign className="h-5 w-5 mr-2 text-teal-600" />
+                    Booking Status & Payment
+                  </h4>
+                  <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <span className="text-gray-600 text-sm">Booking Status:</span>
+                        <p
+                          className={`mt-2 font-semibold ${getStatusBadge(selectedBooking.bookingStatus)} inline-block px-3 py-1 rounded-full text-sm`}
+                        >
+                          {selectedBooking.bookingStatus}
+                        </p>
+                      </div>
 
-                {selectedBooking.bookingStatus === "PENDING" && (
-                  <button
-              onClick={() => handleStatusUpdate(selectedBooking.id, "APPROVED")}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
-                  >
-              <CheckCircle className="w-4 h-4" />
-              Approve
-                  </button>
-                )}
+                      <div>
+                        <span className="text-gray-600 text-sm">Payment Status:</span>
+                        <p
+                          className={`mt-2 font-semibold ${getPaymentBadge(selectedBooking.paymentStatus)} inline-block px-3 py-1 rounded-full text-sm`}
+                        >
+                          {selectedBooking.paymentStatus}
+                        </p>
+                      </div>
+                    </div>
 
-                {(selectedBooking.bookingStatus === "PENDING" || selectedBooking.bookingStatus === "APPROVED") && (
-                  <button
-              onClick={() => handleStatusUpdate(selectedBooking.id, "CANCELLED")}
-              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                  >
-              <XCircle className="w-4 h-4" />
-              Cancel
-                  </button>
-                )}
-              </div>
-            </div>
+                    <div className="mt-6">
+                      <span className="text-gray-600 text-sm">Total Amount:</span>
+                      <p className="text-2xl font-bold text-gray-900">Rs. {selectedBooking.totalPrice}</p>
+                    </div>
+
+                    {/* Attendees */}
+                    {selectedBooking.attendees && (
+                      <div className="mt-6">
+                        <span className="text-gray-600 text-sm">Number of Attendees:</span>
+                        <span className="ml-3 font-semibold text-gray-900">{selectedBooking.attendees}</span>
+                      </div>
+                    )}
+
+                    {/* Additional Notes */}
+                    {selectedBooking.additionalNotes && (
+                      <div className="mt-6">
+                        <span className="text-gray-600 text-sm">Additional Notes:</span>
+                        <div className="mt-2 bg-white border border-gray-200 rounded-lg p-4 text-sm text-gray-700">
+                          {selectedBooking.additionalNotes}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div>
+                    {selectedTab === "upcoming" && (
+                      <div className="flex items-center text-sm text-gray-600 bg-teal-50 px-3 py-2 rounded-lg border border-teal-200">
+                        <Clock className="w-4 h-4 mr-2 text-teal-600" />
+                        <span>Coming up in {getTimeRemaining(selectedBooking.date)}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => window.open(`/venue/${selectedBooking.venueId}`, "_blank")}
+                      className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      View Venue
+                    </button>
+
+                    {selectedBooking.bookingStatus === "PENDING" && (
+                      <button
+                        onClick={() => handleStatusUpdate(selectedBooking.id, "APPROVED")}
+                        className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        Approve
+                      </button>
+                    )}
+
+                    {(selectedBooking.bookingStatus === "PENDING" || selectedBooking.bookingStatus === "APPROVED") && (
+                      <button
+                        onClick={() => handleStatusUpdate(selectedBooking.id, "CANCELLED")}
+                        className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                      >
+                        <XCircle className="w-4 h-4" />
+                        Cancel
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Info Alert */}
+        {/* Info Alert */}
         <div className="bg-teal-50 border border-teal-200 rounded-xl p-6 mt-8">
           <div className="flex items-start">
             <div className="flex-shrink-0">
@@ -915,7 +965,8 @@ const ManageBookings = () => {
             <div className="ml-4">
               <h3 className="text-sm font-semibold text-teal-800">Booking Management Tips</h3>
               <p className="text-sm text-teal-700 mt-1">
-                Bookings are automatically approved when payment is received.
+                Bookings are automatically approved when payment is received. You can also manually approve or cancel
+                bookings as needed. Use the export feature to download booking data for your records.
               </p>
             </div>
           </div>
