@@ -43,7 +43,7 @@ const SimilarVenueCard = ({ venue }) => {
         <div className="flex justify-between items-center text-xs text-gray-600 mb-1">
           <div className="flex items-center">
             <IndianRupee size={12} className="mr-1 text-teal-500" />
-            <span>{venue.basePricePerHour}/hr</span>
+            <span>Rs. {venue.basePricePerHour}/hr</span>
           </div>
           <div className="flex items-center">
             <Users size={12} className="mr-1 text-teal-500" />

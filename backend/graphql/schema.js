@@ -129,7 +129,7 @@ const typeDefs = gql`
 
   type Booking {
     id: ID!
-    user: User!
+    user: User
     venue: Venue!
     date: String!
     timeslots: [TimeSlot!]!

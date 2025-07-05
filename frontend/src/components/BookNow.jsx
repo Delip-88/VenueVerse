@@ -25,6 +25,14 @@ import { AuthContext } from "../middleware/AuthContext"
 import EsewaPaymentForm from "./EsewaPaymentForm"
 import { calculateTotalPrice } from "./Functions/calc"
 
+// Format date as YYYY-MM-DD for comparison (local time)
+const formatDateString = (date) => {
+  const year = date.getFullYear()
+  const month = (date.getMonth() + 1).toString().padStart(2, "0")
+  const day = date.getDate().toString().padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
+
 // Calendar component for date selection with availability indicators
 const DatePicker = ({ availableDates, selectedDate, onDateChange, minDate }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date())
@@ -34,11 +42,6 @@ const DatePicker = ({ availableDates, selectedDate, onDateChange, minDate }) => 
 
   // Get first day of month (0 = Sunday, 1 = Monday, etc.)
   const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay()
-
-  // Format date as YYYY-MM-DD for comparison
-  const formatDateString = (date) => {
-    return date.toISOString().split("T")[0]
-  }
 
   // Check if a date is available
   const isDateAvailable = (date) => {
@@ -396,7 +399,7 @@ const BookNowPage = () => {
     for (let i = 0; i < 90; i++) {
       const date = new Date(today)
       date.setDate(today.getDate() + i)
-      dates.push(date.toISOString().split("T")[0])
+      dates.push(formatDateString(date)) // use local date formatting
     }
 
     // Calculate available time slots for each date
@@ -586,7 +589,7 @@ const BookNowPage = () => {
   const venue = data.venue
 
   // Get today's date in YYYY-MM-DD format
-  const today = new Date().toISOString().split("T")[0]
+  const today = formatDateString(new Date())
 
   // Calculate duration for display and calculations
   const duration = calculateDuration(bookingDetails.startTime, bookingDetails.endTime)

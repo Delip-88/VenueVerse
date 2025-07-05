@@ -5,7 +5,7 @@ import { Plus, Edit3, Trash2, Save, X, Search, Tag, AlertCircle, Check, Grid3X3,
 import toast from "react-hot-toast"
 import { useQuery, useMutation } from "@apollo/client"
 import { GET_CATEGORIES } from "../Graphql/query/AdminQuery"
-import {  REMOVE_CATEGORY, EDIT_CATEGORY, ADD_CATEGORY } from "../Graphql/mutations/Admin"
+import { REMOVE_CATEGORY, EDIT_CATEGORY, ADD_CATEGORY } from "../Graphql/mutations/Admin"
 
 const AddCategoriesPage = () => {
   // Apollo hooks
@@ -156,6 +156,7 @@ const AddCategoriesPage = () => {
 
     setIsLoading(true)
     try {
+      // Await all deletions in parallel
       await Promise.all(
         selectedCategories.map((category) =>
           removeCategoryMutation({ variables: { category } })
@@ -164,7 +165,7 @@ const AddCategoriesPage = () => {
       setSelectedCategories([])
       setShowBulkActions(false)
       toast.success(`${selectedCategories.length} categories deleted successfully!`)
-      refetch()
+      await refetch() // Ensure UI updates after all deletions
     } catch (error) {
       toast.error("Failed to delete categories")
     } finally {

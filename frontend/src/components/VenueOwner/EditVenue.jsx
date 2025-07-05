@@ -28,32 +28,8 @@ import { useNavigate, useParams } from "react-router-dom"
 import toast from "react-hot-toast"
 import { VENUE_BY_ID } from "../Graphql/query/venuesGql"
 import { GET_SERVICES } from "../Graphql/query/venuesGql"
+import { GET_CATEGORIES } from "../Graphql/query/AdminQuery"
 
-const VENUE_CATEGORIES = [
-  "WEDDING",
-  "CONFERENCE_HALL",
-  "PARTY_HALL",
-  "BANQUET",
-  "OUTDOOR",
-  "MEETING_ROOM",
-  "SEMINAR_HALL",
-  "CONCERT_HALL",
-  "EXHIBITION_CENTER",
-  "THEATER",
-  "SPORTS_ARENA",
-  "RESORT",
-  "GARDEN",
-  "CLUBHOUSE",
-  "ROOFTOP",
-  "RESTAURANT",
-  "AUDITORIUM",
-  "BEACH_VENUE",
-  "CONVENTION_CENTER",
-  "TRAINING_CENTER",
-  "COWORKING_SPACE",
-  "PRIVATE_VILLA",
-  "CORPORATE_EVENT_SPACE",
-]
 
 const EditVenue = () => {
   const { id } = useParams()
@@ -65,6 +41,8 @@ const EditVenue = () => {
     fetchPolicy: "network-only", // Ensure we get fresh data
   })
   const { data: servicesData, loading: servicesLoading } = useQuery(GET_SERVICES)
+    const { data: categoriesData, loading: categoriesLoading, } = useQuery(GET_CATEGORIES)
+    const VENUE_CATEGORIES =  categoriesData?.categories?.categories || []
   const { uploadImage, loading: uLoading } = useUploadImage()
   const { deleteImage, loading: dLoading } = useDeleteImage()
   const [updateVenue, { loading: vLoading }] = useMutation(UPDATE_VENUE)

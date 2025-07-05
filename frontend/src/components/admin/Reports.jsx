@@ -143,11 +143,16 @@ export default function ReportsPage() {
 
   // Format currency
   const formatCurrency = (value) => {
-    return new Intl.NumberFormat("en-IN", {
+    // Nepalese Rupee does not have a standard currency code in Intl.NumberFormat,
+    // so we use "NPR" and replace the symbol with "Rs" for Nepali style.
+    const formatted = new Intl.NumberFormat("en-IN", {
       style: "currency",
-      currency: "INR",
+      currency: "NPR",
       maximumFractionDigits: 0,
+      currencyDisplay: "symbol",
     }).format(value)
+    // Replace the default "NPR" symbol with "Rs"
+    return formatted.replace(/^NPR\s?/, "Rs ")
   }
 
   // Print report

@@ -28,19 +28,22 @@ export const formatDate = (dateString) => {
 }
 
 
-export const convertToDate = (dateString)=>{
-
-  if(!dateString) return "N/A"
-
-  const createdAtDate = new Date(parseInt(dateString)).toLocaleString("en-US", {
+export const convertToDate = (dateString) => {
+  if (!dateString) return "N/A";
+  // If it's a number or numeric string, treat as timestamp
+  if (!isNaN(dateString)) {
+    return new Date(Number(dateString)).toLocaleString("en-US", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      timeZone: "UTC",
+    });
+  }
+  // Otherwise, treat as ISO date string
+  return new Date(dateString).toLocaleString("en-US", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-    // hour: "2-digit",
-    // minute: "2-digit",
-    // second: "2-digit",
     timeZone: "UTC",
   });
-  return createdAtDate;
-}
-
+};

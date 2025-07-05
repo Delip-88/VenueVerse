@@ -273,48 +273,6 @@ const ManageBookings = () => {
     }
   }
 
-  // Export bookings to CSV
-  const exportToCSV = () => {
-    const filteredBookings = getFilteredBookings()
-    if (filteredBookings.length === 0) {
-      toast.error("No bookings to export")
-      return
-    }
-
-    // Create CSV content
-    const headers = ["Date", "Time", "Venue", "Customer", "Status", "Payment", "Amount"]
-    const csvContent = [
-      headers.join(","),
-      ...filteredBookings.map((booking) =>
-        [
-          booking.date,
-          `${booking.timeslots[0]?.start || "N/A"} - ${booking.timeslots[0]?.end || "N/A"}`,
-          booking.venueName,
-          booking.user?.name || "N/A",
-          booking.bookingStatus,
-          booking.paymentStatus,
-          booking.totalPrice,
-        ].join(","),
-      ),
-    ].join("\n")
-
-    // Create and download file
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
-    link.setAttribute("href", url)
-    link.setAttribute("download", `bookings_${selectedTab}_${new Date().toISOString().slice(0, 10)}.csv`)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-
-    toast.success("Bookings exported successfully")
-  }
-
-  // Print bookings
-  const printBookings = () => {
-    window.print()
-  }
 
   // Calculate services total
   const calculateServicesTotal = (selectedServices) => {
@@ -348,23 +306,6 @@ const ManageBookings = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <button
-                onClick={exportToCSV}
-                className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 transition-colors font-medium"
-              >
-                <Download className="w-4 h-4" />
-                <span className="hidden sm:inline">Export</span>
-              </button>
-
-              <button
-                onClick={printBookings}
-                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors font-medium"
-              >
-                <Printer className="w-4 h-4" />
-                <span className="hidden sm:inline">Print</span>
-              </button>
-            </div>
           </div>
         </div>
 

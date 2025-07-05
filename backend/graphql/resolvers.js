@@ -404,11 +404,19 @@ const resolvers = {
               throw new Error(`Custom price not set for service: ${serviceId}`);
             }
 
-            serviceCost += servicePrice; // No per-hour calculation
+            // FIX: Calculate price based on category
+            let calculatedPrice = 0;
+            if (venueService.category === "hourly") {
+              calculatedPrice = servicePrice * durationHours;
+            } else {
+              calculatedPrice = servicePrice;
+            }
+            serviceCost += calculatedPrice;
 
             return {
               serviceId: new mongoose.Types.ObjectId(serviceId),
-              servicePrice,
+              servicePrice: calculatedPrice, // Save the calculated price
+              category: venueService.category, // Optionally save category for reference
             };
           })
         );
@@ -794,6 +802,7 @@ const resolvers = {
     deleteUser: async (_, args) => {
       const { userId } = args;
       try {
+        await db.collection("bookings").deleteMany({ user: userId });
         const user = await User.findOneAndDelete({ _id: userId });
         if (!user) {
           throw new Error("User doesn't exist");
