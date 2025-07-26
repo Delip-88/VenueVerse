@@ -580,99 +580,47 @@ const resolvers = {
       }
     },
 
-    // approveBooking: async (parent, args, { user }) => {
-    //   if (!user || user.role !== "VenueOwner") {
-    //     throw new Error("Not authenticated");
-    //   }
+    updateBookingStatus: async (_, { bookingId, status }, { user }) => {
+      if (!user) {
+        throw new Error("Not authenticated");
+      }
 
-    //   const { bookingId } = args;
+      // Only VenueOwner or Admin can update booking status
+      const booking = await Booking.findById(bookingId).populate("venue");
+      if (!booking) {
+        throw new Error("Booking not found");
+      }
 
-    //   try {
-    //     const transaction = await Transaction.findOne({ booking: bookingId });
+      // Only the venue owner or admin can update the booking status
+      if (
+        user.role !== "Admin" &&
+        (!booking.venue || booking.venue.owner.toString() !== user.id)
+      ) {
+        throw new Error("Not authorized to update this booking");
+      }
 
-    //     if (!transaction || transaction.status !== "PAID") {
-    //       throw new Error("Payment not verified");
-    //     }
-    //     // Find and update the booking first
-    //     const booking = await Booking.findByIdAndUpdate(
-    //       bookingId,
-    //       {
-    //         bookingStatus: "APPROVED",
-    //         paymentStatus: "PAID", // Update the payment status here
-    //       },
-    //       { new: true }
-    //     );
+      // Only allow valid status transitions
+      const validStatuses = [
+        "PENDING",
+        "APPROVED",
+        "REJECTED",
+        "CANCELLED",
+        "COMPLETED",
+        "NO_SHOW",
+        "RESCHEDULED",
+      ];
+      if (!validStatuses.includes(status)) {
+        throw new Error("Invalid booking status");
+      }
 
-    //     if (!booking) {
-    //       throw new Error("Booking not found");
-    //     }
+      booking.bookingStatus = status;
+      await booking.save();
 
-    //     // If booking is found and updated, then update the user
-    //     await User.findByIdAndUpdate(
-    //       user.id,
-    //       {
-    //         bookedVenue: booking._id,
-    //       },
-    //       { new: true }
-    //     );
-
-    //     return { success: true, message: "Booking approved sucessfully" };
-    //   } catch (err) {
-    //     throw new Error(`Failed to approve booking: ${err.message}`);
-    //   }
-    // },
-
-    // rejectBooking: async (parent, args, { user }) => {
-    //   if (!user || user.role !== "VenueOwner") {
-    //     throw new Error("Not authenticated");
-    //   }
-
-    //   const { bookingId } = args;
-
-    //   try {
-    //     // Find and update the booking
-    //     const booking = await Booking.findByIdAndUpdate(
-    //       bookingId,
-    //       { bookingStatus: "REJECTED" },
-    //       { new: true }
-    //     );
-
-    //     if (!booking) {
-    //       throw new Error("Booking not found");
-    //     }
-
-    //     return { success: true, message: "Booking rejected successfully" };
-    //   } catch (err) {
-    //     throw new Error(`Failed to reject booking: ${err.message}`);
-    //   }
-    // },
-
-    // cancelBooking: async (_, { bookingId }) => {
-    //   try {
-    //     // Find the booking to cancel
-    //     const booking = await Booking.findById(bookingId);
-    //     if (!booking) {
-    //       throw new Error("Booking not found");
-    //     }
-
-    //     // Update the booking status to CANCELLED
-    //     booking.bookingStatus = "CANCELLED"; // Correct field to use is `bookingStatus`, not `status`
-    //     await booking.save();
-
-    //     // Update the user's bookedVenue field to remove the cancelled booking
-    //     await User.findByIdAndUpdate(
-    //       booking.user, // Use the user associated with the booking
-    //       {
-    //         $pull: { bookedVenue: booking._id }, // Remove the booking from the user's bookedVenue array
-    //       },
-    //       { new: true }
-    //     );
-
-    //     return booking; // Return the updated booking
-    //   } catch (err) {
-    //     throw new Error(`Error canceling booking: ${err.message}`);
-    //   }
-    // },
+      return {
+        success: true,
+        message: `Booking status updated to ${status}`,
+      };
+    },
 
     addReview: async (_, args, { user }) => {
       const { comment, rating, venue } = args.input;

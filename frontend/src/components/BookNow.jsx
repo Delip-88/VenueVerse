@@ -27,6 +27,12 @@ import { calculateTotalPrice } from "./Functions/calc"
 
 // Format date as YYYY-MM-DD for comparison (local time)
 const formatDateString = (date) => {
+  // Ensure 'date' is a Date object in local time
+  if (typeof date === "string") {
+    // Parse as local date, not UTC
+    const [year, month, day] = date.split("-").map(Number)
+    date = new Date(year, month - 1, day)
+  }
   const year = date.getFullYear()
   const month = (date.getMonth() + 1).toString().padStart(2, "0")
   const day = date.getDate().toString().padStart(2, "0")
@@ -568,14 +574,20 @@ const BookNowPage = () => {
 
   // Prevent selecting today's date
   const isDateSelectable = (date) => {
+    // 'date' is a string in YYYY-MM-DD
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    return new Date(date) > today
+    // Parse date string as local date
+    const [year, month, day] = date.split("-").map(Number)
+    const dateObj = new Date(year, month - 1, day)
+    return dateObj > today
   }
 
   // Prevent selecting today's time
   const isTimeSelectable = (time) => {
-    if (bookingDetails.date !== today) return true // Only restrict for today
+    // bookingDetails.date is a string in YYYY-MM-DD
+    const todayString = formatDateString(new Date())
+    if (bookingDetails.date !== todayString) return true // Only restrict for today
     const now = new Date()
     const currentMinutes = now.getHours() * 60 + now.getMinutes()
     const timeMinutes = timeToMinutes(time)

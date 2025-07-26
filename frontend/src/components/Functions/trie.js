@@ -1,4 +1,5 @@
 // Trie data structure for efficient prefix-based searching and recommendations
+
 class TrieNode {
   constructor() {
     this.children = {};
@@ -7,7 +8,17 @@ class TrieNode {
   }
 }
 
-// Binary Search Utility
+/**
+ * Binary Search Utility
+ * Efficiently checks if a target string exists in a sorted array (case-insensitive).
+ * Returns true if found, false otherwise.
+ * 
+ * NOTE: The array must be sorted before using this function.
+ * 
+ * @param {string[]} arr - Sorted array of strings
+ * @param {string} target - Target string to search for
+ * @returns {boolean}
+ */
 function binarySearch(arr, target) {
   let left = 0;
   let right = arr.length - 1;
@@ -30,11 +41,13 @@ export class Trie {
     this.root = new TrieNode();
   }
 
+  // Insert a word and associate it with a venue
   insert(word, venue) {
     let node = this.root;
     for (const char of word.toLowerCase()) {
       if (!node.children[char]) node.children[char] = new TrieNode();
       node = node.children[char];
+      // Avoid duplicate venues
       if (!node.venues.some((v) => v.id === venue.id)) {
         node.venues.push(venue);
       }
@@ -42,6 +55,7 @@ export class Trie {
     node.isEndOfWord = true;
   }
 
+  // Search for venues and suggestions based on prefix
   search(prefix) {
     let node = this.root;
     for (const char of prefix.toLowerCase()) {
@@ -66,19 +80,29 @@ export class Trie {
 }
 
 export class VenueTrie extends Trie {
+  /**
+   * @param {string[]} globalCategories - List of allowed categories (will be sorted for binary search)
+   */
   constructor(globalCategories = []) {
     super();
-    this.allowedCategories = globalCategories.sort(); // Ensure sorted
+    // Ensure allowedCategories is sorted for binary search
+    this.allowedCategories = [...globalCategories].sort();
   }
 
+  /**
+   * Index a single venue by various attributes.
+   * Uses binary search to efficiently check if a category is allowed.
+   */
   indexVenue(venue) {
     this.insert(venue.name, venue);
 
     if (venue.location?.city) this.insert(venue.location.city, venue);
     if (venue.location?.province) this.insert(venue.location.province, venue);
 
+    // Use binary search to check if each category is in allowedCategories
     if (Array.isArray(venue.categories)) {
       venue.categories.forEach((category) => {
+        // Efficient O(log n) lookup using binary search
         if (binarySearch(this.allowedCategories, category)) {
           this.insert(category, venue);
         }
@@ -100,12 +124,17 @@ export class VenueTrie extends Trie {
     venues.forEach((venue) => this.indexVenue(venue));
   }
 
+  /**
+   * Find similar venues based on categories, city, and services.
+   * Uses binary search for category matching.
+   */
   findSimilarVenues(venue, allVenues, limit = 3) {
     const trie = new VenueTrie(this.allowedCategories);
     trie.indexVenues(allVenues);
 
     const matches = new Map();
 
+    // Match by categories (using binary search for allowed categories)
     if (Array.isArray(venue.categories)) {
       venue.categories.forEach((category) => {
         const results = trie.search(category).venues;
@@ -126,6 +155,7 @@ export class VenueTrie extends Trie {
       });
     }
 
+    // Match by city
     if (venue.location?.city) {
       const results = trie.search(venue.location.city).venues;
       results.forEach((v) => {
@@ -136,6 +166,7 @@ export class VenueTrie extends Trie {
       });
     }
 
+    // Match by services
     if (venue.services && venue.services.length > 0) {
       venue.services.forEach((service) => {
         if (service.serviceId?.name) {

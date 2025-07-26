@@ -1,5 +1,4 @@
 "use client"
-
 import { useState, useEffect } from "react"
 import {
   Loader,
@@ -27,7 +26,6 @@ import { useNavigate } from "react-router-dom"
 import toast from "react-hot-toast"
 import { MY_VENUES } from "../Graphql/query/meGql"
 import { GET_CATEGORIES } from "../Graphql/query/AdminQuery"
-
 
 const AddNewVenue = () => {
   const navigate = useNavigate()
@@ -64,9 +62,191 @@ const AddNewVenue = () => {
     awaitRefetchQueries: true,
   })
   const { data: servicesData, loading: servicesLoading } = useQuery(GET_SERVICES)
+  const { data: categoriesData, loading: categoriesLoading } = useQuery(GET_CATEGORIES)
 
-  const { data: categoriesData, loading: categoriesLoading, } = useQuery(GET_CATEGORIES)
-  const VENUE_CATEGORIES =  categoriesData?.categories?.categories || []
+  const VENUE_CATEGORIES = categoriesData?.categories?.categories || []
+
+  // Enhanced validation functions
+  const validateText = (text, fieldName, minLength = 3, maxLength = 100) => {
+    const errors = []
+
+    // Check if empty or only whitespace
+    if (!text || !text.trim()) {
+      errors.push(`${fieldName} is required`)
+      return errors
+    }
+
+    const trimmedText = text.trim()
+
+    // Check minimum length
+    if (trimmedText.length < minLength) {
+      errors.push(`${fieldName} must be at least ${minLength} characters long`)
+    }
+
+    // Check maximum length
+    if (trimmedText.length > maxLength) {
+      errors.push(`${fieldName} must not exceed ${maxLength} characters`)
+    }
+
+    // Check for invalid patterns
+    const invalidPatterns = [
+      { pattern: /\.{3,}/, message: "Multiple consecutive dots (...) are not allowed" },
+      { pattern: /^[.\s]*$/, message: "Cannot contain only dots and spaces" },
+      { pattern: /^\s*test\s*$/i, message: "Test entries are not allowed" },
+      { pattern: /^\s*sample\s*$/i, message: "Sample entries are not allowed" },
+      { pattern: /^\s*example\s*$/i, message: "Example entries are not allowed" },
+      { pattern: /^\s*dummy\s*$/i, message: "Dummy entries are not allowed" },
+      { pattern: /^[^a-zA-Z0-9\s]*$/, message: "Must contain at least some letters or numbers" },
+      { pattern: /(.)\1{4,}/, message: "Cannot contain more than 4 consecutive identical characters" },
+      { pattern: /^\d+$/, message: "Cannot contain only numbers" },
+    ]
+
+    for (const { pattern, message } of invalidPatterns) {
+      if (pattern.test(trimmedText)) {
+        errors.push(`${fieldName}: ${message}`)
+      }
+    }
+
+    // Check for profanity or inappropriate content (basic check)
+    const inappropriateWords = ["fuck", "shit", "damn", "hell", "ass", "bitch", "bastard"]
+    const lowerText = trimmedText.toLowerCase()
+    for (const word of inappropriateWords) {
+      if (lowerText.includes(word)) {
+        errors.push(`${fieldName} contains inappropriate language`)
+        break
+      }
+    }
+
+    return errors
+  }
+
+  const validateDescription = (text) => {
+    const errors = validateText(text, "Description", 10, 500)
+
+    if (errors.length === 0) {
+      const trimmedText = text.trim()
+
+      // Additional description-specific validations
+      if (trimmedText.split(" ").length < 5) {
+        errors.push("Description must contain at least 5 words")
+      }
+
+      // Check for meaningful content
+      const meaningfulWords = trimmedText
+        .split(" ")
+        .filter(
+          (word) =>
+            word.length > 2 &&
+            ![
+              "the",
+              "and",
+              "for",
+              "are",
+              "but",
+              "not",
+              "you",
+              "all",
+              "can",
+              "had",
+              "her",
+              "was",
+              "one",
+              "our",
+              "out",
+              "day",
+              "get",
+              "has",
+              "him",
+              "his",
+              "how",
+              "its",
+              "may",
+              "new",
+              "now",
+              "old",
+              "see",
+              "two",
+              "who",
+              "boy",
+              "did",
+              "man",
+              "men",
+              "put",
+              "say",
+              "she",
+              "too",
+              "use",
+            ].includes(word.toLowerCase()),
+        )
+
+      if (meaningfulWords.length < 3) {
+        errors.push("Description must contain at least 3 meaningful words")
+      }
+    }
+
+    return errors
+  }
+
+  const validateNumericField = (value, fieldName, min = 1, max = 999999) => {
+    const errors = []
+
+    if (!value || value.toString().trim() === "") {
+      errors.push(`${fieldName} is required`)
+      return errors
+    }
+
+    const numValue = Number(value)
+
+    if (isNaN(numValue)) {
+      errors.push(`${fieldName} must be a valid number`)
+      return errors
+    }
+
+    if (numValue < min) {
+      errors.push(`${fieldName} must be at least ${min}`)
+    }
+
+    if (numValue > max) {
+      errors.push(`${fieldName} cannot exceed ${max}`)
+    }
+
+    // Check for decimal places where not appropriate
+    if (fieldName === "Capacity" && numValue % 1 !== 0) {
+      errors.push(`${fieldName} must be a whole number`)
+    }
+
+    return errors
+  }
+
+  const validateLocation = (location) => {
+    const errors = {}
+
+    // Validate street address
+    const streetErrors = validateText(location.street, "Street address", 5, 100)
+    if (streetErrors.length > 0) {
+      errors.street = streetErrors[0]
+    }
+
+    // Validate province
+    if (!location.province || location.province.trim() === "") {
+      errors.province = "Province is required"
+    }
+
+    // Validate city
+    if (!location.city || location.city.trim() === "") {
+      errors.city = "City is required"
+    }
+
+    // Validate zip code if provided
+    if (location.zipCode && location.zipCode.trim() !== "") {
+      const zipCode = location.zipCode.trim()
+      if (!/^\d{4,6}$/.test(zipCode)) {
+        errors.zipCode = "ZIP code must be 4-6 digits"
+      }
+    }
+
+    return errors
+  }
 
   // Format category for display
   const formatCategory = (category) => {
@@ -104,6 +284,7 @@ const AddNewVenue = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target
+
     if (name.startsWith("location.")) {
       const locationField = name.split(".")[1]
       setVenue((prev) => ({
@@ -127,9 +308,41 @@ const AddNewVenue = () => {
       setVenue((prev) => ({ ...prev, [name]: value }))
     }
 
-    // Clear errors when input changes
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: null }))
+    // Real-time validation
+    if (name === "name") {
+      const nameErrors = validateText(value, "Venue name", 3, 50)
+      if (nameErrors.length > 0) {
+        setErrors((prev) => ({ ...prev, name: nameErrors[0] }))
+      } else {
+        setErrors((prev) => ({ ...prev, name: null }))
+      }
+    } else if (name === "description") {
+      const descErrors = validateDescription(value)
+      if (descErrors.length > 0) {
+        setErrors((prev) => ({ ...prev, description: descErrors[0] }))
+      } else {
+        setErrors((prev) => ({ ...prev, description: null }))
+      }
+    } else if (name === "basePricePerHour") {
+      const priceErrors = validateNumericField(value, "Base price per hour", 100, 50000)
+      if (priceErrors.length > 0) {
+        setErrors((prev) => ({ ...prev, basePricePerHour: priceErrors[0] }))
+      } else {
+        setErrors((prev) => ({ ...prev, basePricePerHour: null }))
+      }
+    } else if (name === "capacity") {
+      const capacityErrors = validateNumericField(value, "Capacity", 1, 10000)
+      if (capacityErrors.length > 0) {
+        setErrors((prev) => ({ ...prev, capacity: capacityErrors[0] }))
+      } else {
+        setErrors((prev) => ({ ...prev, capacity: null }))
+      }
+    } else if (name.startsWith("location.")) {
+      // Clear location-specific errors when input changes
+      const locationField = name.split(".")[1]
+      if (errors[locationField]) {
+        setErrors((prev) => ({ ...prev, [locationField]: null }))
+      }
     }
   }
 
@@ -138,18 +351,36 @@ const AddNewVenue = () => {
 
     // Validate file is an image
     if (file) {
+      // Check file type
       if (!file.type.startsWith("image/")) {
         toast.error("Please select an image file (JPEG, PNG, GIF, etc.)")
         return
       }
 
-      setVenue((prev) => ({ ...prev, image: file }))
-      setImagePreview(URL.createObjectURL(file))
-
-      // Clear image error if it exists
-      if (errors.image) {
-        setErrors((prev) => ({ ...prev, image: null }))
+      // Check file size (max 10MB)
+      const maxSize = 10 * 1024 * 1024 // 10MB in bytes
+      if (file.size > maxSize) {
+        toast.error("Image size must be less than 10MB")
+        return
       }
+
+      // Check image dimensions (optional)
+      const img = new Image()
+      img.onload = function () {
+        if (this.width < 400 || this.height < 300) {
+          toast.error("Image must be at least 400x300 pixels")
+          return
+        }
+
+        setVenue((prev) => ({ ...prev, image: file }))
+        setImagePreview(URL.createObjectURL(file))
+
+        // Clear image error if it exists
+        if (errors.image) {
+          setErrors((prev) => ({ ...prev, image: null }))
+        }
+      }
+      img.src = URL.createObjectURL(file)
     }
   }
 
@@ -184,6 +415,23 @@ const AddNewVenue = () => {
         service.serviceId === serviceId ? { ...service, servicePrice: price } : service,
       ),
     )
+
+    // Real-time validation for service prices
+    const priceErrors = validateNumericField(price, "Service price", 50, 20000)
+    if (priceErrors.length > 0) {
+      setErrors((prev) => ({ ...prev, services: priceErrors[0] }))
+    } else {
+      // Check if all selected services have valid prices
+      const updatedServices = selectedServices.map((service) =>
+        service.serviceId === serviceId ? { ...service, servicePrice: price } : service,
+      )
+      const invalidServices = updatedServices.filter(
+        (service) => !service.servicePrice || isNaN(service.servicePrice) || service.servicePrice <= 0,
+      )
+      if (invalidServices.length === 0) {
+        setErrors((prev) => ({ ...prev, services: null }))
+      }
+    }
   }
 
   const handleServiceCategoryChange = (serviceId, category) => {
@@ -222,37 +470,51 @@ const AddNewVenue = () => {
 
     switch (step) {
       case 1: // Basic Information
-        if (!venue.name.trim()) newErrors.name = "Venue name is required"
-        if (!venue.description.trim()) newErrors.description = "Description is required"
-        if (!venue.categories || venue.categories.length === 0)
+        // Validate name
+        const nameErrors = validateText(venue.name, "Venue name", 3, 50)
+        if (nameErrors.length > 0) {
+          newErrors.name = nameErrors[0]
+        }
+
+        // Validate description
+        const descErrors = validateDescription(venue.description)
+        if (descErrors.length > 0) {
+          newErrors.description = descErrors[0]
+        }
+
+        // Validate categories
+        if (!venue.categories || venue.categories.length === 0) {
           newErrors.categories = "At least one category is required"
+        }
         break
 
       case 2: // Location
-        if (!venue.location.street.trim()) newErrors.street = "Street address is required"
-        if (!venue.location.province) newErrors.province = "Province is required"
-        if (!venue.location.city) newErrors.city = "City is required"
-        if (venue.location.zipCode && isNaN(venue.location.zipCode)) {
-          newErrors.zipCode = "Zip code must be a number"
-        }
+        const locationErrors = validateLocation(venue.location)
+        Object.assign(newErrors, locationErrors)
         break
 
       case 3: // Capacity & Price
-        if (!venue.basePricePerHour || isNaN(venue.basePricePerHour) || venue.basePricePerHour <= 0) {
-          newErrors.basePricePerHour = "Valid price per hour is required"
+        // Validate price
+        const priceErrors = validateNumericField(venue.basePricePerHour, "Base price per hour", 100, 50000)
+        if (priceErrors.length > 0) {
+          newErrors.basePricePerHour = priceErrors[0]
         }
-        if (!venue.capacity || isNaN(venue.capacity) || venue.capacity <= 0) {
-          newErrors.capacity = "Valid capacity is required"
+
+        // Validate capacity
+        const capacityErrors = validateNumericField(venue.capacity, "Capacity", 1, 10000)
+        if (capacityErrors.length > 0) {
+          newErrors.capacity = capacityErrors[0]
         }
         break
 
       case 4: // Services
-        const invalidServices = selectedServices.filter(
-          (service) => !service.servicePrice || isNaN(service.servicePrice) || service.servicePrice <= 0,
-        )
+        const invalidServices = selectedServices.filter((service) => {
+          const priceErrors = validateNumericField(service.servicePrice, "Service price", 50, 20000)
+          return priceErrors.length > 0
+        })
 
         if (invalidServices.length > 0) {
-          newErrors.services = "All selected services must have a valid price"
+          newErrors.services = "All selected services must have a valid price (Rs. 50 - Rs. 20,000)"
         }
         break
 
@@ -288,9 +550,60 @@ const AddNewVenue = () => {
     e.preventDefault()
     setFormSubmitted(true)
 
-    // Final validation
-    if (!validateStep(currentStep)) {
-      Object.values(errors).forEach((error) => {
+    // Final comprehensive validation
+    const allErrors = {}
+
+    // Validate all steps
+    for (let step = 1; step <= 5; step++) {
+      const stepErrors = {}
+
+      switch (step) {
+        case 1:
+          const nameErrors = validateText(venue.name, "Venue name", 3, 50)
+          if (nameErrors.length > 0) stepErrors.name = nameErrors[0]
+
+          const descErrors = validateDescription(venue.description)
+          if (descErrors.length > 0) stepErrors.description = descErrors[0]
+
+          if (!venue.categories || venue.categories.length === 0) {
+            stepErrors.categories = "At least one category is required"
+          }
+          break
+
+        case 2:
+          const locationErrors = validateLocation(venue.location)
+          Object.assign(stepErrors, locationErrors)
+          break
+
+        case 3:
+          const priceErrors = validateNumericField(venue.basePricePerHour, "Base price per hour", 100, 50000)
+          if (priceErrors.length > 0) stepErrors.basePricePerHour = priceErrors[0]
+
+          const capacityErrors = validateNumericField(venue.capacity, "Capacity", 1, 10000)
+          if (capacityErrors.length > 0) stepErrors.capacity = capacityErrors[0]
+          break
+
+        case 4:
+          const invalidServices = selectedServices.filter((service) => {
+            const serviceErrors = validateNumericField(service.servicePrice, "Service price", 50, 20000)
+            return serviceErrors.length > 0
+          })
+          if (invalidServices.length > 0) {
+            stepErrors.services = "All selected services must have a valid price"
+          }
+          break
+
+        case 5:
+          if (!venue.image) stepErrors.image = "Venue image is required"
+          break
+      }
+
+      Object.assign(allErrors, stepErrors)
+    }
+
+    if (Object.keys(allErrors).length > 0) {
+      setErrors(allErrors)
+      Object.values(allErrors).forEach((error) => {
         if (error) toast.error(error)
       })
       return
@@ -330,10 +643,12 @@ const AddNewVenue = () => {
         const response = await addVenue({
           variables: {
             venueInput: {
-              name: venue.name,
-              description: venue.description,
+              name: venue.name.trim(),
+              description: venue.description.trim(),
               location: {
-                ...venue.location,
+                street: venue.location.street.trim(),
+                province: venue.location.province,
+                city: venue.location.city,
                 zipCode: venue.location.zipCode ? Number.parseInt(venue.location.zipCode, 10) : null,
               },
               basePricePerHour: Number.parseInt(venue.basePricePerHour, 10),
@@ -397,11 +712,14 @@ const AddNewVenue = () => {
                 name="name"
                 value={venue.name}
                 onChange={handleChange}
+                maxLength={50}
                 className={`mt-1 block w-full rounded-md border ${
                   errors.name ? "border-red-500" : "border-gray-300"
                 } shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200 focus:ring-opacity-50`}
+                placeholder="Enter a descriptive venue name (3-50 characters)"
               />
               {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name}</p>}
+              <p className="mt-1 text-xs text-gray-500">{venue.name.length}/50 characters</p>
             </div>
 
             <div>
@@ -414,11 +732,23 @@ const AddNewVenue = () => {
                 value={venue.description}
                 onChange={handleChange}
                 rows="4"
+                maxLength={500}
                 className={`mt-1 block w-full rounded-md border ${
                   errors.description ? "border-red-500" : "border-gray-300"
                 } shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200 focus:ring-opacity-50`}
+                placeholder="Provide a detailed description of your venue, its features, and what makes it special (minimum 10 characters, at least 5 words)"
               ></textarea>
               {errors.description && <p className="mt-1 text-sm text-red-500">{errors.description}</p>}
+              <p className="mt-1 text-xs text-gray-500">
+                {venue.description.length}/500 characters •{" "}
+                {
+                  venue.description
+                    .trim()
+                    .split(" ")
+                    .filter((word) => word.length > 0).length
+                }{" "}
+                words
+              </p>
             </div>
 
             <div>
@@ -426,31 +756,42 @@ const AddNewVenue = () => {
                 Venue Categories <span className="text-red-500">*</span>
               </label>
               <p className="text-sm text-gray-500 mb-2">Select all categories that apply to your venue</p>
-              <div className="mt-2 grid grid-cols-2 md:grid-cols-3 gap-2">
-                {VENUE_CATEGORIES.map((category) => (
-                  <div
-                    key={category}
-                    className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
-                      venue.categories.includes(category)
-                        ? "border-teal-500 bg-teal-50"
-                        : "border-gray-200 hover:border-teal-300"
-                    }`}
-                    onClick={() => handleCategoryToggle(category)}
-                  >
-                    <div className="flex-shrink-0">
-                      <div
-                        className={`w-5 h-5 rounded border flex items-center justify-center ${
-                          venue.categories.includes(category) ? "bg-teal-500 border-teal-500" : "border-gray-300"
-                        }`}
-                      >
-                        {venue.categories.includes(category) && <Check className="h-3 w-3 text-white" />}
+              {categoriesLoading ? (
+                <div className="flex justify-center py-4">
+                  <Loader className="h-8 w-8 text-teal-500 animate-spin" />
+                </div>
+              ) : (
+                <div className="mt-2 grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {VENUE_CATEGORIES.map((category) => (
+                    <div
+                      key={category}
+                      className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
+                        venue.categories.includes(category)
+                          ? "border-teal-500 bg-teal-50"
+                          : "border-gray-200 hover:border-teal-300"
+                      }`}
+                      onClick={() => handleCategoryToggle(category)}
+                    >
+                      <div className="flex-shrink-0">
+                        <div
+                          className={`w-5 h-5 rounded border flex items-center justify-center ${
+                            venue.categories.includes(category) ? "bg-teal-500 border-teal-500" : "border-gray-300"
+                          }`}
+                        >
+                          {venue.categories.includes(category) && <Check className="h-3 w-3 text-white" />}
+                        </div>
                       </div>
+                      <span className="ml-2 text-sm">{formatCategory(category)}</span>
                     </div>
-                    <span className="ml-2 text-sm">{formatCategory(category)}</span>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
               {errors.categories && <p className="mt-1 text-sm text-red-500">{errors.categories}</p>}
+              {venue.categories.length > 0 && (
+                <p className="mt-1 text-xs text-gray-500">
+                  {venue.categories.length} category{venue.categories.length !== 1 ? "ies" : "y"} selected
+                </p>
+              )}
             </div>
           </div>
         )
@@ -523,11 +864,14 @@ const AddNewVenue = () => {
                   name="location.street"
                   value={venue.location.street}
                   onChange={handleChange}
+                  maxLength={100}
                   className={`mt-1 block w-full rounded-md border ${
                     errors.street ? "border-red-500" : "border-gray-300"
                   } shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200 focus:ring-opacity-50`}
+                  placeholder="Enter complete street address (minimum 5 characters)"
                 />
                 {errors.street && <p className="mt-1 text-sm text-red-500">{errors.street}</p>}
+                <p className="mt-1 text-xs text-gray-500">{venue.location.street.length}/100 characters</p>
               </div>
 
               <div>
@@ -540,9 +884,12 @@ const AddNewVenue = () => {
                   name="location.zipCode"
                   value={venue.location.zipCode}
                   onChange={handleChange}
+                  maxLength={6}
+                  pattern="[0-9]{4,6}"
                   className={`mt-1 block w-full rounded-md border ${
                     errors.zipCode ? "border-red-500" : "border-gray-300"
                   } shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200 focus:ring-opacity-50`}
+                  placeholder="4-6 digit postal code"
                 />
                 {errors.zipCode && <p className="mt-1 text-sm text-red-500">{errors.zipCode}</p>}
               </div>
@@ -574,16 +921,19 @@ const AddNewVenue = () => {
                   name="basePricePerHour"
                   value={venue.basePricePerHour}
                   onChange={handleChange}
-                  min="0"
+                  min="100"
+                  max="50000"
                   className={`block w-full pl-12 pr-12 rounded-md border ${
                     errors.basePricePerHour ? "border-red-500" : "border-gray-300"
                   } shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200 focus:ring-opacity-50`}
+                  placeholder="100"
                 />
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                   <span className="text-gray-500 sm:text-sm">/hour</span>
                 </div>
               </div>
               {errors.basePricePerHour && <p className="mt-1 text-sm text-red-500">{errors.basePricePerHour}</p>}
+              <p className="mt-1 text-xs text-gray-500">Price range: Rs. 100 - Rs. 50,000 per hour</p>
             </div>
 
             <div>
@@ -601,12 +951,15 @@ const AddNewVenue = () => {
                   value={venue.capacity}
                   onChange={handleChange}
                   min="1"
+                  max="10000"
                   className={`block w-full pl-10 rounded-md border ${
                     errors.capacity ? "border-red-500" : "border-gray-300"
                   } shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200 focus:ring-opacity-50`}
+                  placeholder="50"
                 />
               </div>
               {errors.capacity && <p className="mt-1 text-sm text-red-500">{errors.capacity}</p>}
+              <p className="mt-1 text-xs text-gray-500">Maximum capacity: 1 - 10,000 people</p>
             </div>
           </div>
         )
@@ -743,8 +1096,10 @@ const AddNewVenue = () => {
                                       id={`price-${service.id}`}
                                       value={selectedService?.servicePrice || ""}
                                       onChange={(e) => handleServicePriceChange(service.id, e.target.value)}
-                                      min="0"
+                                      min="50"
+                                      max="20000"
                                       className="block w-full pl-12 py-2 rounded-md border border-gray-300 shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200 focus:ring-opacity-50"
+                                      placeholder="50"
                                     />
                                     {selectedService.category === "hourly" && (
                                       <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -752,6 +1107,7 @@ const AddNewVenue = () => {
                                       </div>
                                     )}
                                   </div>
+                                  <p className="mt-1 text-xs text-gray-500">Price range: Rs. 50 - Rs. 20,000</p>
                                 </div>
                               </div>
                             )}
@@ -766,6 +1122,11 @@ const AddNewVenue = () => {
               )}
 
               {errors.services && <p className="mt-2 text-sm text-red-500">{errors.services}</p>}
+              {selectedServices.length > 0 && (
+                <p className="mt-2 text-xs text-gray-500">
+                  {selectedServices.length} service{selectedServices.length !== 1 ? "s" : ""} selected
+                </p>
+              )}
             </div>
           </div>
         )
@@ -786,6 +1147,8 @@ const AddNewVenue = () => {
               </label>
               <p className="text-sm text-gray-500 mb-4">
                 Upload a high-quality image of your venue. This will be the main image displayed to potential customers.
+                <br />
+                <strong>Requirements:</strong> Minimum 400x300 pixels, maximum 10MB, JPEG/PNG/GIF format
               </p>
 
               <div
@@ -812,7 +1175,7 @@ const AddNewVenue = () => {
                     </label>
                     <p className="pl-1">or drag and drop</p>
                   </div>
-                  <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                  <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB • Min: 400x300px</p>
                 </div>
               </div>
 
@@ -826,7 +1189,7 @@ const AddNewVenue = () => {
                   <button
                     type="button"
                     onClick={handleImageRemove}
-                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1"
+                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
                     aria-label="Remove image"
                   >
                     <Trash2 className="h-4 w-4" />

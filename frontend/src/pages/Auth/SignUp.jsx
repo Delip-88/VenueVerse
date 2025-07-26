@@ -117,12 +117,12 @@ export default function SignUpPage() {
       case "name":
         if (!value.trim()) {
           newErrors.name = "Full name is required"
-        } else if (value.trim().length < 2) {
-          newErrors.name = "Name must be at least 2 characters"
+        } else if (value.trim().length < 3) {
+          newErrors.name = "Name must be at least 3 characters"
         } else if (!/^[a-zA-Z\s]+$/.test(value.trim())) {
           newErrors.name = "Name can only contain letters and spaces"
-        } else if (value.trim().length > 50) {
-          newErrors.name = "Name must be less than 50 characters"
+        } else if (value.trim().length > 30) {
+          newErrors.name = "Name must be less than 30 characters"
         } else {
           delete newErrors.name
         }

@@ -35,6 +35,7 @@ export default function ReportsPage() {
     if (!bookingsData?.bookings) return []
     const map = {}
     bookingsData.bookings.forEach((b) => {
+      if (b.bookingStatus !== "APPROVED") return
       let key
       if (dateRange === "lastYear") {
         const d = new Date(b.date)
@@ -91,8 +92,12 @@ export default function ReportsPage() {
     if (!venuesData?.venues) return []
     return venuesData.venues
       .map((v) => {
-        const bookings = v.bookings ? v.bookings.length : 0
-        const revenue = v.bookings ? v.bookings.reduce((sum, b) => sum + (b.totalPrice || 0), 0) : 0
+        // Only include bookings with status "APPROVED"
+        const approvedBookings = v.bookings
+          ? v.bookings.filter((b) => b.bookingStatus === "APPROVED")
+          : []
+        const bookings = approvedBookings.length
+        const revenue = approvedBookings.reduce((sum, b) => sum + (b.totalPrice || 0), 0)
         const avgRating =
           v.reviews && v.reviews.length
             ? (v.reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / v.reviews.length).toFixed(1)

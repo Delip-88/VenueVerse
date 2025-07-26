@@ -245,6 +245,8 @@ const typeDefs = gql`
     addCategory(category: String!): Categories!
     removeCategory(category: String!): Categories!
     editCategory(oldCategory: String!, newCategory: String!): Categories!
+
+    updateBookingStatus(bookingId: ID!, status: BookingStatus!): Response!
   }
 
   type TopVenue {
